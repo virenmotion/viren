@@ -39,9 +39,11 @@ export default function WorkDetail() {
     <section id="work-detail">
       <div className="wd-breadcrumb">
         <Link to={`/work#${p.cat}`}>{catLabel(p.cat)}</Link>
-        <span>{p.titleEn || p.titleKo}</span>
       </div>
-      {p.kind && <p className="wd-tag">{p.kind}</p>}
+      <div className="wd-tagrow">
+        {p.kind && <span className="wd-tag">{p.kind}</span>}
+        {p.location && <span className="wd-loc">{p.location}</span>}
+      </div>
 
       {p.youtube && (
         <div className="wd-video">
@@ -64,10 +66,9 @@ export default function WorkDetail() {
         </p>
       )}
 
-      {(p.location || p.deliverables) && (
+      {p.deliverables && (
         <dl className="wd-spec">
-          {p.location && <div><dt>Location</dt><dd>{p.location}</dd></div>}
-          {p.deliverables && <div><dt>Deliverables</dt><dd>{p.deliverables}</dd></div>}
+          <div><dt>Deliverables</dt><dd>{p.deliverables}</dd></div>
         </dl>
       )}
 
