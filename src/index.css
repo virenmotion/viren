@@ -237,7 +237,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   /* 상단 여백 — PHILOSOPHY 라벨 아래로 확실히 떨어뜨려 겹치지 않게 한다 */
   margin:clamp(48px,8vh,104px) 0 clamp(64px,11vh,150px);
 }
-.sec-statement .line{display:block;overflow:hidden}
+.sec-statement .line{display:block;overflow:hidden;padding-bottom:.16em;margin-bottom:-.16em} /* 디센더(y,g 등) 잘림 방지 */
 .sec-statement .line i{display:block;font-style:normal}
 .sec-statement em{font-style:normal;color:var(--accent)}
 @media(max-height:800px) and (min-width:761px){.sec-statement{font-size:clamp(30px,5vw,72px)}}
