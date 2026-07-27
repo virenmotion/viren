@@ -386,7 +386,8 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 /* ---------- work ---------- */
 /* WORK — d'strict식 중앙 3열 타이트 이미지 그리드 */
 .work-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(8px,1vw,16px);
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:clamp(36px,4.5vh,56px) clamp(8px,1vw,16px); /* 세로 간격 늘림 / 가로는 유지 */
   max-width:1160px;margin:0 auto;
 }
 @media(max-width:860px){.work-grid{grid-template-columns:repeat(2,1fr)}}
