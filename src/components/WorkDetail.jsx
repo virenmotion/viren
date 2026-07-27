@@ -72,14 +72,17 @@ export default function WorkDetail() {
 
       {p.desc && <Reveal as="p" className="wd-desc">{p.desc}</Reveal>}
 
+      {/* 본문 ↔ 추가 콘텐츠 사이 구분선 */}
+      {Array.isArray(p.blocks) && p.blocks.length > 0 && <div className="wd-block-rule" />}
+
       {/* 본문 하단 콘텐츠 블록 — 스크롤 시 아래에서 위로 */}
       {Array.isArray(p.blocks) && p.blocks.map((b, i) => (
         <Reveal className="wd-block" key={i}>
           {b.type === 'text' && (
-            <>
+            <div className="wb-textrow">
               {b.heading && <h3 className="wb-heading">{b.heading}</h3>}
               {b.body && <p className="wb-text">{b.body}</p>}
-            </>
+            </div>
           )}
           {b.type === 'image' && b.media && (
             <figure className="wb-figure">
