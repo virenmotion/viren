@@ -46,7 +46,7 @@ export default function WorkDetail() {
       {p.youtube && (
         <div className="wd-video">
           <iframe
-            src={`https://www.youtube.com/embed/${ytId(p.youtube)}`}
+            src={`https://www.youtube.com/embed/${ytId(p.youtube)}?autoplay=1&mute=1&playsinline=1&rel=0`}
             title={p.titleEn || p.titleKo}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen

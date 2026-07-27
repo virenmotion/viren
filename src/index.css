@@ -443,7 +443,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .card .meta{display:none}
 
 /* ---------- WORK 상세 페이지 (게시글) ---------- */
-#work-detail{max-width:960px;margin:0 auto;padding:clamp(104px,14vh,168px) var(--pad) clamp(70px,11vh,130px)}
+#work-detail{max-width:1200px;margin:0 auto;padding:clamp(104px,14vh,168px) var(--pad) clamp(70px,11vh,130px)}
 .wd-breadcrumb{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;font-size:15px;color:var(--muted);margin-bottom:14px}
 .wd-breadcrumb a{color:var(--muted);transition:color .3s var(--ease)}
 .wd-breadcrumb a:hover{color:var(--accent)}
@@ -462,7 +462,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .wd-spec dt{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 .wd-spec dd{font-size:15px;line-height:1.6;color:var(--fg);font-family:'Pretendard Variable',Pretendard,sans-serif}
 @media(max-width:560px){.wd-spec>div{grid-template-columns:1fr;gap:5px;padding:13px 2px}}
-.wd-desc{font-size:clamp(15px,1.35vw,18px);line-height:1.95;color:var(--muted);
+.wd-desc{font-size:clamp(15px,1.35vw,18px);line-height:1.95;color:var(--muted);max-width:820px;
   font-family:'Pretendard Variable',Pretendard,sans-serif;white-space:pre-line}
 .wd-back{display:inline-block;margin-top:clamp(44px,7vh,72px);
   font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);transition:color .3s var(--ease)}
