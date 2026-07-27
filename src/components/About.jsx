@@ -27,24 +27,45 @@ export default function About() {
     if (document.fonts?.ready) document.fonts.ready.then(syncBodyWidth)
     syncBodyWidth()
 
-    /* 문장: 왼쪽→오른쪽 흰색 채움 (줄 단위 순차) */
-    const onScroll = () => {
-      if (!lines.length) return
-      const s = innerHeight * 0.75, e = innerHeight * 0.22
-      let p = (s - stmt.getBoundingClientRect().top) / (s - e)
-      p = Math.min(1, Math.max(0, p))
+    /* 문장 흰색 채움 (왼쪽→오른쪽, 줄 단위 순차).
+       풀페이지 스크롤 대응 — 스크롤 위치가 아니라 "화면 진입 시" 타임 애니메이션으로 재생.
+       나갔다 다시 들어오면 재생됨. */
+    const setFill = (p) => {
       lines.forEach((line, i) => {
         const q = Math.min(1, Math.max(0, p * lines.length - i))
         line.style.setProperty('--p', (q * 100).toFixed(1) + '%')
       })
     }
-    addEventListener('scroll', onScroll, { passive: true })
-    addEventListener('resize', onScroll)
-    onScroll()
+    setFill(0)
+    let raf = 0
+    let playing = false
+    const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+    const play = () => {
+      if (playing) return
+      playing = true
+      const dur = 1200
+      let start = 0
+      const step = (ts) => {
+        if (!start) start = ts
+        const t = Math.min(1, (ts - start) / dur)
+        setFill(easeInOut(t))
+        if (t < 1) raf = requestAnimationFrame(step)
+      }
+      raf = requestAnimationFrame(step)
+    }
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((en) => {
+        if (en.isIntersecting) { play() }
+        else { playing = false; cancelAnimationFrame(raf); setFill(0) }
+      }),
+      { threshold: 0.55 },
+    )
+    io.observe(stmt)
+
     return () => {
       removeEventListener('resize', syncBodyWidth)
-      removeEventListener('scroll', onScroll)
-      removeEventListener('resize', onScroll)
+      io.disconnect()
+      cancelAnimationFrame(raf)
     }
   }, [])
 
