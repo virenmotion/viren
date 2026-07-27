@@ -251,6 +251,7 @@ function ProjectManager() {
                   <option value="text">텍스트</option>
                   <option value="image">이미지</option>
                   <option value="video">영상</option>
+                  <option value="divider">구분선</option>
                 </select>
                 <span className="adm-block-actions">
                   <button type="button" className="adm-btn" onClick={() => moveBlock(i, -1)} disabled={i === 0}>↑</button>
@@ -277,12 +278,14 @@ function ProjectManager() {
                   <input placeholder="캡션 (선택)" value={b.caption || ''} onChange={(e) => updateBlock(i, { caption: e.target.value })} />
                 </>
               )}
+              {b.type === 'divider' && <span className="adm-hint">— 구분선 (이 지점에서 구역이 나뉘고, 구역별로 스크롤 효과가 적용됩니다) —</span>}
             </div>
           ))}
           <div className="adm-block-add">
             <button type="button" className="adm-btn" onClick={() => addBlock('text')}>+ 텍스트</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('image')}>+ 이미지</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('video')}>+ 영상</button>
+            <button type="button" className="adm-btn" onClick={() => addBlock('divider')}>+ 구분선</button>
           </div>
         </div>
 

@@ -13,6 +13,64 @@ function ytId(v) {
   return s
 }
 
+/* 콘텐츠 블록 하나 렌더 (텍스트/이미지/영상) */
+function BlockBody({ b }) {
+  if (b.type === 'text') {
+    return (
+      <div className="wb-textrow">
+        {b.heading && <h3 className="wb-heading">{b.heading}</h3>}
+        {b.body && <p className="wb-text">{b.body}</p>}
+      </div>
+    )
+  }
+  if (b.type === 'image' && b.media) {
+    return (
+      <figure className="wb-figure">
+        <img src={b.media} alt={b.caption || ''} loading="lazy" />
+        {b.caption && <figcaption className="wb-caption">{b.caption}</figcaption>}
+      </figure>
+    )
+  }
+  if (b.type === 'video' && b.media) {
+    return (
+      <figure className="wb-figure">
+        <div className="wb-video">
+          <iframe
+            src={`https://www.youtube.com/embed/${ytId(b.media)}?rel=0`}
+            title={b.caption || 'video'}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        </div>
+        {b.caption && <figcaption className="wb-caption">{b.caption}</figcaption>}
+      </figure>
+    )
+  }
+  return null
+}
+
+/* 구분선(divider) 기준으로 블록들을 구역으로 묶고, 각 구역은 하나의 Reveal(함께 떠오름)로 감싼다. */
+function renderBlockGroups(blocks) {
+  const out = []
+  let group = []
+  const flush = (key) => {
+    if (!group.length) return
+    const g = group
+    out.push(
+      <Reveal className="wd-group" key={`g${key}`}>
+        {g.map((b, i) => <div className="wd-block" key={i}><BlockBody b={b} /></div>)}
+      </Reveal>,
+    )
+    group = []
+  }
+  blocks.forEach((b, i) => {
+    if (b.type === 'divider') { flush(i); out.push(<div className="wd-divider" key={`d${i}`} />) }
+    else group.push(b)
+  })
+  flush('end')
+  return out
+}
+
 /* WORK 상세 — /work/:slug. 카테고리·제목 브레드크럼 + 영상 임베드 + 날짜·본문. */
 export default function WorkDetail() {
   const { id } = useParams() // 라우트 파라미터명은 id지만 slug로 사용
@@ -75,36 +133,8 @@ export default function WorkDetail() {
       {/* 본문 ↔ 추가 콘텐츠 사이 구분선 */}
       {Array.isArray(p.blocks) && p.blocks.length > 0 && <div className="wd-block-rule" />}
 
-      {/* 본문 하단 콘텐츠 블록 — 스크롤 시 아래에서 위로 */}
-      {Array.isArray(p.blocks) && p.blocks.map((b, i) => (
-        <Reveal className="wd-block" key={i}>
-          {b.type === 'text' && (
-            <div className="wb-textrow">
-              {b.heading && <h3 className="wb-heading">{b.heading}</h3>}
-              {b.body && <p className="wb-text">{b.body}</p>}
-            </div>
-          )}
-          {b.type === 'image' && b.media && (
-            <figure className="wb-figure">
-              <img src={b.media} alt={b.caption || ''} loading="lazy" />
-              {b.caption && <figcaption className="wb-caption">{b.caption}</figcaption>}
-            </figure>
-          )}
-          {b.type === 'video' && b.media && (
-            <figure className="wb-figure">
-              <div className="wb-video">
-                <iframe
-                  src={`https://www.youtube.com/embed/${ytId(b.media)}?rel=0`}
-                  title={b.caption || 'video'}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              </div>
-              {b.caption && <figcaption className="wb-caption">{b.caption}</figcaption>}
-            </figure>
-          )}
-        </Reveal>
-      ))}
+      {/* 본문 하단 콘텐츠 블록 — 구분선 기준으로 구역 단위 스크롤 리빌 */}
+      {Array.isArray(p.blocks) && renderBlockGroups(p.blocks)}
 
       <Link className="wd-back" to="/work">← WORK 목록</Link>
     </section>

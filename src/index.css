@@ -473,7 +473,10 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   font-family:'Pretendard Variable',Pretendard,sans-serif;white-space:pre-line}
 /* 본문 하단 콘텐츠 블록 */
 .wd-block-rule{height:1px;background:var(--line);margin-top:clamp(28px,4.5vh,48px)}
-.wd-block{margin-top:clamp(40px,7vh,88px)}
+.wd-divider{height:1px;background:var(--line);margin-top:clamp(52px,8.5vh,104px)} /* 구역 구분선 */
+.wd-group{margin-top:clamp(44px,7vh,90px)}       /* 구역 간(구분선/본문 아래) 간격 */
+.wd-block{margin-top:clamp(36px,5vh,60px)}        /* 구역 내 블록 간 간격 */
+.wd-group > .wd-block:first-child{margin-top:0}
 /* 텍스트 블록: 소제목(좌) · 내용(우, 오른쪽 정렬) 한 줄 */
 .wb-textrow{display:flex;justify-content:space-between;align-items:baseline;gap:24px 40px;flex-wrap:wrap}
 .wb-heading{font-size:clamp(20px,2.4vw,30px);font-weight:700;letter-spacing:-.01em;line-height:1.2}
