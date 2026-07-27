@@ -1,0 +1,121 @@
+import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import Preloader from './components/Preloader'
+import Cursor from './components/Cursor'
+import Header from './components/Header'
+import Backdrop from './components/Backdrop'
+import Hero from './components/Hero'
+import About from './components/About'
+import Philosophy from './components/Philosophy'
+import Band from './components/Band'
+import WhatWeDo from './components/WhatWeDo'
+import Outro from './components/Outro'
+import Work from './components/Work'
+import WorkDetail from './components/WorkDetail'
+import Admin from './components/Admin'
+import Career from './components/Career'
+import Footer from './components/Footer'
+import { ProjectsProvider } from './ProjectsContext'
+
+/* 라우트/해시 변경 시 스크롤 관리 — 해시가 있으면 해당 요소로(헤더 오프셋은 scroll-margin으로),
+   없으면 페이지 최상단으로. 새 페이지가 마운트될 때까지 잠깐 재시도한다. */
+function ScrollManager() {
+  const { pathname, hash } = useLocation()
+  useEffect(() => {
+    if (hash) {
+      let tries = 0
+      const go = () => {
+        const el = document.querySelector(hash)
+        if (el) { el.scrollIntoView({ behavior: 'smooth' }); return }
+        if (tries++ < 6) { setTimeout(go, 50); return }
+        window.scrollTo({ top: 0, behavior: 'auto' }) // 해시가 요소가 아니면(예: WORK 필터) 최상단
+      }
+      go()
+    } else {
+      window.scrollTo({ top: 0, behavior: 'auto' })
+    }
+  }, [pathname, hash])
+  return null
+}
+
+function HomePage({ ready }) {
+  return (
+    <main>
+      <Backdrop />
+      <Hero ready={ready} />
+      <About />
+      <Philosophy />
+      <Band />
+      <WhatWeDo />
+      <Outro />
+    </main>
+  )
+}
+
+function WorkPage() {
+  return (
+    <main>
+      <Work />
+    </main>
+  )
+}
+
+function WorkDetailPage() {
+  return (
+    <main>
+      <WorkDetail />
+    </main>
+  )
+}
+
+function CareerPage() {
+  return (
+    <main>
+      <Career />
+    </main>
+  )
+}
+
+function AdminPage() {
+  return (
+    <main>
+      <Admin />
+    </main>
+  )
+}
+
+/* 관리자 페이지에서는 마케팅용 헤더/푸터를 숨긴다. */
+function Chrome() {
+  const { pathname } = useLocation()
+  if (pathname.startsWith('/admin')) return null
+  return (
+    <>
+      <Header />
+      <Footer />
+    </>
+  )
+}
+
+export default function App() {
+  const [ready, setReady] = useState(false)
+
+  return (
+    <BrowserRouter>
+      <ProjectsProvider>
+        <Preloader onDone={() => setReady(true)} />
+        <Cursor />
+        <ScrollManager />
+
+        <Routes>
+          <Route path="/" element={<HomePage ready={ready} />} />
+          <Route path="/work" element={<WorkPage />} />
+          <Route path="/work/:id" element={<WorkDetailPage />} />
+          <Route path="/career" element={<CareerPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+        </Routes>
+
+        <Chrome />
+      </ProjectsProvider>
+    </BrowserRouter>
+  )
+}
