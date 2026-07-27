@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import SplitText from './SplitText'
 
 const NAV = [
-  { label: 'HOME', to: '/' },
   { label: 'ABOUT', to: '/#about' },
   { label: 'WORK', to: '/work' },
   { label: 'CAREER', to: '/career' },
