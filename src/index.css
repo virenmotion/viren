@@ -409,11 +409,12 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .cap-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:9px}
 .cap-client{font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;font-weight:600}
 .cap-year{font-size:11px;letter-spacing:.06em;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
-.cap-en{font-size:clamp(15px,1.35vw,20px);font-weight:700;letter-spacing:-.01em;line-height:1.2;
-  color:var(--fg);text-transform:uppercase;transition:color .3s var(--ease)}
-.cap-ko{margin-top:5px;font-size:clamp(12.5px,1vw,14.5px);font-weight:400;line-height:1.45;
-  color:rgba(244,242,238,.66);font-family:'Pretendard Variable',Pretendard,sans-serif}
-.card:hover .cap-en{color:var(--accent)}
+/* 한글 = 대표(크고 굵게), 영문 = 보조(작게) */
+.cap-ko{font-size:clamp(15px,1.4vw,20px);font-weight:700;letter-spacing:-.01em;line-height:1.3;
+  color:var(--fg);font-family:'Pretendard Variable',Pretendard,sans-serif;transition:color .3s var(--ease)}
+.cap-en{margin-top:5px;font-size:clamp(11.5px,.95vw,13.5px);font-weight:400;letter-spacing:.03em;line-height:1.4;
+  color:rgba(244,242,238,.55);text-transform:uppercase}
+.card:hover .cap-ko{color:var(--accent)}
 .card .meta{display:none}
 
 /* ---------- WORK 상세 페이지 (게시글) ---------- */

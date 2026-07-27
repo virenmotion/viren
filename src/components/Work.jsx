@@ -56,8 +56,8 @@ export default function Work() {
                 <span className="cap-client">{p.client || catLabel(p.cat)}</span>
                 <span className="cap-year">{p.year}</span>
               </div>
-              <h3 className="cap-en">{p.titleEn || p.titleKo}</h3>
-              {p.titleEn && p.titleKo && <p className="cap-ko">{p.titleKo}</p>}
+              <h3 className="cap-ko">{p.titleKo || p.titleEn}</h3>
+              {p.titleKo && p.titleEn && <p className="cap-en">{p.titleEn}</p>}
             </div>
           </Reveal>
         ))}
