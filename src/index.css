@@ -10,7 +10,7 @@
   --baseline:clamp(76px,11vh,130px);
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;overflow-x:clip}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;overflow-x:clip;scroll-snap-type:y mandatory}
 body{
   background:var(--bg);color:var(--fg);
   font-family:'Montserrat','Pretendard Variable',Pretendard,'Helvetica Neue',Arial,sans-serif;
@@ -206,6 +206,12 @@ main > section,main > .band{position:relative;z-index:1}
 /* ---------- generic ---------- */
 main{position:relative;z-index:2;background:var(--bg)}
 section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
+
+/* ===== 구역별 섹션 스냅 (풀페이지 스크롤) ===== */
+#hero,#about,#philosophy,#whatwedo,#outro{scroll-snap-align:start;scroll-snap-stop:always}
+footer{scroll-snap-align:end} /* 문서 맨 아래가 스냅 지점 → 푸터 도달 가능 */
+#philosophy{min-height:100vh}
+@media(max-width:760px){html{scroll-snap-type:none}} /* 모바일은 자유 스크롤 */
 .sec-label{
   position:absolute;top:clamp(64px,10vh,120px);left:var(--pad);
   font-size:11px;letter-spacing:.28em;color:var(--muted);text-transform:uppercase;white-space:nowrap;
@@ -633,8 +639,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 #work .sec-statement{text-align:center}
 
 /* OUTRO — WHAT WE DO와 푸터 사이의 중앙 대문구 섹션 */
-#outro{min-height:82vh;display:flex;flex-direction:column;justify-content:center;background:var(--bg);
-  padding-bottom:clamp(150px,22vh,280px)}
+#outro{min-height:100vh;display:flex;flex-direction:column;justify-content:center;background:var(--bg)}
 #outro .sec-statement{text-align:center;margin:0}
 .outro-cta{display:flex;justify-content:center;margin-top:clamp(34px,6vh,64px)}
 .outro-cta .btn{border-radius:4px;letter-spacing:.08em;display:inline-flex;align-items:center;gap:12px}
