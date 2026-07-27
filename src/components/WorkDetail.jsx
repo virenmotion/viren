@@ -58,18 +58,15 @@ export default function WorkDetail() {
 
       <h1 className="wd-title">{p.titleEn || p.titleKo}</h1>
       {p.titleEn && p.titleKo && <p className="wd-subtitle">{p.titleKo}</p>}
-      {(p.client || p.year) && (
-        <p className="wd-meta">
-          {p.client && <span>{p.client}</span>}
-          {p.client && p.year && <span className="wd-sep">·</span>}
-          {p.year && <span>{p.year}</span>}
-        </p>
-      )}
-
-      {p.deliverables && (
-        <dl className="wd-spec">
-          <div><dt>Deliverables</dt><dd>{p.deliverables}</dd></div>
-        </dl>
+      {(p.client || p.year || p.deliverables) && (
+        <div className="wd-metarow">
+          <p className="wd-meta">
+            {p.client && <span>{p.client}</span>}
+            {p.client && p.year && <span className="wd-sep">·</span>}
+            {p.year && <span>{p.year}</span>}
+          </p>
+          {p.deliverables && <p className="wd-deliv">{p.deliverables}</p>}
+        </div>
       )}
 
       {p.desc && <p className="wd-desc">{p.desc}</p>}
