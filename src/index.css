@@ -10,7 +10,7 @@
   --baseline:clamp(76px,11vh,130px);
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;overflow-x:clip;scroll-snap-type:y mandatory}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;overflow-x:clip}
 body{
   background:var(--bg);color:var(--fg);
   font-family:'Montserrat','Pretendard Variable',Pretendard,'Helvetica Neue',Arial,sans-serif;
@@ -207,11 +207,20 @@ main > section,main > .band{position:relative;z-index:1}
 main{position:relative;z-index:2;background:var(--bg)}
 section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 
-/* ===== 구역별 섹션 스냅 (풀페이지 스크롤) ===== */
-#hero,#about,#philosophy,#whatwedo,#outro{scroll-snap-align:start;scroll-snap-stop:always}
-footer{scroll-snap-align:end} /* 문서 맨 아래가 스냅 지점 → 푸터 도달 가능 */
-#philosophy{min-height:100vh}
-@media(max-width:760px){html{scroll-snap-type:none}} /* 모바일은 자유 스크롤 */
+/* ===== 구역별 풀페이지 패널 (JS 컨트롤: useFullpage) ===== */
+.home .fp-panel{position:relative;min-height:100vh}
+/* 일반 패널(hero/about/whatwedo)은 내용을 세로 중앙 정렬 */
+.home>.fp-panel:not(.panel-philo):not(.panel-end){display:flex;flex-direction:column;justify-content:center}
+.home>.fp-panel>section{width:100%}
+/* Philosophy + 마퀴 = 한 화면 (마퀴는 하단) */
+.panel-philo{display:flex;flex-direction:column}
+.panel-philo #philosophy{min-height:0;flex:0 0 auto;padding-bottom:clamp(30px,5vh,60px)}
+.panel-philo .band{margin-top:auto}
+/* Outro(Beyond) + 푸터 = 한 화면 */
+.panel-end{display:flex;flex-direction:column}
+.panel-end #outro{flex:1 1 auto;min-height:0}
+.panel-end footer{flex:0 0 auto}
+@media(max-width:760px){.home .fp-panel{min-height:0}} /* 모바일은 자유 흐름 */
 .sec-label{
   position:absolute;top:clamp(64px,10vh,120px);left:var(--pad);
   font-size:11px;letter-spacing:.28em;color:var(--muted);text-transform:uppercase;white-space:nowrap;

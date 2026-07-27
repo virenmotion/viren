@@ -17,6 +17,7 @@ import Career from './components/Career'
 import Contact from './components/Contact'
 import Footer from './components/Footer'
 import { ProjectsProvider } from './ProjectsContext'
+import useFullpage from './lib/useFullpage'
 
 /* 라우트/해시 변경 시 스크롤 관리 — 해시가 있으면 해당 요소로(헤더 오프셋은 scroll-margin으로),
    없으면 페이지 최상단으로. 새 페이지가 마운트될 때까지 잠깐 재시도한다. */
@@ -40,15 +41,15 @@ function ScrollManager() {
 }
 
 function HomePage({ ready }) {
+  useFullpage(ready)
   return (
-    <main>
+    <main className="home">
       <Backdrop />
-      <Hero ready={ready} />
-      <About />
-      <Philosophy />
-      <Band />
-      <WhatWeDo />
-      <Outro />
+      <div className="fp-panel"><Hero ready={ready} /></div>
+      <div className="fp-panel"><About /></div>
+      <div className="fp-panel panel-philo"><Philosophy /><Band /></div>
+      <div className="fp-panel"><WhatWeDo /></div>
+      <div className="fp-panel panel-end"><Outro /><Footer /></div>
     </main>
   )
 }
@@ -93,14 +94,16 @@ function AdminPage() {
   )
 }
 
-/* 관리자 페이지에서는 마케팅용 헤더/푸터를 숨긴다. */
+/* 관리자 페이지에서는 마케팅용 헤더/푸터를 숨긴다.
+   홈('/')은 마지막 패널에 자체 푸터를 포함하므로 전역 푸터를 렌더하지 않는다. */
 function Chrome() {
   const { pathname } = useLocation()
   if (pathname.startsWith('/admin')) return null
+  const isHome = pathname === '/'
   return (
     <>
       <Header />
-      <Footer />
+      {!isHome && <Footer />}
     </>
   )
 }
