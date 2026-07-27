@@ -218,10 +218,14 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   padding-bottom:clamp(24px,3.5vh,48px)}
 .panel-philo #philosophy .meaning{margin-top:auto;margin-bottom:auto} /* 4개 섹션을 대문구~마퀴 사이 중앙에 */
 .panel-philo .band{flex:0 0 auto;margin-bottom:clamp(48px,8vh,110px)} /* 마퀴 살짝 올림 */
-/* Outro(Beyond) + 푸터 = 한 화면 */
-.panel-end{display:flex;flex-direction:column}
-.panel-end #outro{flex:1 1 auto;min-height:0}
-.panel-end footer{flex:0 0 auto}
+/* Outro(Beyond) + 푸터 = 한 화면. Beyond은 화면 정중앙, 푸터는 컴팩트하게 하단 고정 */
+.panel-end{position:relative}
+/* #outro는 자체 min-height:100vh + 중앙정렬 → Beyond이 화면 중앙에 온다 */
+.panel-end footer{position:absolute;left:0;right:0;bottom:0;
+  padding-top:clamp(38px,5.5vh,64px);padding-bottom:26px}
+.panel-end .foot-mark{width:clamp(116px,11.5vw,148px);margin-bottom:18px}
+.panel-end .brand .mail{font-size:clamp(18px,2.4vw,28px)}
+.panel-end .footer-bottom{margin-top:clamp(24px,3.5vh,44px);padding-top:20px}
 @media(max-width:760px){.home .fp-panel{min-height:0}} /* 모바일은 자유 흐름 */
 .sec-label{
   position:absolute;top:clamp(64px,10vh,120px);left:var(--pad);
