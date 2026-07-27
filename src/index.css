@@ -406,17 +406,19 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 }
 
 /* ---------- work ---------- */
-/* WORK — d'strict식 중앙 3열 타이트 이미지 그리드 */
+/* WORK — 3열 풀폭 와이드 이미지 그리드 (좌우 여백 최소화) */
+#work{padding-left:clamp(16px,2.5vw,44px);padding-right:clamp(16px,2.5vw,44px);
+  padding-top:clamp(70px,9vh,110px)} /* 상단 여백 축소 */
 .work-grid{
   display:grid;grid-template-columns:repeat(3,1fr);
-  gap:clamp(22px,2.6vh,32px) clamp(8px,1vw,16px); /* 세로 간격 살짝 늘림 / 가로는 유지 */
-  max-width:1160px;margin:0 auto;
+  gap:clamp(26px,3vh,40px) clamp(10px,1vw,18px); /* 세로 / 가로(타이트) */
+  max-width:none;margin:0;
 }
 @media(max-width:860px){.work-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.work-grid{grid-template-columns:1fr}}
 .card{display:block;cursor:pointer}
 .card .thumb{
-  position:relative;aspect-ratio:3/2;overflow:hidden;border-radius:2px;
+  position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:2px;
   background:linear-gradient(140deg,#161616,#0c0c0c);
 }
 /* 이미지 줌 (호버) — 실제 이미지/그라디언트 모두 background:inherit 로 확대 */
@@ -651,7 +653,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 @media(max-width:520px){.mf-row{grid-template-columns:1fr}}
 
 /* WORK 대문구는 중앙 정렬 */
-#work .sec-statement{text-align:center}
+#work .sec-statement{text-align:center;margin:clamp(18px,2.5vh,36px) 0 clamp(24px,3.5vh,48px)} /* 대문구 위/아래 여백 축소 */
 
 /* OUTRO — WHAT WE DO와 푸터 사이의 중앙 대문구 섹션 */
 #outro{min-height:100vh;display:flex;flex-direction:column;justify-content:center;background:var(--bg)}
