@@ -25,6 +25,7 @@ create table if not exists public.projects (
   youtube     text,
   location    text,           -- 장소
   deliverables text,          -- 산출물/제공 내역
+  blocks      jsonb default '[]'::jsonb, -- 본문 하단 콘텐츠 블록(글·이미지·영상)
   thumb       text,
   description  text,
   sort        int  not null default 0,

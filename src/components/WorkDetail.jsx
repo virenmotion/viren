@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { catLabel } from '../workProjects'
 import { useProjects } from '../ProjectsContext'
+import Reveal from './Reveal'
 
 /* YouTube 전체 주소 또는 ID → 임베드용 11자리 ID 추출 */
 function ytId(v) {
@@ -69,7 +70,38 @@ export default function WorkDetail() {
         </div>
       )}
 
-      {p.desc && <p className="wd-desc">{p.desc}</p>}
+      {p.desc && <Reveal as="p" className="wd-desc">{p.desc}</Reveal>}
+
+      {/* 본문 하단 콘텐츠 블록 — 스크롤 시 아래에서 위로 */}
+      {Array.isArray(p.blocks) && p.blocks.map((b, i) => (
+        <Reveal className="wd-block" key={i}>
+          {b.type === 'text' && (
+            <>
+              {b.heading && <h3 className="wb-heading">{b.heading}</h3>}
+              {b.body && <p className="wb-text">{b.body}</p>}
+            </>
+          )}
+          {b.type === 'image' && b.media && (
+            <figure className="wb-figure">
+              <img src={b.media} alt={b.caption || ''} loading="lazy" />
+              {b.caption && <figcaption className="wb-caption">{b.caption}</figcaption>}
+            </figure>
+          )}
+          {b.type === 'video' && b.media && (
+            <figure className="wb-figure">
+              <div className="wb-video">
+                <iframe
+                  src={`https://www.youtube.com/embed/${ytId(b.media)}?rel=0`}
+                  title={b.caption || 'video'}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+              {b.caption && <figcaption className="wb-caption">{b.caption}</figcaption>}
+            </figure>
+          )}
+        </Reveal>
+      ))}
 
       <Link className="wd-back" to="/work">← WORK 목록</Link>
     </section>

@@ -93,7 +93,7 @@ function Dashboard({ user }) {
 const EMPTY_PROJECT = {
   slug: '', cat: 'media-art', kind: '',
   client: '', year: '', titleEn: '', titleKo: '',
-  youtube: '', location: '', deliverables: '', thumb: '', desc: '', sort: 0,
+  youtube: '', location: '', deliverables: '', thumb: '', desc: '', blocks: [], sort: 0,
 }
 
 function ProjectManager() {
@@ -134,9 +134,29 @@ function ProjectManager() {
   const slugAuto = useMemo(() => slugify(form.slug || form.titleEn || form.titleKo), [form.slug, form.titleEn, form.titleKo])
 
   function startNew() { setEditing(''); setForm(EMPTY_PROJECT); setMsg('') }
-  function startEdit(p) { setEditing(p.slug); setForm({ ...EMPTY_PROJECT, ...p }); setMsg('') }
+  function startEdit(p) { setEditing(p.slug); setForm({ ...EMPTY_PROJECT, ...p, blocks: Array.isArray(p.blocks) ? p.blocks : [] }); setMsg('') }
   function cancel() { setEditing(null); setForm(EMPTY_PROJECT); setMsg('') }
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+
+  /* 본문 하단 콘텐츠 블록 (텍스트/이미지/영상) */
+  const addBlock = (type) => setForm((f) => ({ ...f, blocks: [...(f.blocks || []), { type }] }))
+  const updateBlock = (i, patch) => setForm((f) => {
+    const b = [...f.blocks]; b[i] = { ...b[i], ...patch }; return { ...f, blocks: b }
+  })
+  const removeBlock = (i) => setForm((f) => ({ ...f, blocks: f.blocks.filter((_, j) => j !== i) }))
+  const moveBlock = (i, dir) => setForm((f) => {
+    const b = [...f.blocks]; const j = i + dir
+    if (j < 0 || j >= b.length) return f;
+    [b[i], b[j]] = [b[j], b[i]]; return { ...f, blocks: b }
+  })
+  async function uploadBlockImage(i, e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setMsg('')
+    try { const url = await uploadThumb(file); updateBlock(i, { media: url }) }
+    catch (e2) { setMsg('이미지 업로드 실패: ' + e2.message) }
+    finally { e.target.value = '' }
+  }
 
   async function onFile(e) {
     const file = e.target.files?.[0]
@@ -219,7 +239,52 @@ function ProjectManager() {
           </div>
         )}
 
-        <label>본문<textarea rows={6} value={form.desc} onChange={set('desc')} /></label>
+        <label>본문(요약)<textarea rows={4} value={form.desc} onChange={set('desc')} /></label>
+
+        {/* 본문 하단 콘텐츠 블록 — 스크롤 시 떠오르는 글/이미지/영상 */}
+        <div className="adm-blocks">
+          <span className="adm-blocks-title">본문 하단 콘텐츠 (순서대로 표시 · 스크롤 애니메이션)</span>
+          {(form.blocks || []).map((b, i) => (
+            <div className="adm-block" key={i}>
+              <div className="adm-block-head">
+                <select value={b.type} onChange={(e) => updateBlock(i, { type: e.target.value })}>
+                  <option value="text">텍스트</option>
+                  <option value="image">이미지</option>
+                  <option value="video">영상</option>
+                </select>
+                <span className="adm-block-actions">
+                  <button type="button" className="adm-btn" onClick={() => moveBlock(i, -1)} disabled={i === 0}>↑</button>
+                  <button type="button" className="adm-btn" onClick={() => moveBlock(i, 1)} disabled={i === form.blocks.length - 1}>↓</button>
+                  <button type="button" className="adm-btn adm-btn-danger" onClick={() => removeBlock(i)}>삭제</button>
+                </span>
+              </div>
+              {b.type === 'text' && (
+                <>
+                  <input placeholder="소제목 (선택)" value={b.heading || ''} onChange={(e) => updateBlock(i, { heading: e.target.value })} />
+                  <textarea rows={4} placeholder="내용" value={b.body || ''} onChange={(e) => updateBlock(i, { body: e.target.value })} />
+                </>
+              )}
+              {b.type === 'image' && (
+                <>
+                  <input type="file" accept="image/*" onChange={(e) => uploadBlockImage(i, e)} />
+                  {b.media && <img className="adm-block-preview" src={b.media} alt="블록 이미지" />}
+                  <input placeholder="캡션 (선택)" value={b.caption || ''} onChange={(e) => updateBlock(i, { caption: e.target.value })} />
+                </>
+              )}
+              {b.type === 'video' && (
+                <>
+                  <input placeholder="YouTube 주소 또는 ID" value={b.media || ''} onChange={(e) => updateBlock(i, { media: e.target.value })} />
+                  <input placeholder="캡션 (선택)" value={b.caption || ''} onChange={(e) => updateBlock(i, { caption: e.target.value })} />
+                </>
+              )}
+            </div>
+          ))}
+          <div className="adm-block-add">
+            <button type="button" className="adm-btn" onClick={() => addBlock('text')}>+ 텍스트</button>
+            <button type="button" className="adm-btn" onClick={() => addBlock('image')}>+ 이미지</button>
+            <button type="button" className="adm-btn" onClick={() => addBlock('video')}>+ 영상</button>
+          </div>
+        </div>
 
         {msg && <p className="adm-err">{msg}</p>}
         <div className="adm-form-actions">

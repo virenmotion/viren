@@ -3,18 +3,19 @@ import { SEED_PROJECTS } from '../workProjects'
 
 const TABLE = 'projects'
 /* DB 컬럼(snake_case) → 앱(camelCase) alias. description은 예약어 desc 회피용. */
-const SELECT = 'slug, cat, kind, client, year, titleEn:title_en, titleKo:title_ko, youtube, location, deliverables, thumb, desc:description, sort, created_at'
+const SELECT_BASE = 'slug, cat, kind, client, year, titleEn:title_en, titleKo:title_ko, youtube, location, deliverables, thumb, desc:description, sort, created_at'
+const SELECT = SELECT_BASE + ', blocks'
 
 /* ---------- 조회 ---------- */
 export async function listProjects() {
   if (!isConfigured) return SEED_PROJECTS
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select(SELECT)
-    .order('sort', { ascending: true })
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data
+  const order = (q) => q.order('sort', { ascending: true }).order('created_at', { ascending: false })
+  const { data, error } = await order(supabase.from(TABLE).select(SELECT))
+  if (!error) return data
+  /* blocks 컬럼 미생성 등 → 축소 SELECT로 재시도(목록이 깨지지 않게) */
+  const r = await order(supabase.from(TABLE).select(SELECT_BASE))
+  if (r.error) throw r.error
+  return r.data
 }
 
 /* ---------- 쓰기(관리자 전용) ---------- */
@@ -33,6 +34,7 @@ function toRow(p) {
     deliverables: p.deliverables || null,
     thumb: p.thumb || null,
     description: p.desc || null,
+    blocks: Array.isArray(p.blocks) ? p.blocks : [],
     sort: Number.isFinite(p.sort) ? p.sort : 0,
   }
 }
