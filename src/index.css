@@ -382,7 +382,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .svc{border-top:1px solid var(--line)}
 .svc-row{
   display:grid;grid-template-columns:70px 1.1fr 1fr auto;gap:28px;align-items:center;
-  padding:36px 0;border-bottom:1px solid var(--line);position:relative;
+  padding:36px 0;border-bottom:1px solid var(--line);position:relative;isolation:isolate;
   transition:padding .5s var(--ease),color .4s;
 }
 .svc-row::before{
