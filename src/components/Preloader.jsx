@@ -51,7 +51,7 @@ export default function Preloader({ onDone }) {
         <div className="curtain" /><div className="curtain" />
       </div>
       <div className="inner">
-        <img className="mark" src="/assets/viren_CI.png" alt="VIREN" />
+        <div className="mark-wrap"><img className="mark" src="/assets/viren_CI.png" alt="VIREN" /></div>
         <div className="wordmark wm"><img src="/assets/viren_wordmark.png" alt="VIREN" /></div>
         <div className="bar">
           <span style={{ transform: `scaleX(${pct / 100})`, transition: 'transform .3s cubic-bezier(.16,1,.3,1)' }} />

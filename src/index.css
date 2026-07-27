@@ -26,12 +26,13 @@ img{max-width:100%;display:block}
 #loader .curtains{position:absolute;inset:0;display:flex}
 #loader .curtain{flex:1;background:var(--bg);transform:translateY(0);will-change:transform}
 #loader .inner{position:relative;z-index:2;display:grid;place-items:center;gap:28px;text-align:center}
+/* 글로우는 래퍼에 — clip-path에 잘려 네모로 보이지 않게 분리 */
+#loader .mark-wrap{filter:drop-shadow(0 0 30px rgba(248,198,42,.28));line-height:0}
 #loader .mark{
   width:clamp(96px,15vw,170px);height:auto;
   clip-path:inset(100% 0 0 0);
   transform:translateY(14px) scale(.94);
   animation:markIn 1.35s var(--ease) .15s forwards;
-  filter:drop-shadow(0 0 34px rgba(248,198,42,.3));
 }
 @keyframes markIn{to{clip-path:inset(0 0 0 0);transform:translateY(0) scale(1)}}
 .wm{position:relative;overflow:hidden;aspect-ratio:734/160;width:100%}
