@@ -43,7 +43,7 @@ export default function About() {
     const play = () => {
       if (playing) return
       playing = true
-      const dur = 1200
+      const dur = 1600
       let start = 0
       const step = (ts) => {
         if (!start) start = ts
