@@ -633,7 +633,8 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 #work .sec-statement{text-align:center}
 
 /* OUTRO — WHAT WE DO와 푸터 사이의 중앙 대문구 섹션 */
-#outro{min-height:82vh;display:flex;flex-direction:column;justify-content:center;background:var(--bg)}
+#outro{min-height:82vh;display:flex;flex-direction:column;justify-content:center;background:var(--bg);
+  padding-bottom:clamp(150px,22vh,280px)}
 #outro .sec-statement{text-align:center;margin:0}
 .outro-cta{display:flex;justify-content:center;margin-top:clamp(34px,6vh,64px)}
 .outro-cta .btn{border-radius:4px;letter-spacing:.08em;display:inline-flex;align-items:center;gap:12px}
