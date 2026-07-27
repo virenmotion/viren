@@ -45,6 +45,29 @@ on conflict (id) do nothing;
 create policy "thumbs public read"  on storage.objects for select using (bucket_id = 'work-thumbs');
 create policy "thumbs auth upload"  on storage.objects for insert to authenticated with check (bucket_id = 'work-thumbs');
 create policy "thumbs auth delete"  on storage.objects for delete to authenticated using (bucket_id = 'work-thumbs');
+
+-- CAREER 채용 공고 테이블
+create table if not exists public.jobs (
+  id              text primary key,   -- 식별자
+  cat             text not null,      -- 카테고리 (media-art / motion / cgi / tech / design / pm / talent)
+  title_en        text not null,      -- 영문 직무명
+  title_ko        text,               -- 한글 직무명
+  type            text,               -- 고용형태 · 경력
+  description      text,              -- 소개(본문)
+  headcount       text,               -- 모집인원
+  responsibilities text,              -- 담당업무 (줄바꿈 = 항목)
+  qualifications  text,               -- 자격요건 (줄바꿈 = 항목)
+  preferred       text,               -- 우대사항 (줄바꿈 = 항목)
+  sort            int  not null default 0,
+  created_at      timestamptz not null default now()
+);
+
+alter table public.jobs enable row level security;
+
+create policy "jobs public read"  on public.jobs for select using (true);
+create policy "jobs auth insert"  on public.jobs for insert to authenticated with check (true);
+create policy "jobs auth update"  on public.jobs for update to authenticated using (true) with check (true);
+create policy "jobs auth delete"  on public.jobs for delete to authenticated using (true);
 ```
 
 ### (선택) 기존 예시 6개 글 넣기
@@ -59,6 +82,20 @@ insert into public.projects (slug, cat, kind, client, year, title_en, title_ko, 
 ('unreal-city','cgi','CGI','VIREN','2025.02','UNREAL CITY','CGI 비주얼','aqz-KE-bpKQ','현실을 넘어선 상상의 도시를 가장 정교한 CGI 비주얼로 구현했습니다.',5),
 ('flow-motion','motion-graphics','MOTION GRAPHICS','VIREN','2025.01','FLOW','모션 그래픽 시리즈','aqz-KE-bpKQ','직관적인 모션과 그래픽으로 복잡한 정보를 명확하게 전달하는 모션 그래픽 시리즈입니다.',6)
 on conflict (slug) do nothing;
+```
+
+### (선택) 예시 채용 공고 넣기
+```sql
+insert into public.jobs (id, cat, title_en, title_ko, type, description, sort) values
+('media-art-director','media-art','MEDIA ART DIRECTOR','미디어아트 디렉터','정규직 · 경력 5년 이상','미디어아트·프로젝션 맵핑 프로젝트의 비주얼 방향을 총괄할 디렉터를 찾습니다.',1),
+('media-artist','media-art','MEDIA ARTIST','미디어아트 콘텐츠 제작','정규직 · 경력 2년 이상','몰입형 미디어아트 콘텐츠를 기획·제작할 아티스트를 찾습니다.',2),
+('motion-designer','motion','MOTION GRAPHIC DESIGNER','모션그래픽 디자이너','정규직 · 경력 무관','브랜드 필름·모션 그래픽을 디자인하고 애니메이팅할 디자이너를 찾습니다.',3),
+('3d-generalist','cgi','3D GENERALIST','3D · CGI 아티스트','정규직 · 경력 3년 이상','모델링·룩뎁·라이팅·렌더링 전반을 아우르는 3D 제너럴리스트를 찾습니다.',4),
+('creative-technologist','tech','CREATIVE TECHNOLOGIST','인터랙티브 개발자','정규직 · 경력 무관','관객과 실시간으로 반응하는 인터랙티브 콘텐츠를 구현할 개발자를 찾습니다.',5),
+('experience-designer','design','EXPERIENCE DESIGNER','공간 · 경험 디자이너','정규직 · 경력 2년 이상','전시·공간 단위의 몰입형 경험을 설계할 디자이너를 찾습니다.',6),
+('project-manager','pm','PROJECT MANAGER','프로젝트 매니저','정규직 · 경력 3년 이상','프로젝트의 일정·예산·커뮤니케이션을 총괄할 매니저를 찾습니다.',7),
+('talent-pool','talent','TALENT POOL','인재풀 (상시 지원)','상시 모집','열린 공고에 맞는 자리가 없어도 언제든 지원해 주세요.',99)
+on conflict (id) do nothing;
 ```
 
 ## 3. 관리자 계정 만들기

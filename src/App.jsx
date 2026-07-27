@@ -14,6 +14,7 @@ import Work from './components/Work'
 import WorkDetail from './components/WorkDetail'
 import Admin from './components/Admin'
 import Career from './components/Career'
+import Contact from './components/Contact'
 import Footer from './components/Footer'
 import { ProjectsProvider } from './ProjectsContext'
 
@@ -76,6 +77,14 @@ function CareerPage() {
   )
 }
 
+function ContactPage() {
+  return (
+    <main>
+      <Contact />
+    </main>
+  )
+}
+
 function AdminPage() {
   return (
     <main>
@@ -111,6 +120,7 @@ export default function App() {
           <Route path="/work" element={<WorkPage />} />
           <Route path="/work/:id" element={<WorkDetailPage />} />
           <Route path="/career" element={<CareerPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
 

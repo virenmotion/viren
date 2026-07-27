@@ -6,7 +6,7 @@ const NAV = [
   { label: 'ABOUT', to: '/#about' },
   { label: 'WORK', to: '/work' },
   { label: 'CAREER', to: '/career' },
-  { label: 'CONTACT', to: '/#contact' },
+  { label: 'CONTACT', to: '/contact' },
 ]
 
 export default function Header() {

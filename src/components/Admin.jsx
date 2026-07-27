@@ -5,14 +5,10 @@ import {
   signIn, signOut, getUser, onAuthChange,
   createProject, updateProject, deleteProject, uploadThumb,
 } from '../lib/projectStore'
+import { listJobs, createJob, updateJob, deleteJob } from '../lib/careerStore'
 import { CATEGORIES, catLabel, slugify } from '../workProjects'
+import { JOB_FORM_CATEGORIES, jobCatLabel } from '../careerJobs'
 import { useProjects } from '../ProjectsContext'
-
-const EMPTY = {
-  slug: '', cat: 'media-art', kind: '',
-  client: '', year: '', titleEn: '', titleKo: '',
-  youtube: '', thumb: '', desc: '', sort: 0,
-}
 
 export default function Admin() {
   const [user, setUser] = useState(null)
@@ -73,11 +69,37 @@ function Login({ onDone }) {
   )
 }
 
-/* ---------- 대시보드 ---------- */
+/* ---------- 대시보드 (탭: WORK / CAREER) ---------- */
 function Dashboard({ user }) {
+  const [tab, setTab] = useState('work')
+  return (
+    <AdminShell>
+      <div className="adm-top">
+        <div className="adm-tabs">
+          <button className={tab === 'work' ? 'on' : undefined} onClick={() => setTab('work')}>WORK</button>
+          <button className={tab === 'career' ? 'on' : undefined} onClick={() => setTab('career')}>CAREER</button>
+        </div>
+        <div className="adm-top-right">
+          <span className="adm-muted">{user.email}</span>
+          <button className="adm-btn" onClick={() => signOut()}>로그아웃</button>
+        </div>
+      </div>
+      {tab === 'work' ? <ProjectManager /> : <JobManager />}
+    </AdminShell>
+  )
+}
+
+/* ---------- WORK 관리 ---------- */
+const EMPTY_PROJECT = {
+  slug: '', cat: 'media-art', kind: '',
+  client: '', year: '', titleEn: '', titleKo: '',
+  youtube: '', thumb: '', desc: '', sort: 0,
+}
+
+function ProjectManager() {
   const { projects, loading, refresh } = useProjects()
-  const [editing, setEditing] = useState(null) // 편집 중 원본 slug (null=미편집, ''=신규)
-  const [form, setForm] = useState(EMPTY)
+  const [editing, setEditing] = useState(null)
+  const [form, setForm] = useState(EMPTY_PROJECT)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -85,9 +107,9 @@ function Dashboard({ user }) {
   const isNew = editing === ''
   const slugAuto = useMemo(() => slugify(form.slug || form.titleEn), [form.slug, form.titleEn])
 
-  function startNew() { setEditing(''); setForm(EMPTY); setMsg('') }
-  function startEdit(p) { setEditing(p.slug); setForm({ ...EMPTY, ...p }); setMsg('') }
-  function cancel() { setEditing(null); setForm(EMPTY); setMsg('') }
+  function startNew() { setEditing(''); setForm(EMPTY_PROJECT); setMsg('') }
+  function startEdit(p) { setEditing(p.slug); setForm({ ...EMPTY_PROJECT, ...p }); setMsg('') }
+  function cancel() { setEditing(null); setForm(EMPTY_PROJECT); setMsg('') }
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   async function onFile(e) {
@@ -119,94 +141,197 @@ function Dashboard({ user }) {
   }
 
   async function remove(p) {
-    if (!window.confirm(`"${p.title}" 을(를) 삭제할까요?`)) return
+    if (!window.confirm(`"${p.titleEn}" 을(를) 삭제할까요?`)) return
     try { await deleteProject(p.slug); await refresh() }
     catch (e2) { setMsg('삭제 실패: ' + e2.message) }
   }
 
-  return (
-    <AdminShell>
-      <div className="adm-top">
-        <h1 className="adm-h1">WORK 관리</h1>
-        <div className="adm-top-right">
-          <span className="adm-muted">{user.email}</span>
-          <button className="adm-btn" onClick={() => signOut()}>로그아웃</button>
+  if (editing !== null) {
+    return (
+      <form className="adm-card adm-form" onSubmit={save}>
+        <h2 className="adm-h2">{isNew ? '새 프로젝트' : '프로젝트 수정'}</h2>
+
+        <div className="adm-grid2">
+          <label>발주처명<input value={form.client} onChange={set('client')} placeholder="KAKAO" /></label>
+          <label>사업연도<input value={form.year} onChange={set('year')} placeholder="2025.12" /></label>
         </div>
-      </div>
 
-      {editing === null ? (
-        <>
-          <button className="adm-btn adm-btn-primary" onClick={startNew}>+ 새 프로젝트</button>
-          {loading ? <p className="adm-muted">불러오는 중…</p> : (
-            <ul className="adm-list">
-              {projects.map((p) => (
-                <li key={p.slug} className="adm-row">
-                  <span className="adm-thumb" style={p.thumb ? { backgroundImage: `url(${p.thumb})` } : undefined} />
-                  <span className="adm-row-main">
-                    <span className="adm-row-title">{p.titleEn}{p.titleKo ? ` — ${p.titleKo}` : ''}</span>
-                    <span className="adm-row-meta">{p.client || catLabel(p.cat)} · {p.year || '연도 없음'} · /{p.slug}</span>
-                  </span>
-                  <span className="adm-row-actions">
-                    <button className="adm-btn" onClick={() => startEdit(p)}>수정</button>
-                    <button className="adm-btn adm-btn-danger" onClick={() => remove(p)}>삭제</button>
-                  </span>
-                </li>
-              ))}
-              {projects.length === 0 && <li className="adm-muted">프로젝트가 없습니다.</li>}
-            </ul>
-          )}
-        </>
-      ) : (
-        <form className="adm-card adm-form" onSubmit={save}>
-          <h2 className="adm-h2">{isNew ? '새 프로젝트' : '프로젝트 수정'}</h2>
+        <label>영문 프로젝트명 *<input value={form.titleEn} onChange={set('titleEn')} placeholder="SEOUL STATION KAKAO FRIENDS" required /></label>
+        <label>한글 프로젝트명<input value={form.titleKo} onChange={set('titleKo')} placeholder="서울역 플랫폼111 산타프렌즈" /></label>
 
-          <div className="adm-grid2">
-            <label>발주처명<input value={form.client} onChange={set('client')} placeholder="KAKAO" /></label>
-            <label>사업연도<input value={form.year} onChange={set('year')} placeholder="2025.12" /></label>
-          </div>
+        <div className="adm-grid2">
+          <label>URL 슬러그<input value={form.slug} onChange={set('slug')} placeholder={slugAuto} />
+            <span className="adm-hint">/work/{slugAuto || '…'}</span></label>
+          <label>정렬 순서<input type="number" value={form.sort} onChange={set('sort')} /></label>
+        </div>
 
-          <label>영문 프로젝트명 *<input value={form.titleEn} onChange={set('titleEn')} placeholder="SEOUL STATION KAKAO FRIENDS" required /></label>
-          <label>한글 프로젝트명<input value={form.titleKo} onChange={set('titleKo')} placeholder="서울역 플랫폼111 산타프렌즈" /></label>
-
-          <div className="adm-grid2">
-            <label>URL 슬러그<input value={form.slug} onChange={set('slug')} placeholder={slugAuto} />
-              <span className="adm-hint">/work/{slugAuto || '…'}</span></label>
-            <label>정렬 순서<input type="number" value={form.sort} onChange={set('sort')} /></label>
-          </div>
-
-          <div className="adm-grid2">
-            <label>카테고리
-              <select value={form.cat} onChange={set('cat')}>
-                {CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.label}</option>)}
-              </select>
-            </label>
-            <label>구분(태그)<input value={form.kind} onChange={set('kind')} placeholder="MEDIA FACADE / EXHIBITION …" /></label>
-          </div>
-
-          <label>YouTube ID<input value={form.youtube} onChange={set('youtube')} placeholder="aqz-KE-bpKQ" /></label>
-
-          <label>썸네일 이미지
-            <input type="file" accept="image/*" onChange={onFile} />
-            {uploading && <span className="adm-hint">업로드 중…</span>}
+        <div className="adm-grid2">
+          <label>카테고리
+            <select value={form.cat} onChange={set('cat')}>
+              {CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.label}</option>)}
+            </select>
           </label>
-          {form.thumb && (
-            <div className="adm-thumb-preview">
-              <img src={form.thumb} alt="썸네일 미리보기" />
-              <button type="button" className="adm-btn" onClick={() => setForm((f) => ({ ...f, thumb: '' }))}>이미지 제거</button>
-            </div>
-          )}
+          <label>구분(태그)<input value={form.kind} onChange={set('kind')} placeholder="MEDIA FACADE / EXHIBITION …" /></label>
+        </div>
 
-          <label>본문<textarea rows={6} value={form.desc} onChange={set('desc')} /></label>
+        <label>YouTube ID<input value={form.youtube} onChange={set('youtube')} placeholder="aqz-KE-bpKQ" /></label>
 
-          {msg && <p className="adm-err">{msg}</p>}
-          <div className="adm-form-actions">
-            <button className="adm-btn adm-btn-primary" disabled={busy}>{busy ? '저장 중…' : '저장'}</button>
-            <button type="button" className="adm-btn" onClick={cancel}>취소</button>
+        <label>썸네일 이미지
+          <input type="file" accept="image/*" onChange={onFile} />
+          {uploading && <span className="adm-hint">업로드 중…</span>}
+        </label>
+        {form.thumb && (
+          <div className="adm-thumb-preview">
+            <img src={form.thumb} alt="썸네일 미리보기" />
+            <button type="button" className="adm-btn" onClick={() => setForm((f) => ({ ...f, thumb: '' }))}>이미지 제거</button>
           </div>
-        </form>
+        )}
+
+        <label>본문<textarea rows={6} value={form.desc} onChange={set('desc')} /></label>
+
+        {msg && <p className="adm-err">{msg}</p>}
+        <div className="adm-form-actions">
+          <button className="adm-btn adm-btn-primary" disabled={busy}>{busy ? '저장 중…' : '저장'}</button>
+          <button type="button" className="adm-btn" onClick={cancel}>취소</button>
+        </div>
+      </form>
+    )
+  }
+
+  return (
+    <>
+      <button className="adm-btn adm-btn-primary" onClick={startNew}>+ 새 프로젝트</button>
+      {loading ? <p className="adm-muted">불러오는 중…</p> : (
+        <ul className="adm-list">
+          {projects.map((p) => (
+            <li key={p.slug} className="adm-row">
+              <span className="adm-thumb" style={p.thumb ? { backgroundImage: `url(${p.thumb})` } : undefined} />
+              <span className="adm-row-main">
+                <span className="adm-row-title">{p.titleEn}{p.titleKo ? ` — ${p.titleKo}` : ''}</span>
+                <span className="adm-row-meta">{p.client || catLabel(p.cat)} · {p.year || '연도 없음'} · /{p.slug}</span>
+              </span>
+              <span className="adm-row-actions">
+                <button className="adm-btn" onClick={() => startEdit(p)}>수정</button>
+                <button className="adm-btn adm-btn-danger" onClick={() => remove(p)}>삭제</button>
+              </span>
+            </li>
+          ))}
+          {projects.length === 0 && <li className="adm-muted">프로젝트가 없습니다.</li>}
+        </ul>
       )}
-      {msg && editing === null && <p className="adm-err">{msg}</p>}
-    </AdminShell>
+      {msg && <p className="adm-err">{msg}</p>}
+    </>
+  )
+}
+
+/* ---------- CAREER 관리 ---------- */
+const EMPTY_JOB = {
+  id: '', cat: 'media-art', titleEn: '', titleKo: '', type: '', desc: '',
+  headcount: '', responsibilities: '', qualifications: '', preferred: '', sort: 0,
+}
+
+function JobManager() {
+  const [jobs, setJobs] = useState(null)
+  const [editing, setEditing] = useState(null)
+  const [form, setForm] = useState(EMPTY_JOB)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  const isNew = editing === ''
+  const idAuto = useMemo(() => slugify(form.id || form.titleEn), [form.id, form.titleEn])
+
+  const refresh = () => listJobs().then(setJobs).catch((e) => setMsg('불러오기 실패: ' + e.message))
+  useEffect(() => { refresh() }, [])
+
+  function startNew() { setEditing(''); setForm(EMPTY_JOB); setMsg('') }
+  function startEdit(j) { setEditing(j.id); setForm({ ...EMPTY_JOB, ...j }); setMsg('') }
+  function cancel() { setEditing(null); setForm(EMPTY_JOB); setMsg('') }
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+
+  async function save(e) {
+    e.preventDefault()
+    const id = idAuto
+    if (!id || !form.titleEn.trim()) { setMsg('영문 직무명은 필수입니다.'); return }
+    setBusy(true); setMsg('')
+    const payload = { ...form, id, sort: Number(form.sort) || 0 }
+    try {
+      if (isNew) await createJob(payload)
+      else await updateJob(editing, payload)
+      await refresh()
+      cancel()
+    } catch (e2) {
+      setMsg('저장 실패: ' + e2.message)
+    } finally { setBusy(false) }
+  }
+
+  async function remove(j) {
+    if (!window.confirm(`"${j.titleEn}" 공고를 삭제할까요?`)) return
+    try { await deleteJob(j.id); await refresh() }
+    catch (e2) { setMsg('삭제 실패: ' + e2.message) }
+  }
+
+  if (editing !== null) {
+    return (
+      <form className="adm-card adm-form" onSubmit={save}>
+        <h2 className="adm-h2">{isNew ? '새 채용 공고' : '공고 수정'}</h2>
+
+        <label>영문 직무명 *<input value={form.titleEn} onChange={set('titleEn')} placeholder="MEDIA ARTIST" required /></label>
+        <label>한글 직무명<input value={form.titleKo} onChange={set('titleKo')} placeholder="미디어아트 콘텐츠 제작" /></label>
+
+        <div className="adm-grid2">
+          <label>카테고리
+            <select value={form.cat} onChange={set('cat')}>
+              {JOB_FORM_CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.label}</option>)}
+            </select>
+          </label>
+          <label>정렬 순서<input type="number" value={form.sort} onChange={set('sort')} /></label>
+        </div>
+
+        <div className="adm-grid2">
+          <label>식별자(id)<input value={form.id} onChange={set('id')} placeholder={idAuto} />
+            <span className="adm-hint">{idAuto || '…'}</span></label>
+          <label>고용형태 · 경력<input value={form.type} onChange={set('type')} placeholder="정규직 · 경력 2년 이상" /></label>
+        </div>
+
+        <label>소개(본문)<textarea rows={3} value={form.desc} onChange={set('desc')} placeholder="공고 상단 소개 문구" /></label>
+
+        <label>모집인원<input value={form.headcount} onChange={set('headcount')} placeholder="0명(경력)" /></label>
+        <label>담당업무<textarea rows={6} value={form.responsibilities} onChange={set('responsibilities')} placeholder="한 줄에 하나씩 입력" />
+          <span className="adm-hint">한 줄 = 표의 한 항목 (– 자동)</span></label>
+        <label>자격요건<textarea rows={5} value={form.qualifications} onChange={set('qualifications')} placeholder="한 줄에 하나씩 입력" /></label>
+        <label>우대사항<textarea rows={5} value={form.preferred} onChange={set('preferred')} placeholder="한 줄에 하나씩 입력" /></label>
+
+        {msg && <p className="adm-err">{msg}</p>}
+        <div className="adm-form-actions">
+          <button className="adm-btn adm-btn-primary" disabled={busy}>{busy ? '저장 중…' : '저장'}</button>
+          <button type="button" className="adm-btn" onClick={cancel}>취소</button>
+        </div>
+      </form>
+    )
+  }
+
+  return (
+    <>
+      <button className="adm-btn adm-btn-primary" onClick={startNew}>+ 새 채용 공고</button>
+      {jobs === null ? <p className="adm-muted">불러오는 중…</p> : (
+        <ul className="adm-list">
+          {jobs.map((j) => (
+            <li key={j.id} className="adm-row">
+              <span className="adm-row-main">
+                <span className="adm-row-title">{j.titleEn}{j.titleKo ? ` / ${j.titleKo}` : ''}</span>
+                <span className="adm-row-meta">{jobCatLabel(j.cat)}{j.type ? ` · ${j.type}` : ''}</span>
+              </span>
+              <span className="adm-row-actions">
+                <button className="adm-btn" onClick={() => startEdit(j)}>수정</button>
+                <button className="adm-btn adm-btn-danger" onClick={() => remove(j)}>삭제</button>
+              </span>
+            </li>
+          ))}
+          {jobs.length === 0 && <li className="adm-muted">공고가 없습니다.</li>}
+        </ul>
+      )}
+      {msg && <p className="adm-err">{msg}</p>}
+    </>
   )
 }
 
