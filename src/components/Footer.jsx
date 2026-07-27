@@ -1,11 +1,5 @@
 import SplitText from './SplitText'
-
-const SOCIAL = [
-  { label: 'Instagram', url: 'https://www.instagram.com/viren_creative/' },
-  { label: 'Vimeo', url: '#' },
-  { label: 'YouTube', url: '#' },
-  { label: 'Behance', url: '#' },
-]
+import { SOCIAL, SocialLink } from '../socials'
 
 export default function Footer() {
   return (
@@ -24,16 +18,7 @@ export default function Footer() {
           <h5>Social</h5>
           <ul>
             {SOCIAL.map((s) => (
-              <li key={s.label}>
-                <SplitText
-                  as="a"
-                  href={s.url}
-                  target={s.url !== '#' ? '_blank' : undefined}
-                  rel={s.url !== '#' ? 'noopener noreferrer' : undefined}
-                  data-hover
-                  text={s.label}
-                />
-              </li>
+              <li key={s.label}><SocialLink s={s} /></li>
             ))}
           </ul>
         </div>

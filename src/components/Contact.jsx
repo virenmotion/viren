@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Reveal from './Reveal'
 import SecStatement from './SecStatement'
 import ContactModal from './ContactModal'
+import { SOCIAL, SocialLink } from '../socials'
 
 const EMAIL = 'virenmotion@viren.kr'
 const PHONE = '02-0000-0000' // TODO: 실제 대표번호로 교체
@@ -9,13 +10,6 @@ const ADDRESS = '서울특별시 마포구 양화로8길 32-17'
 /* MAP 링크 — 카카오맵. 네이버지도로 바꾸려면 아래 NAVER 줄로 교체:
    const MAP_URL = 'https://map.naver.com/p/search/' + encodeURIComponent(ADDRESS) */
 const MAP_URL = 'https://map.kakao.com/?q=' + encodeURIComponent(ADDRESS)
-
-const SOCIAL = [
-  { label: 'Instagram', url: 'https://www.instagram.com/viren_creative/' },
-  { label: 'Vimeo', url: '#' },
-  { label: 'YouTube', url: '#' },
-  { label: 'Behance', url: '#' },
-]
 
 /* 위치 핀 아이콘 */
 function Pin() {
@@ -61,14 +55,7 @@ export default function Contact() {
       <div className="ct-bottom">
         <ul className="ct-social">
           {SOCIAL.map((s) => (
-            <li key={s.label}>
-              <a
-                href={s.url}
-                target={s.url !== '#' ? '_blank' : undefined}
-                rel={s.url !== '#' ? 'noopener noreferrer' : undefined}
-                data-hover
-              >{s.label}</a>
-            </li>
+            <li key={s.label}><SocialLink s={s} /></li>
           ))}
         </ul>
         <button type="button" className="btn ct-inquiry" onClick={() => setModalOpen(true)}>

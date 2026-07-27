@@ -224,6 +224,7 @@ main > section,main > .band{position:relative;z-index:1}
 }
 .scroll-hint i{width:1px;height:44px;background:linear-gradient(var(--accent),transparent);animation:drop 1.8s ease-in-out infinite}
 @keyframes drop{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+@media(max-width:760px){.scroll-hint{display:none}} /* 모바일: 큰 문구와 겹쳐 숨김 */
 
 /* ---------- generic ---------- */
 main{position:relative;z-index:2;background:var(--bg)}
@@ -248,6 +249,11 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .panel-end .foot-mark{width:clamp(116px,11.5vw,148px);margin-bottom:18px}
 .panel-end .brand .mail{font-size:clamp(18px,2.4vw,28px)}
 .panel-end .footer-bottom{margin-top:clamp(24px,3.5vh,44px);padding-top:20px}
+/* 모바일: 풀페이지 아님 → outro는 자연 높이, 푸터는 정상 흐름(겹침 방지) */
+@media(max-width:760px){
+  .panel-end #outro{min-height:auto;padding-top:clamp(90px,16vh,140px);padding-bottom:clamp(60px,10vh,90px)}
+  .panel-end footer{position:static}
+}
 @media(max-width:760px){.home .fp-panel{min-height:0}} /* 모바일은 자유 흐름 */
 .sec-label{
   position:absolute;top:clamp(64px,10vh,120px);left:var(--pad);
@@ -756,6 +762,15 @@ footer{
 .footer-grid ul{list-style:none;display:grid;gap:12px;font-size:15px}
 .footer-grid ul a{position:relative}
 .footer-grid ul a:hover{color:var(--accent)}
+.soc-ic{display:none}
+/* 모바일: 소셜을 아이콘 가로줄로 → 공간 절약 (Footer·Contact 공통) */
+@media(max-width:760px){
+  .footer-grid .social-col{text-align:left}
+  .social-col ul,.ct-social{display:flex;flex-direction:row;flex-wrap:wrap;gap:22px}
+  .soc-txt{display:none}
+  .soc-ic{display:block;width:24px;height:24px;color:var(--muted);transition:color .25s var(--ease)}
+  a:active .soc-ic,a:hover .soc-ic{color:var(--accent)}
+}
 .foot-mark{width:clamp(140px,15vw,190px);margin-bottom:30px}
 .brand .mail{font-size:clamp(20px,3vw,34px);font-weight:500;letter-spacing:-.02em;display:inline-block;position:relative}
 .brand .mail::after{content:'';position:absolute;left:0;bottom:-4px;width:100%;height:1px;background:var(--accent);
