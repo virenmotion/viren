@@ -216,7 +216,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .panel-philo{display:flex;flex-direction:column}
 .panel-philo #philosophy{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
   padding-bottom:clamp(24px,3.5vh,48px)}
-.panel-philo #philosophy .meaning{margin-top:auto} /* 4개 섹션을 하단으로 */
+.panel-philo #philosophy .meaning{margin-top:auto;margin-bottom:auto} /* 4개 섹션을 대문구~마퀴 사이 중앙에 */
 .panel-philo .band{flex:0 0 auto;margin-bottom:clamp(48px,8vh,110px)} /* 마퀴 살짝 올림 */
 /* Outro(Beyond) + 푸터 = 한 화면 */
 .panel-end{display:flex;flex-direction:column}
