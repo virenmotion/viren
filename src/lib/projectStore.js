@@ -3,7 +3,7 @@ import { SEED_PROJECTS } from '../workProjects'
 
 const TABLE = 'projects'
 /* DB 컬럼(snake_case) → 앱(camelCase) alias. description은 예약어 desc 회피용. */
-const SELECT = 'slug, cat, kind, client, year, titleEn:title_en, titleKo:title_ko, youtube, thumb, desc:description, sort, created_at'
+const SELECT = 'slug, cat, kind, client, year, titleEn:title_en, titleKo:title_ko, youtube, location, deliverables, thumb, desc:description, sort, created_at'
 
 /* ---------- 조회 ---------- */
 export async function listProjects() {
@@ -29,6 +29,8 @@ function toRow(p) {
     title_en: p.titleEn || null,
     title_ko: p.titleKo || null,
     youtube: p.youtube || null,
+    location: p.location || null,
+    deliverables: p.deliverables || null,
     thumb: p.thumb || null,
     description: p.desc || null,
     sort: Number.isFinite(p.sort) ? p.sort : 0,

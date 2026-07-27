@@ -20,9 +20,11 @@ create table if not exists public.projects (
   kind        text,
   client      text,           -- 발주처명 (카드 좌상단)
   year        text,           -- 사업연도 (카드 우상단)
-  title_en    text not null,  -- 영문 프로젝트명
-  title_ko    text,           -- 한글 프로젝트명
+  title_en    text,           -- 영문 프로젝트명 (선택)
+  title_ko    text not null,  -- 한글 프로젝트명 (필수)
   youtube     text,
+  location    text,           -- 장소
+  deliverables text,          -- 산출물/제공 내역
   thumb       text,
   description  text,
   sort        int  not null default 0,

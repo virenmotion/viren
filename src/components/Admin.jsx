@@ -93,7 +93,7 @@ function Dashboard({ user }) {
 const EMPTY_PROJECT = {
   slug: '', cat: 'media-art', kind: '',
   client: '', year: '', titleEn: '', titleKo: '',
-  youtube: '', thumb: '', desc: '', sort: 0,
+  youtube: '', location: '', deliverables: '', thumb: '', desc: '', sort: 0,
 }
 
 function ProjectManager() {
@@ -105,7 +105,7 @@ function ProjectManager() {
   const [uploading, setUploading] = useState(false)
 
   const isNew = editing === ''
-  const slugAuto = useMemo(() => slugify(form.slug || form.titleEn), [form.slug, form.titleEn])
+  const slugAuto = useMemo(() => slugify(form.slug || form.titleEn || form.titleKo), [form.slug, form.titleEn, form.titleKo])
 
   function startNew() { setEditing(''); setForm(EMPTY_PROJECT); setMsg('') }
   function startEdit(p) { setEditing(p.slug); setForm({ ...EMPTY_PROJECT, ...p }); setMsg('') }
@@ -127,7 +127,7 @@ function ProjectManager() {
   async function save(e) {
     e.preventDefault()
     const slug = slugAuto
-    if (!slug || !form.titleEn.trim()) { setMsg('영문 프로젝트명은 필수입니다.'); return }
+    if (!slug || !form.titleKo.trim()) { setMsg('한글 프로젝트명은 필수입니다.'); return }
     setBusy(true); setMsg('')
     const payload = { ...form, slug, sort: Number(form.sort) || 0 }
     try {
@@ -152,12 +152,12 @@ function ProjectManager() {
         <h2 className="adm-h2">{isNew ? '새 프로젝트' : '프로젝트 수정'}</h2>
 
         <div className="adm-grid2">
-          <label>발주처명<input value={form.client} onChange={set('client')} placeholder="KAKAO" /></label>
-          <label>사업연도<input value={form.year} onChange={set('year')} placeholder="2025.12" /></label>
+          <label>발주처명<input value={form.client} onChange={set('client')} /></label>
+          <label>사업연도<input value={form.year} onChange={set('year')} /></label>
         </div>
 
-        <label>영문 프로젝트명 *<input value={form.titleEn} onChange={set('titleEn')} placeholder="SEOUL STATION KAKAO FRIENDS" required /></label>
-        <label>한글 프로젝트명<input value={form.titleKo} onChange={set('titleKo')} placeholder="서울역 플랫폼111 산타프렌즈" /></label>
+        <label>한글 프로젝트명 *<input value={form.titleKo} onChange={set('titleKo')} required /></label>
+        <label>영문 프로젝트명<input value={form.titleEn} onChange={set('titleEn')} /></label>
 
         <div className="adm-grid2">
           <label>URL 슬러그<input value={form.slug} onChange={set('slug')} placeholder={slugAuto} />
@@ -171,10 +171,16 @@ function ProjectManager() {
               {CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.label}</option>)}
             </select>
           </label>
-          <label>구분(태그)<input value={form.kind} onChange={set('kind')} placeholder="MEDIA FACADE / EXHIBITION …" /></label>
+          <label>구분(태그)<input value={form.kind} onChange={set('kind')} /></label>
         </div>
 
-        <label>YouTube ID<input value={form.youtube} onChange={set('youtube')} placeholder="aqz-KE-bpKQ" /></label>
+        <div className="adm-grid2">
+          <label>Location<input value={form.location} onChange={set('location')} /></label>
+          <label>Deliverables<input value={form.deliverables} onChange={set('deliverables')} /></label>
+        </div>
+
+        <label>영상 (YouTube 주소 또는 ID)<input value={form.youtube} onChange={set('youtube')} />
+          <span className="adm-hint">예: https://youtu.be/aqz-KE-bpKQ 를 붙여넣어도 됩니다 · 비우면 영상 없음</span></label>
 
         <label>썸네일 이미지
           <input type="file" accept="image/*" onChange={onFile} />
@@ -207,7 +213,7 @@ function ProjectManager() {
             <li key={p.slug} className="adm-row">
               <span className="adm-thumb" style={p.thumb ? { backgroundImage: `url(${p.thumb})` } : undefined} />
               <span className="adm-row-main">
-                <span className="adm-row-title">{p.titleEn}{p.titleKo ? ` — ${p.titleKo}` : ''}</span>
+                <span className="adm-row-title">{p.titleKo || p.titleEn}{p.titleKo && p.titleEn ? ` — ${p.titleEn}` : ''}</span>
                 <span className="adm-row-meta">{p.client || catLabel(p.cat)} · {p.year || '연도 없음'} · /{p.slug}</span>
               </span>
               <span className="adm-row-actions">
