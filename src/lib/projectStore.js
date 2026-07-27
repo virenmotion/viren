@@ -57,6 +57,16 @@ export async function deleteProject(slug) {
   if (error) throw error
 }
 
+/* 드래그로 바뀐 순서를 sort 값(1,2,3…)으로 일괄 저장 */
+export async function reorderProjects(slugs) {
+  requireDB()
+  const results = await Promise.all(
+    slugs.map((slug, i) => supabase.from(TABLE).update({ sort: i + 1 }).eq('slug', slug)),
+  )
+  const bad = results.find((r) => r.error)
+  if (bad) throw bad.error
+}
+
 /* 썸네일 이미지 업로드 → 공개 URL 반환 */
 export async function uploadThumb(file) {
   requireDB()

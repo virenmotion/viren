@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { isConfigured } from '../lib/supabase'
 import {
   signIn, signOut, getUser, onAuthChange,
-  createProject, updateProject, deleteProject, uploadThumb,
+  createProject, updateProject, deleteProject, uploadThumb, reorderProjects,
 } from '../lib/projectStore'
 import { listJobs, createJob, updateJob, deleteJob } from '../lib/careerStore'
 import { CATEGORIES, catLabel, slugify } from '../workProjects'
@@ -103,6 +103,32 @@ function ProjectManager() {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [uploading, setUploading] = useState(false)
+
+  /* 드래그 순서 변경 */
+  const [rows, setRows] = useState([])
+  const [savingOrder, setSavingOrder] = useState(false)
+  const dragFrom = useRef(null)
+  useEffect(() => { setRows(projects) }, [projects])
+
+  function onDragStart(i) { dragFrom.current = i }
+  function onDragEnter(i) {
+    const from = dragFrom.current
+    if (from === null || from === i) return
+    setRows((prev) => {
+      const next = [...prev]
+      const [m] = next.splice(from, 1)
+      next.splice(i, 0, m)
+      return next
+    })
+    dragFrom.current = i
+  }
+  async function onDrop() {
+    dragFrom.current = null
+    setSavingOrder(true); setMsg('')
+    try { await reorderProjects(rows.map((r) => r.slug)); await refresh() }
+    catch (e) { setMsg('순서 저장 실패: ' + e.message) }
+    finally { setSavingOrder(false) }
+  }
 
   const isNew = editing === ''
   const slugAuto = useMemo(() => slugify(form.slug || form.titleEn || form.titleKo), [form.slug, form.titleEn, form.titleKo])
@@ -207,10 +233,22 @@ function ProjectManager() {
   return (
     <>
       <button className="adm-btn adm-btn-primary" onClick={startNew}>+ 새 프로젝트</button>
+      {rows.length > 1 && (
+        <p className="adm-drag-hint">⠿ 행을 드래그해서 순서를 바꾸세요{savingOrder ? ' · 저장 중…' : ''}</p>
+      )}
       {loading ? <p className="adm-muted">불러오는 중…</p> : (
         <ul className="adm-list">
-          {projects.map((p) => (
-            <li key={p.slug} className="adm-row">
+          {rows.map((p, i) => (
+            <li
+              key={p.slug}
+              className="adm-row"
+              draggable
+              onDragStart={() => onDragStart(i)}
+              onDragEnter={() => onDragEnter(i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDragEnd={onDrop}
+            >
+              <span className="adm-drag" aria-hidden="true">⠿</span>
               <span className="adm-thumb" style={p.thumb ? { backgroundImage: `url(${p.thumb})` } : undefined} />
               <span className="adm-row-main">
                 <span className="adm-row-title">{p.titleKo || p.titleEn}{p.titleKo && p.titleEn ? ` — ${p.titleEn}` : ''}</span>
@@ -222,7 +260,7 @@ function ProjectManager() {
               </span>
             </li>
           ))}
-          {projects.length === 0 && <li className="adm-muted">프로젝트가 없습니다.</li>}
+          {rows.length === 0 && <li className="adm-muted">프로젝트가 없습니다.</li>}
         </ul>
       )}
       {msg && <p className="adm-err">{msg}</p>}
