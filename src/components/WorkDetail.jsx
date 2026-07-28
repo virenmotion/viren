@@ -51,10 +51,11 @@ function BlockBody({ b }) {
       </div>
     )
   }
-  /* 특징 카드 — 한 줄 = "한글 | 영문", 다크 카드 3(+)열 */
+  /* 특징 카드 — 한 줄 = "한글 | 영문", / 로 줄바꿈, 다크 카드 3(+)열 */
   if (b.type === 'features') {
+    const brk = (s) => String(s || '').split('/').map((t) => t.trim()).filter(Boolean).join('\n')
     const items = String(b.body || '').split('\n').map((l) => l.trim()).filter(Boolean)
-      .map((l) => { const [ko, en] = l.split('|').map((s) => (s || '').trim()); return { ko, en } })
+      .map((l) => { const [ko, en] = l.split('|').map((s) => (s || '').trim()); return { ko: brk(ko), en: brk(en) } })
     if (!items.length) return null
     return (
       <div className="wb-features">

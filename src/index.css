@@ -553,9 +553,9 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .wb-feat{padding:clamp(28px,4vw,48px) clamp(20px,2.6vw,34px);text-align:center;
   border-left:1px solid rgba(255,255,255,.08)}
 .wb-feat:first-child{border-left:0}
-.wb-feat-ko{font-size:clamp(17px,1.7vw,22px);font-weight:700;letter-spacing:-.01em;line-height:1.35;color:#fff}
+.wb-feat-ko{font-size:clamp(17px,1.7vw,22px);font-weight:700;letter-spacing:-.01em;line-height:1.35;color:#fff;white-space:pre-line}
 .wb-feat-en{margin-top:12px;font-size:clamp(12px,1vw,14px);line-height:1.7;color:var(--muted);
-  letter-spacing:.03em}
+  letter-spacing:.03em;white-space:pre-line}
 @media(max-width:720px){
   .wb-features{grid-template-columns:1fr}
   .wb-feat{border-left:0;border-top:1px solid rgba(255,255,255,.08)}

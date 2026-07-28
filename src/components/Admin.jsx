@@ -324,8 +324,8 @@ function ProjectManager() {
               )}
               {b.type === 'features' && (
                 <>
-                  <textarea rows={4} placeholder={'한 줄에 한 항목, "한글 | 영문" 형식\n예) 각 칸마다 다른 테마 | Parallel episodes'} value={b.body || ''} onChange={(e) => updateBlock(i, { body: e.target.value })} />
-                  <span className="adm-hint">한 줄 = 한 열 · 형식: 한글 | 영문</span>
+                  <textarea rows={4} placeholder={'한 줄에 한 항목, "한글 | 영문" 형식\n예) 각 칸마다 다른 테마 | Parallel episodes\n칸 안에서 줄바꿈은 / 로 구분'} value={b.body || ''} onChange={(e) => updateBlock(i, { body: e.target.value })} />
+                  <span className="adm-hint">한 줄 = 한 열 · 형식: 한글 | 영문 · 칸 안 줄바꿈: /</span>
                 </>
               )}
               {b.type === 'divider' && <span className="adm-hint">— 구분선 (이 지점에서 구역이 나뉘고, 구역별로 스크롤 효과가 적용됩니다) —</span>}
