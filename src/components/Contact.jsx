@@ -5,7 +5,7 @@ import ContactModal from './ContactModal'
 import { SOCIAL, SocialLink } from '../socials'
 
 const EMAIL = 'virenmotion@viren.kr'
-const PHONE = '02-0000-0000' // TODO: 실제 대표번호로 교체
+const PHONE = '010-7770-1614'
 const ADDRESS = '서울특별시 마포구 양화로8길 32-17'
 /* MAP 링크 — 카카오맵. 네이버지도로 바꾸려면 아래 NAVER 줄로 교체:
    const MAP_URL = 'https://map.naver.com/p/search/' + encodeURIComponent(ADDRESS) */
