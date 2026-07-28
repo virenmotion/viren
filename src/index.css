@@ -379,6 +379,8 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .meaning-col:hover .aura{opacity:1}
 @media(prefers-reduced-motion:reduce){.meaning-col .glow,.meaning-col .aura{display:none}}
 .meaning-col .mn{display:block;font-size:12px;letter-spacing:.28em;color:var(--accent);margin-bottom:clamp(64px,9.7vw,150px)}
+/* 모바일/태블릿: 고스트 글자와 제목이 겹치지 않게 숫자 하단 여백 확대 */
+@media(max-width:900px){.meaning-col .mn{margin-bottom:clamp(100px,14vw,132px)}}
 .meaning-col .mw{
   font-size:clamp(28px,3.4vw,46px);font-weight:500;letter-spacing:-.02em;line-height:1;margin-bottom:20px;
 }
