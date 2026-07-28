@@ -249,6 +249,9 @@ function ProjectManager() {
               <div className="adm-block-head">
                 <select value={b.type} onChange={(e) => updateBlock(i, { type: e.target.value })}>
                   <option value="text">텍스트</option>
+                  <option value="center">중앙 텍스트(한/영)</option>
+                  <option value="label">라벨(Concept 등)</option>
+                  <option value="features">특징 카드</option>
                   <option value="image">이미지</option>
                   <option value="video">영상</option>
                   <option value="divider">구분선</option>
@@ -278,11 +281,30 @@ function ProjectManager() {
                   <input placeholder="캡션 (선택)" value={b.caption || ''} onChange={(e) => updateBlock(i, { caption: e.target.value })} />
                 </>
               )}
+              {b.type === 'center' && (
+                <>
+                  <input placeholder="제목" value={b.heading || ''} onChange={(e) => updateBlock(i, { heading: e.target.value })} />
+                  <textarea rows={3} placeholder="한글 내용" value={b.body || ''} onChange={(e) => updateBlock(i, { body: e.target.value })} />
+                  <textarea rows={3} placeholder="영문 내용 (선택)" value={b.bodyEn || ''} onChange={(e) => updateBlock(i, { bodyEn: e.target.value })} />
+                </>
+              )}
+              {b.type === 'label' && (
+                <input placeholder="라벨 텍스트 (예: Concept)" value={b.text || ''} onChange={(e) => updateBlock(i, { text: e.target.value })} />
+              )}
+              {b.type === 'features' && (
+                <>
+                  <textarea rows={4} placeholder={'한 줄에 한 항목, "한글 | 영문" 형식\n예) 각 칸마다 다른 테마 | Parallel episodes'} value={b.body || ''} onChange={(e) => updateBlock(i, { body: e.target.value })} />
+                  <span className="adm-hint">한 줄 = 한 열 · 형식: 한글 | 영문</span>
+                </>
+              )}
               {b.type === 'divider' && <span className="adm-hint">— 구분선 (이 지점에서 구역이 나뉘고, 구역별로 스크롤 효과가 적용됩니다) —</span>}
             </div>
           ))}
           <div className="adm-block-add">
             <button type="button" className="adm-btn" onClick={() => addBlock('text')}>+ 텍스트</button>
+            <button type="button" className="adm-btn" onClick={() => addBlock('center')}>+ 중앙텍스트</button>
+            <button type="button" className="adm-btn" onClick={() => addBlock('label')}>+ 라벨</button>
+            <button type="button" className="adm-btn" onClick={() => addBlock('features')}>+ 특징</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('image')}>+ 이미지</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('video')}>+ 영상</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('divider')}>+ 구분선</button>

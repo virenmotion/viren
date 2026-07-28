@@ -13,13 +13,47 @@ function ytId(v) {
   return s
 }
 
-/* 콘텐츠 블록 하나 렌더 (텍스트/이미지/영상) */
+/* 콘텐츠 블록 하나 렌더 */
 function BlockBody({ b }) {
   if (b.type === 'text') {
     return (
       <div className="wb-textrow">
         {b.heading && <h3 className="wb-heading">{b.heading}</h3>}
         {b.body && <p className="wb-text">{b.body}</p>}
+      </div>
+    )
+  }
+  /* 라벨 — 장식선 + 중앙 텍스트 (Concept / Intro) */
+  if (b.type === 'label' && b.text) {
+    return (
+      <div className="wb-label">
+        <i className="dl" /><span>{b.text}</span><i className="dr" />
+      </div>
+    )
+  }
+  /* 중앙 텍스트 — 제목 + 한글 + 영문 (이중언어 센터) */
+  if (b.type === 'center') {
+    return (
+      <div className="wb-center">
+        {b.heading && <h3 className="wb-c-title">{b.heading}</h3>}
+        {b.body && <p className="wb-c-ko">{b.body}</p>}
+        {b.bodyEn && <p className="wb-c-en">{b.bodyEn}</p>}
+      </div>
+    )
+  }
+  /* 특징 카드 — 한 줄 = "한글 | 영문", 다크 카드 3(+)열 */
+  if (b.type === 'features') {
+    const items = String(b.body || '').split('\n').map((l) => l.trim()).filter(Boolean)
+      .map((l) => { const [ko, en] = l.split('|').map((s) => (s || '').trim()); return { ko, en } })
+    if (!items.length) return null
+    return (
+      <div className="wb-features">
+        {items.map((it, i) => (
+          <div className="wb-feat" key={i}>
+            {it.ko && <p className="wb-feat-ko">{it.ko}</p>}
+            {it.en && <p className="wb-feat-en">{it.en}</p>}
+          </div>
+        ))}
       </div>
     )
   }
