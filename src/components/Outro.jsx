@@ -14,7 +14,7 @@ export default function Outro() {
         preload="auto"
         aria-hidden="true"
       >
-        <source src="/assets/10469564-uhd_3840_2160_25fps.mp4" type="video/mp4" />
+        <source src="/assets/outro-bg.mp4" type="video/mp4" />
       </video>
       <div className="outro-veil" aria-hidden="true" />
       <SecStatement>Beyond Motion, Beyond Experience</SecStatement>
