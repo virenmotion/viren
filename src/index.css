@@ -507,10 +507,10 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .wd-group{margin-top:clamp(44px,7vh,90px)}       /* 구역 간(구분선/본문 아래) 간격 */
 .wd-block{margin-top:clamp(36px,5vh,60px)}        /* 구역 내 블록 간 간격 */
 .wd-group > .wd-block:first-child{margin-top:0}
-/* 텍스트 블록: 소제목(좌) · 내용(우, 오른쪽 정렬) 한 줄 */
-.wb-textrow{display:flex;justify-content:space-between;align-items:baseline;gap:24px 40px;flex-wrap:wrap}
-.wb-heading{font-size:clamp(20px,2.4vw,30px);font-weight:700;letter-spacing:-.01em;line-height:1.2}
-.wb-text{font-size:clamp(13px,1.15vw,16px);line-height:1.85;color:var(--muted);max-width:640px;text-align:right;
+/* 텍스트 블록: 소제목 + 내용 중앙정렬 세로 스택 */
+.wb-textrow{display:flex;flex-direction:column;align-items:center;text-align:center;gap:clamp(14px,2vh,22px)}
+.wb-heading{font-size:clamp(15px,1.5vw,20px);font-weight:700;letter-spacing:-.01em;line-height:1.3}
+.wb-text{font-size:clamp(13px,1.15vw,16px);line-height:1.85;color:var(--muted);text-align:center;
   font-family:'Pretendard Variable',Pretendard,sans-serif;white-space:pre-line}
 .wb-figure{margin:0}
 .wb-figure img{width:100%;display:block;border-radius:4px}
@@ -521,7 +521,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 
 /* 라벨 블록 — 좌우 장식선(중앙으로 페이드) + 다이아 + 중앙 텍스트 (Concept / Intro) */
 .wb-label{display:flex;align-items:center;justify-content:center;gap:clamp(16px,2.4vw,34px)}
-.wb-label span{font-size:clamp(15px,1.5vw,20px);letter-spacing:.32em;text-transform:uppercase;
+.wb-label span{font-size:clamp(22px,2.8vw,36px);letter-spacing:.32em;text-transform:uppercase;
   color:var(--fg);font-weight:500;white-space:nowrap}
 .wb-label i{flex:1;max-width:clamp(90px,20vw,260px);height:1px;position:relative;
   background:linear-gradient(90deg,transparent,var(--line))}
@@ -532,14 +532,14 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .wb-label i.dr::after{left:-2px}
 
 /* 중앙 텍스트 블록 — 제목 + 한글 + 영문 (이중언어 센터) */
-.wb-center{text-align:center;max-width:900px;margin:0 auto}
+.wb-center{text-align:center;max-width:none;margin:0 auto}
 /* 제목 프레임 — 좌우 포인트컬러 가로선 + 바깥 끝이 아래로 꺾이는 코너 */
 .wb-c-frame{display:flex;align-items:center;justify-content:center;gap:clamp(18px,2.6vw,40px)}
 .wb-c-frame i{flex:1;position:relative;height:1.5px;background:var(--accent)}
 .wb-c-frame i::after{content:'';position:absolute;top:0;width:1.5px;height:clamp(16px,2.6vh,30px);background:var(--accent)}
 .wb-c-frame i.l::after{left:0}
 .wb-c-frame i.r::after{right:0}
-.wb-c-title{font-size:clamp(22px,2.8vw,36px);font-weight:700;letter-spacing:-.01em;line-height:1.25;
+.wb-c-title{font-size:clamp(20px,2.4vw,30px);font-weight:700;letter-spacing:-.01em;line-height:1.25;
   white-space:nowrap;flex:0 0 auto}
 .wb-center>.wb-c-ko,.wb-center>.wb-c-en{max-width:680px;margin-left:auto;margin-right:auto}
 .wb-c-ko{margin-top:clamp(16px,2.2vh,24px);font-size:clamp(15px,1.35vw,18px);line-height:1.95;color:var(--muted);
