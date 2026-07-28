@@ -754,9 +754,13 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 #work .sec-statement{text-align:center;margin:clamp(18px,2.5vh,36px) 0 clamp(24px,3.5vh,48px)} /* 대문구 위/아래 여백 축소 */
 
 /* OUTRO — WHAT WE DO와 푸터 사이의 중앙 대문구 섹션 */
-#outro{min-height:100vh;display:flex;flex-direction:column;justify-content:center;background:var(--bg)}
-#outro .sec-statement{text-align:center;margin:0}
-.outro-cta{display:flex;justify-content:center;margin-top:clamp(34px,6vh,64px)}
+#outro{position:relative;overflow:hidden;min-height:100vh;display:flex;flex-direction:column;justify-content:center;background:var(--bg)}
+/* 배경 영상 + 가독성 오버레이 */
+.outro-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none}
+.outro-veil{position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(8,8,10,.62) 0%,rgba(8,8,10,.5) 45%,rgba(8,8,10,.82) 100%)}
+#outro .sec-statement{position:relative;z-index:2;text-align:center;margin:0}
+.outro-cta{position:relative;z-index:2;display:flex;justify-content:center;margin-top:clamp(34px,6vh,64px)}
 .outro-cta .btn{border-radius:4px;letter-spacing:.08em;display:inline-flex;align-items:center;gap:12px}
 .outro-cta .btn-arrow{font-size:1.15em;transition:transform .5s var(--ease)}
 .outro-cta .btn:hover .btn-arrow{transform:translate(3px,-3px)}

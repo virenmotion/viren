@@ -5,6 +5,18 @@ import SecStatement from './SecStatement'
 export default function Outro() {
   return (
     <section id="outro">
+      <video
+        className="outro-bg"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        aria-hidden="true"
+      >
+        <source src="/assets/10469564-uhd_3840_2160_25fps.mp4" type="video/mp4" />
+      </video>
+      <div className="outro-veil" aria-hidden="true" />
       <SecStatement>Beyond Motion, Beyond Experience</SecStatement>
       <div className="outro-cta">
         <Link className="btn" to="/contact">
