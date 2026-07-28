@@ -512,6 +512,12 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .wb-heading{font-size:clamp(20px,2.4vw,30px);font-weight:700;letter-spacing:-.01em;line-height:1.2}
 .wb-text{font-size:clamp(15px,1.35vw,18px);line-height:1.9;color:var(--muted);max-width:640px;text-align:right;
   font-family:'Pretendard Variable',Pretendard,sans-serif;white-space:pre-line}
+/* 텍스트 블록 열 분할 (| 기준) — 소제목 위, 여러 열 아래 */
+.wb-cols{display:flex;gap:clamp(24px,3.2vw,52px)}
+.wb-textcols .wb-heading{margin-bottom:clamp(18px,2.6vh,28px)}
+.wb-col{flex:1;min-width:0;font-size:clamp(15px,1.35vw,18px);line-height:1.9;color:var(--muted);
+  font-family:'Pretendard Variable',Pretendard,sans-serif;white-space:pre-line}
+@media(max-width:720px){.wb-cols{flex-direction:column;gap:clamp(16px,3vw,26px)}}
 .wb-figure{margin:0}
 .wb-figure img{width:100%;display:block;border-radius:4px}
 .wb-video{position:relative;aspect-ratio:16/9;background:#000;border-radius:4px;overflow:hidden}

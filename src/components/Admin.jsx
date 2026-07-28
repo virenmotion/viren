@@ -295,7 +295,8 @@ function ProjectManager() {
               {b.type === 'text' && (
                 <>
                   <input placeholder="소제목 (선택)" value={b.heading || ''} onChange={(e) => updateBlock(i, { heading: e.target.value })} />
-                  <textarea rows={4} placeholder="내용" value={b.body || ''} onChange={(e) => updateBlock(i, { body: e.target.value })} />
+                  <textarea rows={4} placeholder="내용 (여러 열로 나누려면 | 로 구분)" value={b.body || ''} onChange={(e) => updateBlock(i, { body: e.target.value })} />
+                  <span className="adm-hint">| 로 구분하면 여러 열로 나란히 표시됩니다</span>
                 </>
               )}
               {b.type === 'image' && (

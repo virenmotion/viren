@@ -16,6 +16,20 @@ function ytId(v) {
 /* 콘텐츠 블록 하나 렌더 */
 function BlockBody({ b }) {
   if (b.type === 'text') {
+    // 본문에 | 가 있으면 열로 나눠 나란히 표시
+    const cols = String(b.body || '').includes('|')
+      ? b.body.split('|').map((s) => s.trim()).filter(Boolean)
+      : null
+    if (cols && cols.length > 1) {
+      return (
+        <div className="wb-textcols">
+          {b.heading && <h3 className="wb-heading">{b.heading}</h3>}
+          <div className="wb-cols">
+            {cols.map((c, i) => <p className="wb-col" key={i}>{c}</p>)}
+          </div>
+        </div>
+      )
+    }
     return (
       <div className="wb-textrow">
         {b.heading && <h3 className="wb-heading">{b.heading}</h3>}
