@@ -510,14 +510,8 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 /* 텍스트 블록: 소제목(좌) · 내용(우, 오른쪽 정렬) 한 줄 */
 .wb-textrow{display:flex;justify-content:space-between;align-items:baseline;gap:24px 40px;flex-wrap:wrap}
 .wb-heading{font-size:clamp(20px,2.4vw,30px);font-weight:700;letter-spacing:-.01em;line-height:1.2}
-.wb-text{font-size:clamp(15px,1.35vw,18px);line-height:1.9;color:var(--muted);max-width:640px;text-align:right;
+.wb-text{font-size:clamp(13px,1.15vw,16px);line-height:1.85;color:var(--muted);max-width:640px;text-align:right;
   font-family:'Pretendard Variable',Pretendard,sans-serif;white-space:pre-line}
-/* 텍스트 블록 열 분할 (| 기준) — 소제목 위, 여러 열 아래 */
-.wb-cols{display:flex;gap:clamp(24px,3.2vw,52px)}
-.wb-textcols .wb-heading{margin-bottom:clamp(18px,2.6vh,28px)}
-.wb-col{flex:1;min-width:0;font-size:clamp(15px,1.35vw,18px);line-height:1.9;color:var(--muted);
-  font-family:'Pretendard Variable',Pretendard,sans-serif;white-space:pre-line}
-@media(max-width:720px){.wb-cols{flex-direction:column;gap:clamp(16px,3vw,26px)}}
 .wb-figure{margin:0}
 .wb-figure img{width:100%;display:block;border-radius:4px}
 .wb-video{position:relative;aspect-ratio:16/9;background:#000;border-radius:4px;overflow:hidden}
@@ -538,8 +532,16 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .wb-label i.dr::after{left:-2px}
 
 /* 중앙 텍스트 블록 — 제목 + 한글 + 영문 (이중언어 센터) */
-.wb-center{text-align:center;max-width:760px;margin:0 auto}
-.wb-c-title{font-size:clamp(22px,2.8vw,36px);font-weight:700;letter-spacing:-.01em;line-height:1.25}
+.wb-center{text-align:center;max-width:900px;margin:0 auto}
+/* 제목 프레임 — 좌우 포인트컬러 가로선 + 바깥 끝이 아래로 꺾이는 코너 */
+.wb-c-frame{display:flex;align-items:center;justify-content:center;gap:clamp(18px,2.6vw,40px)}
+.wb-c-frame i{flex:1;position:relative;height:1.5px;background:var(--accent)}
+.wb-c-frame i::after{content:'';position:absolute;top:0;width:1.5px;height:clamp(16px,2.6vh,30px);background:var(--accent)}
+.wb-c-frame i.l::after{left:0}
+.wb-c-frame i.r::after{right:0}
+.wb-c-title{font-size:clamp(22px,2.8vw,36px);font-weight:700;letter-spacing:-.01em;line-height:1.25;
+  white-space:nowrap;flex:0 0 auto}
+.wb-center>.wb-c-ko,.wb-center>.wb-c-en{max-width:680px;margin-left:auto;margin-right:auto}
 .wb-c-ko{margin-top:clamp(16px,2.2vh,24px);font-size:clamp(15px,1.35vw,18px);line-height:1.95;color:var(--muted);
   font-family:'Pretendard Variable',Pretendard,sans-serif;white-space:pre-line}
 .wb-c-en{margin-top:14px;font-size:clamp(13px,1.05vw,15px);line-height:1.85;color:var(--muted);opacity:.72;

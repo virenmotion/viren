@@ -16,24 +16,14 @@ function ytId(v) {
 /* 콘텐츠 블록 하나 렌더 */
 function BlockBody({ b }) {
   if (b.type === 'text') {
-    // 본문에 | 가 있으면 열로 나눠 나란히 표시
-    const cols = String(b.body || '').includes('|')
-      ? b.body.split('|').map((s) => s.trim()).filter(Boolean)
-      : null
-    if (cols && cols.length > 1) {
-      return (
-        <div className="wb-textcols">
-          {b.heading && <h3 className="wb-heading">{b.heading}</h3>}
-          <div className="wb-cols">
-            {cols.map((c, i) => <p className="wb-col" key={i}>{c}</p>)}
-          </div>
-        </div>
-      )
-    }
+    // 본문에 | 가 있으면 행(줄)으로 나눠 표시
+    const body = String(b.body || '').includes('|')
+      ? b.body.split('|').map((s) => s.trim()).filter(Boolean).join('\n')
+      : b.body
     return (
       <div className="wb-textrow">
         {b.heading && <h3 className="wb-heading">{b.heading}</h3>}
-        {b.body && <p className="wb-text">{b.body}</p>}
+        {body && <p className="wb-text">{body}</p>}
       </div>
     )
   }
@@ -49,7 +39,13 @@ function BlockBody({ b }) {
   if (b.type === 'center') {
     return (
       <div className="wb-center">
-        {b.heading && <h3 className="wb-c-title">{b.heading}</h3>}
+        {b.heading && (
+          <div className="wb-c-frame">
+            <i className="l" />
+            <h3 className="wb-c-title">{b.heading}</h3>
+            <i className="r" />
+          </div>
+        )}
         {b.body && <p className="wb-c-ko">{b.body}</p>}
         {b.bodyEn && <p className="wb-c-en">{b.bodyEn}</p>}
       </div>
