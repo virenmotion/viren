@@ -817,7 +817,7 @@ footer{
   a:active .soc-ic,a:hover .soc-ic{color:var(--accent)}
 }
 .foot-mark{width:clamp(140px,15vw,190px);margin-bottom:30px}
-.foot-download{display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;
+.foot-download{display:flex;width:fit-content;align-items:center;gap:8px;margin-bottom:20px;
   font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
   transition:color .3s var(--ease)}
 .foot-download:hover{color:var(--accent)}
