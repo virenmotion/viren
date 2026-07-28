@@ -149,6 +149,20 @@ function ProjectManager() {
     if (j < 0 || j >= b.length) return f;
     [b[i], b[j]] = [b[j], b[i]]; return { ...f, blocks: b }
   })
+  // 블록 드래그앤드롭 재정렬
+  const blockDragFrom = useRef(null)
+  const [blockDrag, setBlockDrag] = useState(null)
+  const onBlockDragStart = (i, e) => { blockDragFrom.current = i; setBlockDrag(i); e.dataTransfer.effectAllowed = 'move' }
+  const onBlockDragEnter = (i) => {
+    const from = blockDragFrom.current
+    if (from === null || from === i) return
+    setForm((f) => {
+      const b = [...f.blocks]; const [m] = b.splice(from, 1); b.splice(i, 0, m)
+      return { ...f, blocks: b }
+    })
+    blockDragFrom.current = i; setBlockDrag(i)
+  }
+  const onBlockDragEnd = () => { blockDragFrom.current = null; setBlockDrag(null) }
   async function uploadBlockImage(i, e) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -245,8 +259,23 @@ function ProjectManager() {
         <div className="adm-blocks">
           <span className="adm-blocks-title">본문 하단 콘텐츠 (순서대로 표시 · 스크롤 애니메이션)</span>
           {(form.blocks || []).map((b, i) => (
-            <div className="adm-block" key={i}>
+            <div
+              className={'adm-block' + (blockDrag === i ? ' is-dragging' : '')}
+              key={i}
+              onDragEnter={() => onBlockDragEnter(i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDragEnd={onBlockDragEnd}
+              onDrop={(e) => { e.preventDefault(); onBlockDragEnd() }}
+            >
               <div className="adm-block-head">
+                <span className="adm-block-lead">
+                <span
+                  className="adm-drag"
+                  draggable
+                  onDragStart={(e) => onBlockDragStart(i, e)}
+                  title="드래그하여 순서 변경"
+                  aria-label="드래그하여 순서 변경"
+                >⠿</span>
                 <select value={b.type} onChange={(e) => updateBlock(i, { type: e.target.value })}>
                   <option value="text">텍스트</option>
                   <option value="center">중앙 텍스트(한/영)</option>
@@ -256,6 +285,7 @@ function ProjectManager() {
                   <option value="video">영상</option>
                   <option value="divider">구분선</option>
                 </select>
+                </span>
                 <span className="adm-block-actions">
                   <button type="button" className="adm-btn" onClick={() => moveBlock(i, -1)} disabled={i === 0}>↑</button>
                   <button type="button" className="adm-btn" onClick={() => moveBlock(i, 1)} disabled={i === form.blocks.length - 1}>↓</button>

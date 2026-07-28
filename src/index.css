@@ -877,8 +877,14 @@ footer{
 /* 관리자 콘텐츠 블록 빌더 */
 .adm-blocks{display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--line);padding-top:20px}
 .adm-blocks-title{font-size:12px;letter-spacing:.05em;color:var(--muted)}
-.adm-block{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:7px;padding:14px;background:var(--bg)}
+.adm-block{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:7px;padding:14px;background:var(--bg);transition:opacity .15s,border-color .15s}
+.adm-block.is-dragging{opacity:.45;border-color:var(--accent);border-style:dashed}
 .adm-block-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.adm-block-lead{display:flex;align-items:center;gap:10px}
+.adm-drag{cursor:grab;user-select:none;color:var(--muted);font-size:18px;line-height:1;padding:2px 6px;
+  border-radius:5px;border:1px solid var(--line);background:var(--bg-2);flex:0 0 auto}
+.adm-drag:hover{color:var(--accent);border-color:var(--accent)}
+.adm-drag:active{cursor:grabbing}
 .adm-block-head select{font:inherit;font-size:13px;color:var(--fg);background:var(--bg-2);
   border:1px solid var(--line);border-radius:5px;padding:7px 10px}
 .adm-block-actions{display:flex;gap:6px}
