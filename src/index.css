@@ -198,7 +198,9 @@ main > section,main > .band{position:relative;z-index:1}
 @media(max-width:760px){
   .about-statement{font-size:clamp(30px,8.6vw,44px)}
   .about-statement .r{text-align:left}
-  .about-top{grid-template-columns:1fr;row-gap:36px}
+  /* 라벨을 흐름에 넣고 대문 문구와의 간격 확보 */
+  .about-top{display:flex;flex-direction:column;gap:clamp(30px,7vh,56px)}
+  .about-label{position:static;top:auto;left:auto}
   .about-body{width:100%!important}
 }
 
