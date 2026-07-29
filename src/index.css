@@ -74,6 +74,13 @@ img{max-width:100%;display:block}
 .split:hover .clone .char,.split.on .clone .char{
   opacity:1;transition-duration:.35s;transition-delay:calc(.18s + var(--i) * .05s);
 }
+/* 모바일(터치): 글자 디졸브 효과 끄고 일반 텍스트로 표시 — 레이어드 페인트 글리치 방지 */
+@media(max-width:760px){
+  .split .char{will-change:auto}
+  .split .original .char,
+  .split:hover .original .char,.split.on .original .char{opacity:1;filter:none;transition:none}
+  .split .clone{display:none}
+}
 
 /* ---------- nav ---------- */
 header{
