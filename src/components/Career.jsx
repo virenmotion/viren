@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import Reveal from './Reveal'
 import SecStatement from './SecStatement'
 import { SEED_JOBS, WORK_CONDITIONS } from '../careerJobs'
-import { listJobs } from '../lib/careerStore'
+import { listJobs, getWorkConditions } from '../lib/careerStore'
+
+/* body: 배열이면 그대로, 문자열이면 줄바꿈 분리 */
+const condLines = (body) =>
+  Array.isArray(body) ? body : String(body || '').split('\n').map((s) => s.trim()).filter(Boolean)
 
 const APPLY_EMAIL = 'virenmotion@viren.kr'
 
@@ -44,9 +48,11 @@ function JobTable({ job }) {
 export default function Career() {
   const [openId, setOpenId] = useState(null)
   const [jobs, setJobs] = useState(null) // null = 로딩
+  const [conditions, setConditions] = useState(WORK_CONDITIONS) // 근무조건 (DB 저장분 있으면 대체)
 
   useEffect(() => {
     listJobs().then(setJobs).catch((e) => { console.error('채용 로드 실패, 시드 폴백:', e); setJobs(SEED_JOBS) })
+    getWorkConditions().then((c) => { if (c && c.length) setConditions(c) }).catch(() => {})
   }, [])
 
   // 상단 고정(pinned) 공고를 맨 위로 — 그 외 순서는 유지(안정 정렬)
@@ -101,11 +107,11 @@ export default function Career() {
       <h2 className="job-heading cond-heading">WORK CONDITIONS</h2>
       <Reveal className="cond-wrap">
         <dl className="cond-list">
-          {WORK_CONDITIONS.map((c) => (
-            <div className="cond-row" key={c.label}>
+          {conditions.map((c, ci) => (
+            <div className="cond-row" key={ci}>
               <dt className="cond-label">{c.label}</dt>
               <dd className="cond-body">
-                {c.body.map((line, i) => <p key={i}>{line}</p>)}
+                {condLines(c.body).map((line, i) => <p key={i}>{line}</p>)}
               </dd>
             </div>
           ))}

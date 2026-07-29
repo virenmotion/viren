@@ -5,7 +5,8 @@ import {
   signIn, signOut, getUser, onAuthChange,
   createProject, updateProject, deleteProject, uploadThumb, reorderProjects,
 } from '../lib/projectStore'
-import { listJobs, createJob, updateJob, deleteJob } from '../lib/careerStore'
+import { listJobs, createJob, updateJob, deleteJob, getWorkConditions, saveWorkConditions } from '../lib/careerStore'
+import { WORK_CONDITIONS } from '../careerJobs'
 import { CATEGORIES, catLabel, slugify } from '../workProjects'
 import { useProjects } from '../ProjectsContext'
 
@@ -83,7 +84,7 @@ function Dashboard({ user }) {
           <button className="adm-btn" onClick={() => signOut()}>로그아웃</button>
         </div>
       </div>
-      {tab === 'work' ? <ProjectManager /> : <JobManager />}
+      {tab === 'work' ? <ProjectManager /> : <><JobManager /><ConditionsManager /></>}
     </AdminShell>
   )
 }
@@ -494,6 +495,71 @@ function JobManager() {
       )}
       {msg && <p className="adm-err">{msg}</p>}
     </>
+  )
+}
+
+/* ---------- 근무조건(WORK CONDITIONS) 편집 ---------- */
+const condToForm = (list) =>
+  (list || []).map((c) => ({ label: c.label || '', body: Array.isArray(c.body) ? c.body.join('\n') : (c.body || '') }))
+
+function ConditionsManager() {
+  const [items, setItems] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    getWorkConditions()
+      .then((c) => setItems(condToForm(c && c.length ? c : WORK_CONDITIONS)))
+      .catch(() => setItems(condToForm(WORK_CONDITIONS)))
+  }, [])
+
+  const update = (i, patch) => setItems((a) => a.map((it, j) => (j === i ? { ...it, ...patch } : it)))
+  const add = () => setItems((a) => [...a, { label: '', body: '' }])
+  const remove = (i) => setItems((a) => a.filter((_, j) => j !== i))
+  const move = (i, dir) => setItems((a) => {
+    const b = [...a]; const j = i + dir
+    if (j < 0 || j >= b.length) return a;
+    [b[i], b[j]] = [b[j], b[i]]; return b
+  })
+
+  async function save() {
+    setBusy(true); setMsg('')
+    try {
+      const clean = items.map((c) => ({ label: c.label.trim(), body: c.body })).filter((c) => c.label)
+      await saveWorkConditions(clean)
+      setMsg('저장되었습니다. CAREER 페이지에 반영됩니다.')
+    } catch (e) { setMsg('저장 실패: ' + e.message) }
+    finally { setBusy(false) }
+  }
+
+  if (items === null) return <div className="adm-card adm-card-gap"><p className="adm-muted">근무조건 불러오는 중…</p></div>
+
+  return (
+    <div className="adm-card adm-card-gap">
+      <h2 className="adm-h2">근무조건 (WORK CONDITIONS)</h2>
+      <p className="adm-muted">소제목은 한글, 내용은 한 줄에 하나씩 입력하세요. 저장하면 CAREER 페이지 하단에 반영됩니다.</p>
+      {items.map((c, i) => (
+        <div className="adm-block" key={i}>
+          <div className="adm-block-head">
+            <span className="adm-block-lead"><strong>{i + 1}</strong></span>
+            <span className="adm-block-actions">
+              <button type="button" className="adm-btn" onClick={() => move(i, -1)} disabled={i === 0}>↑</button>
+              <button type="button" className="adm-btn" onClick={() => move(i, 1)} disabled={i === items.length - 1}>↓</button>
+              <button type="button" className="adm-btn adm-btn-danger" onClick={() => remove(i)}>삭제</button>
+            </span>
+          </div>
+          <input placeholder="소제목 (예: 근무지)" value={c.label} onChange={(e) => update(i, { label: e.target.value })} />
+          <textarea rows={3} placeholder="내용 — 한 줄에 하나씩" value={c.body} onChange={(e) => update(i, { body: e.target.value })} />
+        </div>
+      ))}
+      <div className="adm-block-add">
+        <button type="button" className="adm-btn" onClick={add}>+ 항목 추가</button>
+      </div>
+      {msg && <p className={msg.includes('실패') ? 'adm-err' : 'adm-muted'}>{msg}</p>}
+      <div className="adm-form-actions">
+        <button type="button" className="adm-btn adm-btn-primary" onClick={save} disabled={busy}>{busy ? '저장 중…' : '근무조건 저장'}</button>
+      </div>
+    </div>
   )
 }
 

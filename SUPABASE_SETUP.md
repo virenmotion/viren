@@ -71,6 +71,18 @@ create policy "jobs public read"  on public.jobs for select using (true);
 create policy "jobs auth insert"  on public.jobs for insert to authenticated with check (true);
 create policy "jobs auth update"  on public.jobs for update to authenticated using (true) with check (true);
 create policy "jobs auth delete"  on public.jobs for delete to authenticated using (true);
+
+-- 사이트 설정(근무조건 등) 단일 문서 테이블
+create table if not exists public.site_settings (
+  key   text primary key,   -- 'work_conditions' 등
+  value jsonb not null default '[]'::jsonb
+);
+
+alter table public.site_settings enable row level security;
+
+create policy "settings public read" on public.site_settings for select using (true);
+create policy "settings auth insert" on public.site_settings for insert to authenticated with check (true);
+create policy "settings auth update" on public.site_settings for update to authenticated using (true) with check (true);
 ```
 
 ### (선택) 기존 예시 6개 글 넣기

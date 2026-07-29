@@ -56,3 +56,21 @@ export async function deleteJob(id) {
 function requireDB() {
   if (!isConfigured) throw new Error('Supabase가 연결되지 않았습니다. .env.local 에 URL/anon key 를 설정하세요.')
 }
+
+/* ---------- 근무조건 (site_settings 단일 문서, key='work_conditions') ---------- */
+const SETTINGS_TABLE = 'site_settings'
+const COND_KEY = 'work_conditions'
+
+/* 저장된 근무조건 배열([{label, body}]) 반환. 없거나 미연결이면 null → 호출측이 정적 폴백 사용 */
+export async function getWorkConditions() {
+  if (!isConfigured) return null
+  const { data, error } = await supabase.from(SETTINGS_TABLE).select('value').eq('key', COND_KEY).maybeSingle()
+  if (error) throw error
+  return Array.isArray(data?.value) ? data.value : null
+}
+
+export async function saveWorkConditions(list) {
+  requireDB()
+  const { error } = await supabase.from(SETTINGS_TABLE).upsert({ key: COND_KEY, value: list })
+  if (error) throw error
+}

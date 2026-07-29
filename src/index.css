@@ -864,6 +864,7 @@ footer{
 .adm-tabs button.on{color:var(--fg);border-bottom-color:var(--accent)}
 
 .adm-card{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:clamp(18px,3vw,28px)}
+.adm-card-gap{margin-top:clamp(28px,4vh,44px)}
 .adm-warn{border-color:rgba(248,198,42,.4)}
 .adm-warn code{color:var(--accent);font-size:.92em}
 
