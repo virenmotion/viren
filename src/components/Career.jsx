@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Reveal from './Reveal'
 import SecStatement from './SecStatement'
-import { SEED_JOBS } from '../careerJobs'
+import { SEED_JOBS, WORK_CONDITIONS } from '../careerJobs'
 import { listJobs } from '../lib/careerStore'
 
 const APPLY_EMAIL = 'virenmotion@viren.kr'
@@ -96,6 +96,21 @@ export default function Career() {
           {jobs !== null && shown.length === 0 && <p className="job-empty">등록된 공고가 없습니다.</p>}
         </div>
       </div>
+
+      {/* 근무조건 */}
+      <h2 className="job-heading cond-heading">WORK CONDITIONS</h2>
+      <Reveal className="cond-wrap">
+        <dl className="cond-list">
+          {WORK_CONDITIONS.map((c) => (
+            <div className="cond-row" key={c.label}>
+              <dt className="cond-label">{c.label}</dt>
+              <dd className="cond-body">
+                {c.body.map((line, i) => <p key={i}>{line}</p>)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </Reveal>
     </section>
   )
 }
