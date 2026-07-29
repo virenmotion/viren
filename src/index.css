@@ -269,7 +269,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   /* 상단 여백 — PHILOSOPHY 라벨 아래로 확실히 떨어뜨려 겹치지 않게 한다 */
   margin:clamp(48px,8vh,104px) 0 clamp(64px,11vh,150px);
 }
-.sec-statement .line{display:block;overflow:hidden;padding-bottom:.16em;margin-bottom:-.16em} /* 디센더(y,g 등) 잘림 방지 */
+.sec-statement .line{display:block;overflow:hidden;padding:.16em 0;margin:-.16em 0} /* 상단(대문자·어센더)·하단(디센더) 잘림 방지 */
 .sec-statement .line i{display:block;font-style:normal}
 .sec-statement em{font-style:normal;color:var(--accent)}
 @media(max-height:800px) and (min-width:761px){.sec-statement{font-size:clamp(30px,5vw,72px)}}
@@ -747,6 +747,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 
 /* WORK 대문구는 중앙 정렬 */
 #work .sec-statement{text-align:center;margin:clamp(18px,2.5vh,36px) 0 clamp(24px,3.5vh,48px)} /* 대문구 위/아래 여백 축소 */
+@media(max-width:760px){#work .sec-statement{margin-top:clamp(36px,6vh,56px)}} /* 모바일: 헤더에서 더 내림 */
 
 /* OUTRO — WHAT WE DO와 푸터 사이의 중앙 대문구 섹션 */
 #outro{position:relative;overflow:hidden;min-height:100vh;display:flex;flex-direction:column;justify-content:center;
