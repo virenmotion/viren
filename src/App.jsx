@@ -48,7 +48,7 @@ function HomePage({ ready }) {
       <div className="fp-panel"><Hero ready={ready} /></div>
       <div className="fp-panel"><About /></div>
       <div className="fp-panel panel-philo"><Philosophy /><Band /></div>
-      <div className="fp-panel"><WhatWeDo /></div>
+      <div className="fp-panel panel-wwd"><WhatWeDo /></div>
       <div className="fp-panel panel-end"><Outro /><Footer /></div>
     </main>
   )

@@ -25,7 +25,7 @@ export default function Scene3D({ explode = true, cycleMaterials = false }) {
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100)
-    camera.position.set(0, 0, 9.4)
+    camera.position.set(0, 0, 11.4) // 살짝 뒤로 — 로고 축소 + 회전 시 잘림 방지
 
     /* 환경맵 — 어두운 스튜디오에 옐로우 스트릭 */
     scene.environment = (() => {
