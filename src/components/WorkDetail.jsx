@@ -1,7 +1,41 @@
+import { useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { catLabel } from '../workProjects'
 import { useProjects } from '../ProjectsContext'
 import Reveal from './Reveal'
+
+/* 라벨 — 기본 자간(.32em) 유지, 텍스트가 기준 폭을 넘을 때만 자간 자동 축소 */
+function LabelBlock({ text }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const wrap = ref.current
+    const span = wrap?.querySelector('.wb-label-txt')
+    if (!wrap || !span) return
+    const TARGET = 0.7 // 라벨 폭의 70%를 기준선으로 — 넘을 때만 조정
+    const fit = () => {
+      span.style.letterSpacing = '' // 기본 자간(.32em)으로 복귀
+      const target = wrap.clientWidth * TARGET
+      if (span.scrollWidth <= target) return // 기준 이내 → 조정하지 않음
+      const fs = parseFloat(getComputedStyle(span).fontSize) || 20
+      span.style.letterSpacing = '0px'
+      const base = span.scrollWidth // 자간 0일 때의 폭
+      const n = [...text.replace(/\s/g, '')].length
+      let ls = n > 1 ? (target - base) / (n - 1) : 0
+      ls = Math.max(0, Math.min(fs * 0.32, ls))
+      span.style.letterSpacing = ls.toFixed(2) + 'px'
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(wrap)
+    if (document.fonts?.ready) document.fonts.ready.then(fit)
+    return () => ro.disconnect()
+  }, [text])
+  return (
+    <div className="wb-label" ref={ref}>
+      <i className="dl" /><span className="wb-label-txt">{text}</span><i className="dr" />
+    </div>
+  )
+}
 
 /* YouTube 전체 주소 또는 ID → 임베드용 11자리 ID 추출 */
 function ytId(v) {
@@ -27,13 +61,9 @@ function BlockBody({ b }) {
       </div>
     )
   }
-  /* 라벨 — 장식선 + 중앙 텍스트 (Concept / Intro) */
+  /* 라벨 — 장식선 + 중앙 텍스트 (Concept / Intro), 자간 자동 조정 */
   if (b.type === 'label' && b.text) {
-    return (
-      <div className="wb-label">
-        <i className="dl" /><span>{b.text}</span><i className="dr" />
-      </div>
-    )
+    return <LabelBlock text={b.text} />
   }
   /* 중앙 텍스트 — 제목 + 한글 + 영문 (이중언어 센터) */
   if (b.type === 'center') {
