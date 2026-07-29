@@ -578,18 +578,18 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 }
 .career-body{max-width:760px;margin:0 auto}
 
-/* 공고 목록 — 중앙정렬 */
+/* 공고 목록 — 왼쪽 정렬 (제목 좌 · +아이콘 우) */
 .job-list{border-top:1px solid var(--line)}
 .job{border-bottom:1px solid var(--line)}
 .job.pinned{background:rgba(248,198,42,.035)}
 .job-head{
-  position:relative;width:100%;display:flex;align-items:center;justify-content:center;gap:20px;
-  background:none;border:0;cursor:pointer;padding:clamp(20px,2.6vh,28px) 44px;text-align:center;
+  position:relative;width:100%;display:flex;align-items:center;justify-content:space-between;gap:20px;
+  background:none;border:0;cursor:pointer;padding:clamp(20px,2.6vh,28px) 4px;text-align:left;
 }
 /* 상단 고정 공지 배지 */
 .job-notice{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--accent);
   border:1px solid var(--accent);border-radius:3px;padding:2px 8px;line-height:1.4}
-.job-title{display:flex;align-items:baseline;justify-content:center;gap:12px;flex-wrap:wrap}
+.job-title{display:flex;align-items:baseline;justify-content:flex-start;gap:12px;flex-wrap:wrap}
 .job-title .en{font-size:clamp(15px,1.4vw,19px);font-weight:600;letter-spacing:-.01em;color:var(--fg);
   transition:color .25s var(--ease)}
 .job-title .sep{color:var(--muted);opacity:.5}
@@ -597,8 +597,8 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   font-family:'Pretendard Variable',Pretendard,sans-serif}
 .job:hover .en{color:var(--accent)}
 
-/* + 아이콘 (펼치면 세로선 사라져 − 가 됨) — 우측 고정, 제목은 중앙 유지 */
-.job-plus{position:absolute;right:4px;top:50%;transform:translateY(-50%);flex:0 0 auto;width:16px;height:16px}
+/* + 아이콘 (펼치면 세로선 사라져 − 가 됨) */
+.job-plus{position:relative;flex:0 0 auto;width:16px;height:16px}
 .job-plus::before,.job-plus::after{
   content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   background:var(--fg);transition:transform .3s var(--ease),opacity .3s;
@@ -607,11 +607,11 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .job-plus::after{width:1.5px;height:16px}
 .job.open .job-plus::after{transform:translate(-50%,-50%) rotate(90deg);opacity:0}
 
-/* 펼침 패널 — 중앙정렬 (표는 내부 셀만 좌측 정렬 유지) */
-.job-panel{padding:0 4px clamp(24px,3.4vh,34px);text-align:center}
+/* 펼침 패널 */
+.job-panel{padding:0 4px clamp(24px,3.4vh,34px)}
 .job-type{font-size:12px;letter-spacing:.1em;color:var(--accent);margin-bottom:14px}
 .job-desc{font-size:15px;line-height:1.85;color:var(--muted);max-width:680px;
-  font-family:'Pretendard Variable',Pretendard,sans-serif;margin:0 auto 24px}
+  font-family:'Pretendard Variable',Pretendard,sans-serif;margin-bottom:24px}
 
 /* 채용 상세 표 (모집인원/담당업무/자격요건/우대사항) */
 .job-table{width:100%;border-collapse:collapse;border-top:1px solid var(--line);
@@ -635,7 +635,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 
 /* 근무조건 — JOB POSITION과 동일한 아코디언(.job) 재사용, 펼침 상세만 별도 */
 .cond-heading{margin-top:clamp(64px,11vh,130px)}
-.cond-detail{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:9px}
+.cond-detail{max-width:680px;display:flex;flex-direction:column;gap:9px}
 .cond-detail p{font-size:14px;line-height:1.8;color:var(--muted);
   font-family:'Pretendard Variable',Pretendard,sans-serif}
 
