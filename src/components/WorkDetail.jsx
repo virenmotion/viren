@@ -58,7 +58,7 @@ function BlockBody({ b }) {
       .map((l) => { const [ko, en] = l.split('|').map((s) => (s || '').trim()); return { ko: brk(ko), en: brk(en) } })
     if (!items.length) return null
     return (
-      <div className="wb-features">
+      <div className="wb-features" style={{ '--cols': Math.min(items.length, 3) }}>
         {items.map((it, i) => (
           <div className="wb-feat" key={i}>
             {it.ko && <p className="wb-feat-ko">{it.ko}</p>}

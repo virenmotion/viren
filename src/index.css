@@ -547,20 +547,18 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .wb-c-en{margin-top:14px;font-size:clamp(13px,1.05vw,15px);line-height:1.85;color:var(--muted);opacity:.72;
   letter-spacing:.01em;white-space:pre-line}
 
-/* 특징 카드 — 다크 카드, 항목 수(1·2·3)에 맞춰 박스가 폭을 줄이고 전체 중앙정렬 */
-.wb-features{display:flex;flex-wrap:wrap;justify-content:center;width:fit-content;max-width:100%;margin-inline:auto;
-  background:#141414;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.wb-feat{flex:0 0 clamp(220px,28vw,360px);box-sizing:border-box;
-  padding:clamp(28px,4vw,48px) clamp(20px,2.6vw,34px);text-align:center;
-  border-left:1px solid rgba(255,255,255,.08)}
-.wb-feat:first-child{border-left:0}
+/* 특징 카드 — 다크 카드, 항목 수(1·2·3)에 맞춰 박스가 폭을 줄이고 전체 중앙정렬.
+   내부 구분선은 gap(1px) + 컨테이너 배경으로 그려 여러 행에서도 균일 */
+.wb-features{display:grid;grid-template-columns:repeat(var(--cols,3),clamp(200px,28vw,360px));gap:1px;
+  width:fit-content;max-width:100%;margin-inline:auto;
+  background:rgba(255,255,255,.08);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.wb-feat{background:#141414;box-sizing:border-box;min-width:0;
+  padding:clamp(28px,4vw,48px) clamp(20px,2.6vw,34px);text-align:center}
 .wb-feat-ko{font-size:clamp(17px,1.7vw,22px);font-weight:700;letter-spacing:-.01em;line-height:1.35;color:#fff;white-space:pre-line}
 .wb-feat-en{margin-top:12px;font-size:clamp(12px,1vw,14px);line-height:1.7;color:var(--muted);
   letter-spacing:.03em;white-space:pre-line}
 @media(max-width:720px){
-  .wb-features{flex-direction:column;width:auto;max-width:420px}
-  .wb-feat{flex:auto;border-left:0;border-top:1px solid rgba(255,255,255,.08)}
-  .wb-feat:first-child{border-top:0}
+  .wb-features{grid-template-columns:1fr;width:auto;max-width:420px}
 }
 
 .wd-back{display:inline-block;margin-top:clamp(44px,7vh,72px);
