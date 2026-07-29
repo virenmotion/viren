@@ -103,11 +103,11 @@ export default function About() {
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 1, ease: EASE, delay: 0.5 }}
       >
-        <p className="about-h">우리는 특별하고 <em>기억에 남는</em> 순간을 담아냅니다.</p>
+        <p className="about-h">우리는 특별하고 <br className="br-m" /><em>기억에 남는</em> 순간을 담아냅니다.</p>
         <p className="about-p">
           <b>VIREN</b>은<br />
-          공간과 기술, 콘텐츠를 연결하여 사람들이 경험하는 새로운 가치를 디자인합니다.<br />
-          브랜드의 메시지와 공간이 전하는 이야기를 콘텐츠로 구현하여 기억되는 경험을 만듭니다.
+          공간과 기술, 콘텐츠를 연결하여 <br className="br-m" />사람들이 경험하는 새로운 가치를 디자인합니다.<br />
+          브랜드의 메시지와 공간이 전하는 이야기를 <br className="br-m" />콘텐츠로 구현하여 기억되는 경험을 만듭니다.
         </p>
       </motion.div>
 
