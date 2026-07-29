@@ -4,9 +4,11 @@ import SecStatement from './SecStatement'
 import { SEED_JOBS, WORK_CONDITIONS } from '../careerJobs'
 import { listJobs, getWorkConditions } from '../lib/careerStore'
 
-/* body: 배열이면 그대로, 문자열이면 줄바꿈 분리 */
-const condLines = (body) =>
-  Array.isArray(body) ? body : String(body || '').split('\n').map((s) => s.trim()).filter(Boolean)
+/* 근무조건 세부내용 → 줄 배열. 줄바꿈(\n)과 / 를 모두 줄 구분자로 사용 */
+const condLines = (body) => {
+  const raw = Array.isArray(body) ? body.join('\n') : String(body || '')
+  return raw.split(/[\n/]/).map((s) => s.trim()).filter(Boolean)
+}
 
 const APPLY_EMAIL = 'virenmotion@viren.kr'
 
@@ -47,6 +49,7 @@ function JobTable({ job }) {
    공고는 Supabase(jobs)에서 로드, 미연결 시 시드 폴백. */
 export default function Career() {
   const [openId, setOpenId] = useState(null)
+  const [openCond, setOpenCond] = useState(null)
   const [jobs, setJobs] = useState(null) // null = 로딩
   const [conditions, setConditions] = useState(WORK_CONDITIONS) // 근무조건 (DB 저장분 있으면 대체)
 
@@ -103,19 +106,29 @@ export default function Career() {
         </div>
       </div>
 
-      {/* 근무조건 */}
+      {/* 근무조건 — JOB POSITION과 동일한 아코디언·폭 */}
       <h2 className="job-heading cond-heading">WORK CONDITIONS</h2>
-      <Reveal className="cond-wrap">
-        <dl className="cond-list">
-          {conditions.map((c, ci) => (
-            <div className="cond-row" key={ci}>
-              <dt className="cond-label">{c.label}</dt>
-              <dd className="cond-body">
-                {condLines(c.body).map((line, i) => <p key={i}>{line}</p>)}
-              </dd>
-            </div>
-          ))}
-        </dl>
+      <Reveal className="career-body">
+        <div className="job-list">
+          {conditions.map((c, ci) => {
+            const open = openCond === ci
+            return (
+              <div className={`job${open ? ' open' : ''}`} key={ci}>
+                <button className="job-head" onClick={() => setOpenCond(open ? null : ci)}>
+                  <span className="job-title"><span className="en">{c.label}</span></span>
+                  <span className="job-plus" aria-hidden />
+                </button>
+                {open && (
+                  <div className="job-panel">
+                    <div className="cond-detail">
+                      {condLines(c.body).map((line, i) => <p key={i}>{line}</p>)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </Reveal>
     </section>
   )

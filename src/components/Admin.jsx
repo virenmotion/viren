@@ -537,7 +537,7 @@ function ConditionsManager() {
   return (
     <div className="adm-card adm-card-gap">
       <h2 className="adm-h2">근무조건 (WORK CONDITIONS)</h2>
-      <p className="adm-muted">소제목은 한글, 내용은 한 줄에 하나씩 입력하세요. 저장하면 CAREER 페이지 하단에 반영됩니다.</p>
+      <p className="adm-muted">소제목은 한글, 내용은 한 줄에 하나씩(또는 / 로 구분) 입력하세요. CAREER에서 소제목 + 를 누르면 세부내용이 펼쳐집니다.</p>
       {items.map((c, i) => (
         <div className="adm-block" key={i}>
           <div className="adm-block-head">
@@ -549,7 +549,7 @@ function ConditionsManager() {
             </span>
           </div>
           <input placeholder="소제목 (예: 근무지)" value={c.label} onChange={(e) => update(i, { label: e.target.value })} />
-          <textarea rows={3} placeholder="내용 — 한 줄에 하나씩" value={c.body} onChange={(e) => update(i, { body: e.target.value })} />
+          <textarea rows={3} placeholder="세부내용 — 한 줄에 하나씩 (또는 / 로 줄바꿈)" value={c.body} onChange={(e) => update(i, { body: e.target.value })} />
         </div>
       ))}
       <div className="adm-block-add">
