@@ -3,17 +3,17 @@ import { SEED_JOBS } from '../careerJobs'
 
 const TABLE = 'jobs'
 /* DB(snake_case) → 앱(camelCase). description은 예약어 desc 회피용. */
-const SELECT = 'id, cat, titleEn:title_en, titleKo:title_ko, type, desc:description, headcount, responsibilities, qualifications, preferred, sort, created_at'
+const SELECT_BASE = 'id, cat, titleEn:title_en, titleKo:title_ko, type, desc:description, headcount, responsibilities, qualifications, preferred, sort, created_at'
+const SELECT = SELECT_BASE + ', pinned'
 
 export async function listJobs() {
   if (!isConfigured) return SEED_JOBS
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select(SELECT)
-    .order('sort', { ascending: true })
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data
+  const order = (q) => q.order('sort', { ascending: true }).order('created_at', { ascending: false })
+  const { data, error } = await order(supabase.from(TABLE).select(SELECT))
+  if (!error) return data
+  const r = await order(supabase.from(TABLE).select(SELECT_BASE)) // pinned 컬럼 없으면 폴백
+  if (r.error) throw r.error
+  return r.data
 }
 
 function toRow(j) {
@@ -28,6 +28,7 @@ function toRow(j) {
     responsibilities: j.responsibilities || null,
     qualifications: j.qualifications || null,
     preferred: j.preferred || null,
+    pinned: !!j.pinned,
     sort: Number.isFinite(j.sort) ? j.sort : 0,
   }
 }

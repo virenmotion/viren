@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Reveal from './Reveal'
 import SecStatement from './SecStatement'
-import { JOB_FILTERS, SEED_JOBS } from '../careerJobs'
+import { SEED_JOBS } from '../careerJobs'
 import { listJobs } from '../lib/careerStore'
 
 const APPLY_EMAIL = 'virenmotion@viren.kr'
@@ -42,7 +42,6 @@ function JobTable({ job }) {
 /* CAREER — d'strict식 채용 보드. 좌측 카테고리 필터 + 우측 공고 목록(클릭 시 펼침).
    공고는 Supabase(jobs)에서 로드, 미연결 시 시드 폴백. */
 export default function Career() {
-  const [filter, setFilter] = useState('all')
   const [openId, setOpenId] = useState(null)
   const [jobs, setJobs] = useState(null) // null = 로딩
 
@@ -50,8 +49,8 @@ export default function Career() {
     listJobs().then(setJobs).catch((e) => { console.error('채용 로드 실패, 시드 폴백:', e); setJobs(SEED_JOBS) })
   }, [])
 
-  const list = jobs || []
-  const shown = filter === 'all' ? list : list.filter((j) => j.cat === filter)
+  // 상단 고정(pinned) 공고를 맨 위로 — 그 외 순서는 유지(안정 정렬)
+  const shown = [...(jobs || [])].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
 
   return (
     <section id="career">
@@ -66,31 +65,17 @@ export default function Career() {
       <h2 className="job-heading">JOB POSITION</h2>
 
       <div className="career-body">
-        {/* 좌측 카테고리 필터 */}
-        <aside className="job-filter">
-          {JOB_FILTERS.map((f) => (
-            <button
-              key={f.slug}
-              type="button"
-              className={filter === f.slug ? 'on' : undefined}
-              onClick={() => { setFilter(f.slug); setOpenId(null) }}
-            >
-              {f.label}
-            </button>
-          ))}
-        </aside>
-
-        {/* 우측 공고 목록 (아코디언) */}
+        {/* 공고 목록 (아코디언) — 상단 고정 공지 우선 */}
         <div className="job-list">
           {shown.map((j) => {
             const open = openId === j.id
             return (
-              <div className={`job${open ? ' open' : ''}`} key={j.id}>
+              <div className={`job${open ? ' open' : ''}${j.pinned ? ' pinned' : ''}`} key={j.id}>
                 <button className="job-head" onClick={() => setOpenId(open ? null : j.id)}>
                   <span className="job-title">
+                    {j.pinned && <span className="job-notice">공지</span>}
                     <span className="en">{j.titleEn}</span>
-                    <span className="sep">/</span>
-                    <span className="ko">{j.titleKo}</span>
+                    {j.titleKo && <><span className="sep">/</span><span className="ko">{j.titleKo}</span></>}
                   </span>
                   <span className="job-plus" aria-hidden />
                 </button>
@@ -108,7 +93,7 @@ export default function Career() {
             )
           })}
 
-          {jobs !== null && shown.length === 0 && <p className="job-empty">해당 직무의 공고가 없습니다.</p>}
+          {jobs !== null && shown.length === 0 && <p className="job-empty">등록된 공고가 없습니다.</p>}
         </div>
       </div>
     </section>

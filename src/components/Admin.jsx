@@ -7,7 +7,6 @@ import {
 } from '../lib/projectStore'
 import { listJobs, createJob, updateJob, deleteJob } from '../lib/careerStore'
 import { CATEGORIES, catLabel, slugify } from '../workProjects'
-import { JOB_FORM_CATEGORIES, jobCatLabel } from '../careerJobs'
 import { useProjects } from '../ProjectsContext'
 
 export default function Admin() {
@@ -391,8 +390,8 @@ function ProjectManager() {
 
 /* ---------- CAREER 관리 ---------- */
 const EMPTY_JOB = {
-  id: '', cat: 'media-art', titleEn: '', titleKo: '', type: '', desc: '',
-  headcount: '', responsibilities: '', qualifications: '', preferred: '', sort: 0,
+  id: '', titleEn: '', titleKo: '', type: '', desc: '',
+  headcount: '', responsibilities: '', qualifications: '', preferred: '', pinned: false, sort: 0,
 }
 
 function JobManager() {
@@ -444,19 +443,17 @@ function JobManager() {
         <label>한글 직무명<input value={form.titleKo} onChange={set('titleKo')} placeholder="미디어아트 콘텐츠 제작" /></label>
 
         <div className="adm-grid2">
-          <label>카테고리
-            <select value={form.cat} onChange={set('cat')}>
-              {JOB_FORM_CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.label}</option>)}
-            </select>
-          </label>
+          <label>식별자(id)<input value={form.id} onChange={set('id')} placeholder={idAuto} />
+            <span className="adm-hint">{idAuto || '…'}</span></label>
           <label>정렬 순서<input type="number" value={form.sort} onChange={set('sort')} /></label>
         </div>
 
-        <div className="adm-grid2">
-          <label>식별자(id)<input value={form.id} onChange={set('id')} placeholder={idAuto} />
-            <span className="adm-hint">{idAuto || '…'}</span></label>
-          <label>고용형태 · 경력<input value={form.type} onChange={set('type')} placeholder="정규직 · 경력 2년 이상" /></label>
-        </div>
+        <label>고용형태 · 경력<input value={form.type} onChange={set('type')} placeholder="정규직 · 경력 2년 이상" /></label>
+
+        <label className="adm-check">
+          <input type="checkbox" checked={!!form.pinned} onChange={(e) => setForm((f) => ({ ...f, pinned: e.target.checked }))} />
+          <span>상단 고정 (공지처럼 목록 맨 위에 표시)</span>
+        </label>
 
         <label>소개(본문)<textarea rows={3} value={form.desc} onChange={set('desc')} placeholder="공고 상단 소개 문구" /></label>
 
@@ -483,8 +480,8 @@ function JobManager() {
           {jobs.map((j) => (
             <li key={j.id} className="adm-row">
               <span className="adm-row-main">
-                <span className="adm-row-title">{j.titleEn}{j.titleKo ? ` / ${j.titleKo}` : ''}</span>
-                <span className="adm-row-meta">{jobCatLabel(j.cat)}{j.type ? ` · ${j.type}` : ''}</span>
+                <span className="adm-row-title">{j.pinned ? '📌 ' : ''}{j.titleEn}{j.titleKo ? ` / ${j.titleKo}` : ''}</span>
+                <span className="adm-row-meta">{[j.pinned && '상단고정', j.type].filter(Boolean).join(' · ') || '—'}</span>
               </span>
               <span className="adm-row-actions">
                 <button className="adm-btn" onClick={() => startEdit(j)}>수정</button>

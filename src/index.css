@@ -576,28 +576,20 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   text-align:center;font-size:clamp(22px,3vw,40px);font-weight:600;letter-spacing:.02em;
   margin:clamp(40px,7vh,90px) 0 clamp(34px,5vh,60px);
 }
-.career-body{
-  display:grid;grid-template-columns:200px 1fr;gap:clamp(28px,4vw,64px);
-  max-width:1080px;margin:0 auto;
-}
-/* 좌측 카테고리 필터 */
-.job-filter{display:flex;flex-direction:column;gap:2px;position:sticky;top:120px;align-self:start}
-.job-filter button{
-  text-align:left;font:inherit;font-size:13px;letter-spacing:.04em;color:var(--muted);
-  background:none;border:0;cursor:pointer;transition:color .25s var(--ease);
-  border-left:2px solid transparent;padding:9px 0 9px 14px;margin-left:-16px;
-}
-.job-filter button:hover{color:var(--fg)}
-.job-filter button.on{color:var(--fg);border-left-color:var(--accent);font-weight:600}
+.career-body{max-width:760px;margin:0 auto}
 
-/* 우측 공고 목록 */
+/* 공고 목록 — 중앙정렬 */
 .job-list{border-top:1px solid var(--line)}
 .job{border-bottom:1px solid var(--line)}
+.job.pinned{background:rgba(248,198,42,.035)}
 .job-head{
-  width:100%;display:flex;align-items:center;justify-content:space-between;gap:20px;
-  background:none;border:0;cursor:pointer;padding:clamp(20px,2.6vh,28px) 4px;text-align:left;
+  position:relative;width:100%;display:flex;align-items:center;justify-content:center;gap:20px;
+  background:none;border:0;cursor:pointer;padding:clamp(20px,2.6vh,28px) 44px;text-align:center;
 }
-.job-title{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+/* 상단 고정 공지 배지 */
+.job-notice{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--accent);
+  border:1px solid var(--accent);border-radius:3px;padding:2px 8px;line-height:1.4}
+.job-title{display:flex;align-items:baseline;justify-content:center;gap:12px;flex-wrap:wrap}
 .job-title .en{font-size:clamp(15px,1.4vw,19px);font-weight:600;letter-spacing:-.01em;color:var(--fg);
   transition:color .25s var(--ease)}
 .job-title .sep{color:var(--muted);opacity:.5}
@@ -605,8 +597,8 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   font-family:'Pretendard Variable',Pretendard,sans-serif}
 .job:hover .en{color:var(--accent)}
 
-/* + 아이콘 (펼치면 세로선 사라져 − 가 됨) */
-.job-plus{position:relative;flex:0 0 auto;width:16px;height:16px}
+/* + 아이콘 (펼치면 세로선 사라져 − 가 됨) — 우측 고정, 제목은 중앙 유지 */
+.job-plus{position:absolute;right:4px;top:50%;transform:translateY(-50%);flex:0 0 auto;width:16px;height:16px}
 .job-plus::before,.job-plus::after{
   content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   background:var(--fg);transition:transform .3s var(--ease),opacity .3s;
@@ -615,11 +607,11 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .job-plus::after{width:1.5px;height:16px}
 .job.open .job-plus::after{transform:translate(-50%,-50%) rotate(90deg);opacity:0}
 
-/* 펼침 패널 */
-.job-panel{padding:0 4px clamp(24px,3.4vh,34px)}
+/* 펼침 패널 — 중앙정렬 (표는 내부 셀만 좌측 정렬 유지) */
+.job-panel{padding:0 4px clamp(24px,3.4vh,34px);text-align:center}
 .job-type{font-size:12px;letter-spacing:.1em;color:var(--accent);margin-bottom:14px}
 .job-desc{font-size:15px;line-height:1.85;color:var(--muted);max-width:680px;
-  font-family:'Pretendard Variable',Pretendard,sans-serif;margin-bottom:24px}
+  font-family:'Pretendard Variable',Pretendard,sans-serif;margin:0 auto 24px}
 
 /* 채용 상세 표 (모집인원/담당업무/자격요건/우대사항) */
 .job-table{width:100%;border-collapse:collapse;border-top:1px solid var(--line);
@@ -641,12 +633,6 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .job-apply:hover{color:var(--accent)}
 .job-empty{color:var(--muted);padding:40px 4px;font-size:15px}
 
-@media(max-width:720px){
-  .career-body{grid-template-columns:1fr;gap:26px}
-  .job-filter{position:static;flex-direction:row;flex-wrap:wrap;gap:6px 18px}
-  .job-filter button{margin-left:0;padding:4px 0;border-left:0;border-bottom:2px solid transparent}
-  .job-filter button.on{border-left:0;border-bottom-color:var(--accent)}
-}
 
 /* ---------- CONTACT 페이지 (Giant Step식) ---------- */
 .contact-intro{margin:0 0 clamp(40px,7vh,80px)}
@@ -887,6 +873,8 @@ footer{
 .adm-form textarea{resize:vertical;line-height:1.6}
 .adm-form input[type=file]{padding:9px;color:var(--muted)}
 .adm-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.adm-check{flex-direction:row!important;align-items:center;gap:10px;cursor:pointer;color:var(--fg)}
+.adm-check input{width:auto;accent-color:var(--accent);width:16px;height:16px}
 .adm-form-actions{display:flex;gap:12px;margin-top:4px}
 
 .adm-thumb-preview{display:flex;align-items:center;gap:14px}
