@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const EMAIL = 'virenmotion@viren.kr'
 const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || ''
@@ -77,7 +78,7 @@ export default function ContactModal({ open, onClose }) {
     }
   }
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="닫기">✕</button>
@@ -158,6 +159,7 @@ export default function ContactModal({ open, onClose }) {
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
