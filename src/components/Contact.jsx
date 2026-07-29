@@ -26,7 +26,7 @@ export default function Contact() {
     <section id="contact-page">
       <p className="sec-label">CONTACT</p>
 
-      <SecStatement>GLOBAL CREATIVE<br />VIREN STUDIOS</SecStatement>
+      <SecStatement>GLOBAL CREATIVE <br className="br-t" />VIREN STUDIOS</SecStatement>
 
       <Reveal className="contact-intro">
         <p>새로운 프로젝트, 협업, 채용 등 무엇이든 편하게 문의해 주세요. 확인 후 빠르게 연락드리겠습니다.</p>
