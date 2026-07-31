@@ -110,7 +110,7 @@ export default function Career() {
                         <button type="button" className="job-apply" onClick={() => setApplyJob(j)}>
                           지원하기 <span aria-hidden="true">↗</span>
                         </button>
-                        <a className="job-form-dl" href={APPLY_FORM_URL} download data-hover>
+                        <a className="job-form-dl" href={APPLY_FORM_URL} download="VIREN_입사지원서_양식.pdf" data-hover>
                           지원서 양식 DOWNLOAD <span aria-hidden="true">↓</span>
                         </a>
                       </div>
