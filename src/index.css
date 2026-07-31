@@ -675,9 +675,10 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   font-family:'Pretendard Variable',Pretendard,sans-serif}
 .ct-rule{height:1px;background:var(--line)}
 
-/* SEOUL | 주소·전화·메일 | MAP */
+/* [SEOUL + MAP] | 주소·전화·메일 | 문의하기 */
 .ct-office{display:grid;grid-template-columns:220px 1fr auto;gap:22px 40px;align-items:start;
   padding:clamp(34px,5.5vh,64px) 0}
+.ct-city-col{display:flex;flex-direction:column;gap:clamp(16px,3vh,26px);align-items:flex-start}
 .ct-city{font-size:clamp(20px,2.3vw,32px);font-weight:700;letter-spacing:.02em}
 .ct-lines{display:flex;flex-direction:column;gap:9px;font-size:clamp(14px,1.25vw,17px);line-height:1.55;
   color:var(--fg);font-family:'Pretendard Variable',Pretendard,sans-serif}
@@ -694,11 +695,12 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .ct-social{list-style:none;display:flex;flex-wrap:wrap;gap:clamp(18px,2.6vw,40px)}
 .ct-social a{font-size:14px;letter-spacing:.06em;color:var(--muted);transition:color .25s var(--ease)}
 .ct-social a:hover{color:var(--accent)}
-.ct-inquiry{flex:0 0 auto}
+.ct-inquiry{grid-column:3;justify-self:end;flex:0 0 auto}
 
 @media(max-width:720px){
-  .ct-office{grid-template-columns:1fr;gap:14px;padding:32px 0}
+  .ct-office{grid-template-columns:1fr;gap:20px;padding:32px 0}
   .ct-map{justify-self:start}
+  .ct-inquiry{grid-column:auto;justify-self:start}
   .ct-bottom{flex-direction:column;align-items:flex-start;gap:26px}
 }
 

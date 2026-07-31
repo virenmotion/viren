@@ -35,33 +35,35 @@ export default function Contact() {
       {/* 1. 대문구 하단 가로선 */}
       <div className="ct-rule" />
 
-      {/* 2. SEOUL | 주소·전화·메일 | MAP */}
+      {/* 2. [SEOUL + MAP] | 주소·전화·메일 | 문의하기 */}
       <Reveal className="ct-office">
-        <h3 className="ct-city">SEOUL</h3>
+        <div className="ct-city-col">
+          <h3 className="ct-city">SEOUL</h3>
+          <a className="ct-map" href={MAP_URL} target="_blank" rel="noopener noreferrer" data-hover>
+            <Pin /> MAP
+          </a>
+        </div>
         <div className="ct-lines">
           <p>서울특별시 마포구 양화로8길 32-17, 3층 04044</p>
           <p>3F, 32-17, Yanghwa-ro 8-gil, Mapo-gu, Seoul</p>
           <p>T. {PHONE}</p>
           <p><a href={`mailto:${EMAIL}`} data-hover>{EMAIL}</a></p>
         </div>
-        <a className="ct-map" href={MAP_URL} target="_blank" rel="noopener noreferrer" data-hover>
-          <Pin /> MAP
-        </a>
+        <button type="button" className="btn ct-inquiry" onClick={() => setModalOpen(true)}>
+          문의하기
+          <span className="btn-arrow" aria-hidden="true">↗</span>
+        </button>
       </Reveal>
 
       <div className="ct-rule" />
 
-      {/* 3·4. 소셜(좌) — 문의하기(우) */}
+      {/* 3. 소셜 */}
       <div className="ct-bottom">
         <ul className="ct-social">
           {SOCIAL.map((s) => (
             <li key={s.label}><SocialLink s={s} /></li>
           ))}
         </ul>
-        <button type="button" className="btn ct-inquiry" onClick={() => setModalOpen(true)}>
-          문의하기
-          <span className="btn-arrow" aria-hidden="true">↗</span>
-        </button>
       </div>
 
       <ContactModal open={modalOpen} onClose={() => setModalOpen(false)} />
