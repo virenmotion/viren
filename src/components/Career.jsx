@@ -81,6 +81,8 @@ export default function Career() {
         <div className="job-list">
           {shown.map((j) => {
             const open = openId === j.id
+            /* 공지: 상단 고정 + 상세(담당업무/자격 등) 없음 → 지원하기 숨김 */
+            const isNotice = j.pinned && !j.type && !j.responsibilities && !j.qualifications && !j.preferred && !j.headcount
             return (
               <div className={`job${open ? ' open' : ''}${j.pinned ? ' pinned' : ''}`} key={j.id}>
                 <button className="job-head" onClick={() => setOpenId(open ? null : j.id)}>
@@ -96,14 +98,16 @@ export default function Career() {
                     {j.type && <p className="job-type">{j.type}</p>}
                     {j.desc && <p className="job-desc">{j.desc}</p>}
                     <JobTable job={j} />
-                    <div className="job-apply-row">
-                      <button type="button" className="job-apply" onClick={() => setApplyJob(j)}>
-                        지원하기 <span aria-hidden="true">↗</span>
-                      </button>
-                      <a className="job-form-dl" href={APPLY_FORM_URL} download data-hover>
-                        지원서 양식 DOWNLOAD <span aria-hidden="true">↓</span>
-                      </a>
-                    </div>
+                    {!isNotice && (
+                      <div className="job-apply-row">
+                        <button type="button" className="job-apply" onClick={() => setApplyJob(j)}>
+                          지원하기 <span aria-hidden="true">↗</span>
+                        </button>
+                        <a className="job-form-dl" href={APPLY_FORM_URL} download data-hover>
+                          지원서 양식 DOWNLOAD <span aria-hidden="true">↓</span>
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -112,6 +116,13 @@ export default function Career() {
 
           {jobs !== null && shown.length === 0 && <p className="job-empty">등록된 공고가 없습니다.</p>}
         </div>
+
+        {/* JOB POSITION 하단 고정 안내문구 */}
+        <p className="job-notice-text">
+          <em>지원해주신 모든 정보와 포트폴리오는 소중하게 관리됩니다.</em><br />
+          지원 자료는 향후 채용 검토를 위해 등록일로부터 1년간 보관됩니다.<br />
+          이후 별도의 채용 진행이 없는 경우에는 개인정보 보호를 위해 안전하게 파기됩니다.
+        </p>
       </div>
 
       {/* 근무조건 — JOB POSITION과 동일한 아코디언·폭 */}

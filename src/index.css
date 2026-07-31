@@ -656,6 +656,10 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   color:var(--muted);transition:color .25s var(--ease)}
 .job-form-dl:hover{color:var(--accent)}
 .job-empty{color:var(--muted);padding:40px 4px;font-size:15px}
+/* JOB POSITION 하단 고정 안내문구 */
+.job-notice-text{margin-top:clamp(28px,4vh,48px);font-size:clamp(13px,1.1vw,15px);line-height:1.9;color:var(--muted);
+  font-family:'Pretendard Variable',Pretendard,sans-serif;word-break:keep-all}
+.job-notice-text em{font-style:normal;color:var(--accent);font-weight:600}
 
 /* 근무조건 — JOB POSITION과 동일한 아코디언(.job) 재사용, 펼침 상세만 별도 */
 .cond-heading{margin-top:clamp(64px,11vh,130px)}
@@ -747,6 +751,19 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .mf-file{display:inline-flex;align-items:center;gap:10px;font-size:13px;color:var(--fg)}
 .mf-file button{font:inherit;font-size:11px;color:#ff8080;background:none;border:0;cursor:pointer;
   text-decoration:underline}
+/* 여러 파일 첨부 — 목록 + 추가 버튼 */
+.mf-filelist{list-style:none;display:flex;flex-direction:column;gap:6px}
+.mf-filelist li{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-size:13px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 12px}
+.mf-filelist li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mf-filelist li button{font:inherit;font-size:13px;line-height:1;color:var(--muted);background:none;border:0;
+  cursor:pointer;flex:0 0 auto;transition:color .2s}
+.mf-filelist li button:hover{color:#ff8080}
+.mf-addfile{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:12px;
+  letter-spacing:.04em;color:var(--fg);background:var(--bg);border:1px dashed var(--line);border-radius:6px;
+  padding:9px 16px;cursor:pointer;transition:border-color .25s,color .25s}
+.mf-addfile span{font-size:15px;line-height:1;color:var(--accent)}
+.mf-addfile:hover{border-color:var(--accent)}
 .mf-consent{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--muted);cursor:pointer;
   font-family:'Pretendard Variable',Pretendard,sans-serif}
 .mf-consent input{margin-top:2px;accent-color:var(--accent);flex:0 0 auto}
@@ -904,6 +921,7 @@ footer{
 
 .adm-card{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:clamp(18px,3vw,28px)}
 .adm-card-gap{margin-top:clamp(28px,4vh,44px)}
+.adm-newrow{display:flex;gap:12px;flex-wrap:wrap}
 .adm-warn{border-color:rgba(248,198,42,.4)}
 .adm-warn code{color:var(--accent);font-size:.92em}
 

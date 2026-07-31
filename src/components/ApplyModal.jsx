@@ -1,24 +1,32 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 const APPLY_EMAIL = 'virenmotion@viren.kr'
 const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || ''
 
-const EMPTY = { name: '', email: '', phone: '', portfolio: '', message: '', agree: false }
+const EMPTY = { name: '', email: '', phone: '', agree: false }
 
 /* 채용 지원 팝업 — CONTACT 모달과 동일한 구조/스타일. job=지원 대상 공고 */
 export default function ApplyModal({ open, job, onClose }) {
   const [form, setForm] = useState(EMPTY)
-  const [file, setFile] = useState(null)
+  const [files, setFiles] = useState([]) // 여러 파일 첨부
   const [status, setStatus] = useState('idle') // idle | sending | success | mailto | error
   const [errMsg, setErrMsg] = useState('')
+  const fileRef = useRef(null)
+
+  const addFiles = (e) => {
+    const picked = Array.from(e.target.files || [])
+    if (picked.length) setFiles((prev) => [...prev, ...picked])
+    e.target.value = '' // 같은 파일 다시 선택 가능
+  }
+  const removeFile = (i) => setFiles((prev) => prev.filter((_, j) => j !== i))
 
   const set = (k) => (e) =>
     setForm((f) => ({ ...f, [k]: k === 'agree' ? e.target.checked : e.target.value }))
 
   useEffect(() => {
     if (!open) return
-    setForm(EMPTY); setFile(null); setStatus('idle'); setErrMsg('')
+    setForm(EMPTY); setFiles([]); setStatus('idle'); setErrMsg('')
     document.body.style.overflow = 'hidden'
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
@@ -41,11 +49,11 @@ export default function ApplyModal({ open, job, onClose }) {
       setStatus('sending')
       try {
         let res
-        if (file) {
+        if (files.length) {
           const fd = new FormData()
           fd.append('지원포지션', position)
           Object.entries(form).forEach(([k, v]) => { if (k !== 'agree') fd.append(k, v) })
-          fd.append('attachment', file)
+          files.forEach((f) => fd.append('attachment', f))
           res = await fetch(FORMSPREE_ENDPOINT, { method: 'POST', headers: { Accept: 'application/json' }, body: fd })
         } else {
           res = await fetch(FORMSPREE_ENDPOINT, {
@@ -60,9 +68,9 @@ export default function ApplyModal({ open, job, onClose }) {
         setStatus('error'); setErrMsg('전송에 실패했습니다. 잠시 후 다시 시도해 주세요.')
       }
     } else {
-      const fileNote = file ? `\n첨부파일: ${file.name} (메일에 직접 첨부해 주세요)` : ''
+      const fileNote = files.length ? `\n첨부파일: ${files.map((f) => f.name).join(', ')} (메일에 직접 첨부해 주세요)` : ''
       const body =
-        `[지원 포지션] ${position}\n\n이름: ${form.name}\n이메일: ${form.email}\n연락처: ${form.phone}\n포트폴리오: ${form.portfolio}${fileNote}\n\n${form.message}`
+        `[지원 포지션] ${position}\n\n이름: ${form.name}\n이메일: ${form.email}\n연락처: ${form.phone}${fileNote}`
       window.location.href =
         `mailto:${APPLY_EMAIL}?subject=${encodeURIComponent(`[VIREN 지원] ${position} - ${form.name}`)}&body=${encodeURIComponent(body)}`
       setStatus('mailto')
@@ -91,28 +99,32 @@ export default function ApplyModal({ open, job, onClose }) {
               <label className="mf-field"><span>이메일 <em>*</em></span>
                 <input type="email" value={form.email} onChange={set('email')} required /></label>
             </div>
-            <div className="mf-row">
-              <label className="mf-field"><span>연락처</span>
-                <input value={form.phone} onChange={set('phone')} placeholder="010-0000-0000" /></label>
-              <label className="mf-field"><span>포트폴리오 링크</span>
-                <input value={form.portfolio} onChange={set('portfolio')} placeholder="https://…" /></label>
-            </div>
+            <label className="mf-field"><span>연락처</span>
+              <input value={form.phone} onChange={set('phone')} placeholder="010-0000-0000" /></label>
 
-            <label className="mf-field"><span>지원서 · 포트폴리오 첨부</span>
+            <div className="mf-field"><span>지원서 · 포트폴리오 첨부</span>
               <input
+                ref={fileRef}
                 type="file"
+                multiple
                 accept=".pdf,.doc,.docx,.hwp,.ppt,.pptx,.key,.zip,image/*"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                style={{ display: 'none' }}
+                onChange={addFiles}
               />
-              {file
-                ? <span className="mf-file">{file.name}
-                    <button type="button" onClick={() => setFile(null)}>제거</button>
-                  </span>
-                : <span className="mf-hint">지원서 양식 · 포트폴리오 (PDF · 문서 · ZIP)</span>}
-            </label>
-
-            <label className="mf-field"><span>지원 동기 · 남길 말</span>
-              <textarea rows={5} value={form.message} onChange={set('message')} /></label>
+              {files.length > 0 && (
+                <ul className="mf-filelist">
+                  {files.map((f, i) => (
+                    <li key={i}><span>{f.name}</span>
+                      <button type="button" onClick={() => removeFile(i)} aria-label="제거">✕</button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button type="button" className="mf-addfile" onClick={() => fileRef.current?.click()}>
+                <span aria-hidden="true">+</span> 파일 추가
+              </button>
+              <span className="mf-hint">지원서 양식 · 포트폴리오 (PDF · 문서 · 이미지 · ZIP) — 여러 개 첨부 가능</span>
+            </div>
 
             <label className="mf-consent">
               <input type="checkbox" checked={form.agree} onChange={set('agree')} />

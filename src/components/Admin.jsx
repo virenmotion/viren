@@ -410,10 +410,14 @@ const EMPTY_JOB = {
   headcount: '', responsibilities: '', qualifications: '', preferred: '', pinned: false, sort: 0,
 }
 
+/* 공지 판별 — 상단 고정 + 채용 상세(담당업무 등) 없음 */
+const isNoticeLike = (j) => !!j.pinned && !j.type && !j.responsibilities && !j.qualifications && !j.preferred && !j.headcount
+
 function JobManager() {
   const [jobs, setJobs] = useState(null)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(EMPTY_JOB)
+  const [notice, setNotice] = useState(false) // 공지사항 간소 폼 여부
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
 
@@ -423,9 +427,10 @@ function JobManager() {
   const refresh = () => listJobs().then(setJobs).catch((e) => setMsg('불러오기 실패: ' + e.message))
   useEffect(() => { refresh() }, [])
 
-  function startNew() { setEditing(''); setForm(EMPTY_JOB); setMsg('') }
-  function startEdit(j) { setEditing(j.id); setForm({ ...EMPTY_JOB, ...j }); setMsg('') }
-  function cancel() { setEditing(null); setForm(EMPTY_JOB); setMsg('') }
+  function startNew() { setEditing(''); setNotice(false); setForm(EMPTY_JOB); setMsg('') }
+  function startNotice() { setEditing(''); setNotice(true); setForm({ ...EMPTY_JOB, pinned: true }); setMsg('') }
+  function startEdit(j) { setEditing(j.id); setNotice(isNoticeLike(j)); setForm({ ...EMPTY_JOB, ...j }); setMsg('') }
+  function cancel() { setEditing(null); setNotice(false); setForm(EMPTY_JOB); setMsg('') }
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   async function save(e) {
@@ -448,6 +453,22 @@ function JobManager() {
     if (!window.confirm(`"${j.titleEn}" 공고를 삭제할까요?`)) return
     try { await deleteJob(j.id); await refresh() }
     catch (e2) { setMsg('삭제 실패: ' + e2.message) }
+  }
+
+  if (editing !== null && notice) {
+    return (
+      <form className="adm-card adm-form" onSubmit={save}>
+        <h2 className="adm-h2">{isNew ? '새 공지사항' : '공지 수정'}</h2>
+        <p className="adm-muted">공지사항은 목록 맨 위에 고정됩니다. 제목과 소개문구만 입력하세요.</p>
+        <label>공지 제목 *<input value={form.titleEn} onChange={set('titleEn')} placeholder="2026 상반기 공개채용 안내" required /></label>
+        <label>소개문구 (내용)<textarea rows={5} value={form.desc} onChange={set('desc')} placeholder="공지 내용을 입력하세요." /></label>
+        {msg && <p className="adm-err">{msg}</p>}
+        <div className="adm-form-actions">
+          <button className="adm-btn adm-btn-primary" disabled={busy}>{busy ? '저장 중…' : '저장'}</button>
+          <button type="button" className="adm-btn" onClick={cancel}>취소</button>
+        </div>
+      </form>
+    )
   }
 
   if (editing !== null) {
@@ -490,7 +511,10 @@ function JobManager() {
 
   return (
     <>
-      <button className="adm-btn adm-btn-primary" onClick={startNew}>+ 새 채용 공고</button>
+      <div className="adm-newrow">
+        <button className="adm-btn" onClick={startNotice}>+ 공지사항</button>
+        <button className="adm-btn adm-btn-primary" onClick={startNew}>+ 새 채용 공고</button>
+      </div>
       {jobs === null ? <p className="adm-muted">불러오는 중…</p> : (
         <ul className="adm-list">
           {jobs.map((j) => (
