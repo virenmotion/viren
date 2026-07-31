@@ -25,3 +25,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# --- 대용량 미디어(쇼릴 원본·마스터) — git 제외 ---
+/showreel_master.mp4
+/public/assets/showreel/
+/public/assets/showreel.mp4
+/public/assets/showreel_sound.mp4
+/public/assets/showreel_sound_web.mp4
+/public/assets/showreel-poster.jpg
+/public/assets/background/
+/public/assets/Showreel*.mp4

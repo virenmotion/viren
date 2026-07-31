@@ -4,23 +4,22 @@
 
    카드 하단 캡션 = client(발주처, 좌상단) · year(연도, 우상단) · titleEn / titleKo(2줄). */
 
-export const FILTERS = [
-  { slug: 'all', label: '전체' },
-  { slug: 'media-art', label: 'MEDIA ART' },
-  { slug: 'immersive', label: 'IMMERSIVE' },
-  { slug: 'brand-film', label: 'BRAND FILM' },
-  { slug: 'cgi', label: 'CGI' },
-  { slug: 'motion-graphics', label: 'MOTION GRAPHICS' },
+/* WORK 분야(카테고리) 기본값 — DB(site_settings.work_categories) 미설정 시 폴백.
+   label=표시명, slug=식별자(프로젝트 cat·/work#slug 필터), hidden=WORK 필터에서 숨김 */
+export const DEFAULT_CATEGORIES = [
+  { slug: 'media-art', label: 'MEDIA ART', hidden: false },
+  { slug: 'immersive', label: 'IMMERSIVE', hidden: false },
+  { slug: 'brand-film', label: 'BRAND FILM', hidden: false },
+  { slug: 'cgi', label: 'CGI', hidden: false },
+  { slug: 'motion-graphics', label: 'MOTION GRAPHICS', hidden: false },
 ]
 
-/* 관리자 폼 카테고리 선택지(전체 제외) */
-export const CATEGORIES = FILTERS.filter((f) => f.slug !== 'all')
+/* 하위호환용 파생값 (기본값 기준) */
+export const FILTERS = [{ slug: 'all', label: '전체' }, ...DEFAULT_CATEGORIES.map(({ slug, label }) => ({ slug, label }))]
+export const CATEGORIES = DEFAULT_CATEGORIES.map(({ slug, label }) => ({ slug, label }))
 
-const LABELS = {
-  'media-art': 'MEDIA ART', immersive: 'IMMERSIVE', 'brand-film': 'BRAND FILM',
-  cgi: 'CGI', 'motion-graphics': 'MOTION GRAPHICS',
-}
-export const catLabel = (slug) => LABELS[slug] || slug
+/* slug → 표시명 (기본값 기준; 동적 라벨은 ProjectsContext의 categories 사용) */
+export const catLabel = (slug) => (DEFAULT_CATEGORIES.find((c) => c.slug === slug)?.label) || slug
 
 /* 제목/문자열 → URL용 슬러그. 한글은 유지하되 공백·특수문자는 하이픈으로. */
 export function slugify(str) {

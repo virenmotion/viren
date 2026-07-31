@@ -4,10 +4,12 @@ import { isConfigured } from '../lib/supabase'
 import {
   signIn, signOut, getUser, onAuthChange,
   createProject, updateProject, deleteProject, uploadThumb, reorderProjects,
+  getCategories, saveCategories, getWhatWeDo, saveWhatWeDo,
 } from '../lib/projectStore'
 import { listJobs, createJob, updateJob, deleteJob, getWorkConditions, saveWorkConditions } from '../lib/careerStore'
 import { WORK_CONDITIONS } from '../careerJobs'
-import { CATEGORIES, catLabel, slugify } from '../workProjects'
+import { catLabel, slugify, DEFAULT_CATEGORIES } from '../workProjects'
+import { WWD_DEFAULT } from './WhatWeDo'
 import { useProjects } from '../ProjectsContext'
 
 export default function Admin() {
@@ -69,22 +71,34 @@ function Login({ onDone }) {
   )
 }
 
-/* ---------- 대시보드 (탭: WORK / CAREER) ---------- */
+/* ---------- 대시보드 (탭: WHAT WE DO / WORK / PROJECT / CAREER / CONDITIONS) ---------- */
+const ADMIN_TABS = [
+  { key: 'whatwedo', label: 'WHAT WE DO' },
+  { key: 'work', label: 'WORK' },
+  { key: 'project', label: 'PROJECT' },
+  { key: 'career', label: 'CAREER' },
+  { key: 'conditions', label: 'CONDITIONS' },
+]
 function Dashboard({ user }) {
-  const [tab, setTab] = useState('work')
+  const [tab, setTab] = useState('project')
   return (
     <AdminShell>
       <div className="adm-top">
         <div className="adm-tabs">
-          <button className={tab === 'work' ? 'on' : undefined} onClick={() => setTab('work')}>WORK</button>
-          <button className={tab === 'career' ? 'on' : undefined} onClick={() => setTab('career')}>CAREER</button>
+          {ADMIN_TABS.map((t) => (
+            <button key={t.key} className={tab === t.key ? 'on' : undefined} onClick={() => setTab(t.key)}>{t.label}</button>
+          ))}
         </div>
         <div className="adm-top-right">
           <span className="adm-muted">{user.email}</span>
           <button className="adm-btn" onClick={() => signOut()}>로그아웃</button>
         </div>
       </div>
-      {tab === 'work' ? <ProjectManager /> : <><JobManager /><ConditionsManager /></>}
+      {tab === 'whatwedo' && <WhatWeDoManager />}
+      {tab === 'work' && <CategoryManager />}
+      {tab === 'project' && <ProjectManager />}
+      {tab === 'career' && <JobManager />}
+      {tab === 'conditions' && <ConditionsManager />}
     </AdminShell>
   )
 }
@@ -97,7 +111,7 @@ const EMPTY_PROJECT = {
 }
 
 function ProjectManager() {
-  const { projects, loading, refresh } = useProjects()
+  const { projects, loading, refresh, categories } = useProjects()
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(EMPTY_PROJECT)
   const [busy, setBusy] = useState(false)
@@ -228,7 +242,8 @@ function ProjectManager() {
         <div className="adm-grid2">
           <label>카테고리
             <select value={form.cat} onChange={set('cat')}>
-              {CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.label}</option>)}
+              {categories.map((c) => <option key={c.slug} value={c.slug}>{c.label}{c.hidden ? ' (숨김)' : ''}</option>)}
+              {!categories.some((c) => c.slug === form.cat) && form.cat && <option value={form.cat}>{form.cat} (목록에 없음)</option>}
             </select>
           </label>
           <label>구분(태그)<input value={form.kind} onChange={set('kind')} /></label>
@@ -558,6 +573,135 @@ function ConditionsManager() {
       {msg && <p className={msg.includes('실패') ? 'adm-err' : 'adm-muted'}>{msg}</p>}
       <div className="adm-form-actions">
         <button type="button" className="adm-btn adm-btn-primary" onClick={save} disabled={busy}>{busy ? '저장 중…' : '근무조건 저장'}</button>
+      </div>
+    </div>
+  )
+}
+
+/* ---------- WORK 분야(카테고리) 관리 ---------- */
+function CategoryManager() {
+  const { refresh } = useProjects()
+  const [items, setItems] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    getCategories()
+      .then((c) => setItems((c && c.length ? c : DEFAULT_CATEGORIES).map((x) => ({ ...x }))))
+      .catch(() => setItems(DEFAULT_CATEGORIES.map((x) => ({ ...x }))))
+  }, [])
+
+  const update = (i, patch) => setItems((a) => a.map((it, j) => (j === i ? { ...it, ...patch } : it)))
+  const add = () => setItems((a) => [...a, { slug: '', label: '', hidden: false }])
+  const remove = (i) => setItems((a) => a.filter((_, j) => j !== i))
+  const move = (i, dir) => setItems((a) => { const b = [...a]; const j = i + dir; if (j < 0 || j >= b.length) return a;[b[i], b[j]] = [b[j], b[i]]; return b })
+
+  async function save() {
+    setBusy(true); setMsg('')
+    try {
+      const clean = items
+        .map((c) => ({ label: (c.label || '').trim(), slug: (c.slug || slugify(c.label) || '').trim(), hidden: !!c.hidden }))
+        .filter((c) => c.label && c.slug)
+      await saveCategories(clean)
+      await refresh()
+      setMsg('저장되었습니다. WORK 필터에 반영됩니다.')
+    } catch (e) { setMsg('저장 실패: ' + e.message) }
+    finally { setBusy(false) }
+  }
+
+  if (items === null) return <div className="adm-card adm-card-gap"><p className="adm-muted">분야 불러오는 중…</p></div>
+
+  return (
+    <div className="adm-card adm-card-gap">
+      <h2 className="adm-h2">WORK 분야(카테고리) 관리</h2>
+      <p className="adm-muted">WORK 페이지 상단 필터 탭입니다. 숨기면 필터에서 사라지지만 기존 프로젝트는 유지됩니다. (‘전체’는 자동)</p>
+      {items.map((c, i) => (
+        <div className="adm-block" key={i}>
+          <div className="adm-block-head">
+            <span className="adm-block-lead"><strong>{i + 1}</strong></span>
+            <span className="adm-block-actions">
+              <button type="button" className="adm-btn" onClick={() => move(i, -1)} disabled={i === 0}>↑</button>
+              <button type="button" className="adm-btn" onClick={() => move(i, 1)} disabled={i === items.length - 1}>↓</button>
+              <button type="button" className="adm-btn adm-btn-danger" onClick={() => remove(i)}>삭제</button>
+            </span>
+          </div>
+          <div className="adm-grid2">
+            <label>표시명<input value={c.label} onChange={(e) => update(i, { label: e.target.value })} placeholder="MEDIA ART" /></label>
+            <label>식별자(slug)<input value={c.slug} onChange={(e) => update(i, { slug: e.target.value })} placeholder={slugify(c.label) || 'media-art'} /></label>
+          </div>
+          <label className="adm-check">
+            <input type="checkbox" checked={!!c.hidden} onChange={(e) => update(i, { hidden: e.target.checked })} />
+            <span>숨기기 (WORK 필터에서 감춤)</span>
+          </label>
+        </div>
+      ))}
+      <div className="adm-block-add"><button type="button" className="adm-btn" onClick={add}>+ 분야 추가</button></div>
+      {msg && <p className={msg.includes('실패') ? 'adm-err' : 'adm-muted'}>{msg}</p>}
+      <div className="adm-form-actions">
+        <button type="button" className="adm-btn adm-btn-primary" onClick={save} disabled={busy}>{busy ? '저장 중…' : '분야 저장'}</button>
+      </div>
+    </div>
+  )
+}
+
+/* ---------- WHAT WE DO 관리 (WORK와 무관, 항목별 페이지 링크) ---------- */
+function WhatWeDoManager() {
+  const [items, setItems] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    getWhatWeDo()
+      .then((v) => setItems((v && v.length ? v : WWD_DEFAULT).map((x) => ({ ...x }))))
+      .catch(() => setItems(WWD_DEFAULT.map((x) => ({ ...x }))))
+  }, [])
+
+  const update = (i, patch) => setItems((a) => a.map((it, j) => (j === i ? { ...it, ...patch } : it)))
+  const add = () => setItems((a) => [...a, { label: '', desc: '', link: '', hidden: false }])
+  const remove = (i) => setItems((a) => a.filter((_, j) => j !== i))
+  const move = (i, dir) => setItems((a) => { const b = [...a]; const j = i + dir; if (j < 0 || j >= b.length) return a;[b[i], b[j]] = [b[j], b[i]]; return b })
+
+  async function save() {
+    setBusy(true); setMsg('')
+    try {
+      const clean = items
+        .map((s) => ({ label: (s.label || '').trim(), desc: (s.desc || '').trim(), link: (s.link || '').trim(), hidden: !!s.hidden }))
+        .filter((s) => s.label)
+      await saveWhatWeDo(clean)
+      setMsg('저장되었습니다. 메인 WHAT WE DO에 반영됩니다.')
+    } catch (e) { setMsg('저장 실패: ' + e.message) }
+    finally { setBusy(false) }
+  }
+
+  if (items === null) return <div className="adm-card"><p className="adm-muted">WHAT WE DO 불러오는 중…</p></div>
+
+  return (
+    <div className="adm-card">
+      <h2 className="adm-h2">WHAT WE DO (메인)</h2>
+      <p className="adm-muted">메인 WHAT WE DO 목록입니다. WORK 분야와 무관하게 자유롭게 추가하고, 링크에 이동할 페이지를 넣으세요. (예: <code>/work#media-art</code>, <code>/contact</code>, <code>https://…</code> · 비우면 클릭 불가)</p>
+      {items.map((s, i) => (
+        <div className="adm-block" key={i}>
+          <div className="adm-block-head">
+            <span className="adm-block-lead"><strong>{String(i + 1).padStart(2, '0')}</strong></span>
+            <span className="adm-block-actions">
+              <button type="button" className="adm-btn" onClick={() => move(i, -1)} disabled={i === 0}>↑</button>
+              <button type="button" className="adm-btn" onClick={() => move(i, 1)} disabled={i === items.length - 1}>↓</button>
+              <button type="button" className="adm-btn adm-btn-danger" onClick={() => remove(i)}>삭제</button>
+            </span>
+          </div>
+          <input placeholder="제목 (예: MEDIA ART)" value={s.label} onChange={(e) => update(i, { label: e.target.value })} />
+          <input placeholder="설명" value={s.desc} onChange={(e) => update(i, { desc: e.target.value })} />
+          <input placeholder="링크 (예: /work#media-art · /contact · https://… · 비우면 링크 없음)" value={s.link} onChange={(e) => update(i, { link: e.target.value })} />
+          <label className="adm-check">
+            <input type="checkbox" checked={!!s.hidden} onChange={(e) => update(i, { hidden: e.target.checked })} />
+            <span>숨기기</span>
+          </label>
+        </div>
+      ))}
+      <div className="adm-block-add"><button type="button" className="adm-btn" onClick={add}>+ 항목 추가</button></div>
+      {msg && <p className={msg.includes('실패') ? 'adm-err' : 'adm-muted'}>{msg}</p>}
+      <div className="adm-form-actions">
+        <button type="button" className="adm-btn adm-btn-primary" onClick={save} disabled={busy}>{busy ? '저장 중…' : 'WHAT WE DO 저장'}</button>
       </div>
     </div>
   )

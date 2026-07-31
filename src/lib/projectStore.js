@@ -82,6 +82,29 @@ export async function uploadThumb(file) {
   return data.publicUrl
 }
 
+/* ---------- 사이트 설정: WORK 분야 · WHAT WE DO (site_settings jsonb) ---------- */
+const SETTINGS_TABLE = 'site_settings'
+
+async function getSetting(key) {
+  if (!isConfigured) return null
+  const { data, error } = await supabase.from(SETTINGS_TABLE).select('value').eq('key', key).maybeSingle()
+  if (error) throw error
+  return Array.isArray(data?.value) ? data.value : null
+}
+async function saveSetting(key, value) {
+  requireDB()
+  const { error } = await supabase.from(SETTINGS_TABLE).upsert({ key, value })
+  if (error) throw error
+}
+
+/* WORK 분야(카테고리) — [{slug, label, hidden}] */
+export const getCategories = () => getSetting('work_categories')
+export const saveCategories = (list) => saveSetting('work_categories', list)
+
+/* WHAT WE DO 항목 — [{label, desc, link, hidden}] (WORK와 무관, link=페이지 연결) */
+export const getWhatWeDo = () => getSetting('what_we_do')
+export const saveWhatWeDo = (list) => saveSetting('what_we_do', list)
+
 /* ---------- 인증 ---------- */
 export async function signIn(email, password) {
   requireDB()
