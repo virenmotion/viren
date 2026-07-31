@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react'
 import Reveal from './Reveal'
 import SecStatement from './SecStatement'
+import ApplyModal from './ApplyModal'
 import { SEED_JOBS, WORK_CONDITIONS } from '../careerJobs'
 import { listJobs, getWorkConditions } from '../lib/careerStore'
+
+/* 지원서 양식 파일 (public/assets/에 배치, 파일은 추후 전달) */
+const APPLY_FORM_URL = '/assets/viren_application_form.pdf'
 
 /* 근무조건 세부내용 → 줄 배열. 줄바꿈(\n)과 / 를 모두 줄 구분자로 사용 */
 const condLines = (body) => {
   const raw = Array.isArray(body) ? body.join('\n') : String(body || '')
   return raw.split(/[\n/]/).map((s) => s.trim()).filter(Boolean)
 }
-
-const APPLY_EMAIL = 'virenmotion@viren.kr'
 
 /* 줄바꿈 텍스트 → 항목 배열 (앞의 -·• 기호는 제거) */
 const bullets = (text) =>
@@ -50,6 +52,7 @@ function JobTable({ job }) {
 export default function Career() {
   const [openId, setOpenId] = useState(null)
   const [openCond, setOpenCond] = useState(null)
+  const [applyJob, setApplyJob] = useState(null) // 지원 팝업 대상 공고 (null=닫힘)
   const [jobs, setJobs] = useState(null) // null = 로딩
   const [conditions, setConditions] = useState(WORK_CONDITIONS) // 근무조건 (DB 저장분 있으면 대체)
 
@@ -93,9 +96,14 @@ export default function Career() {
                     {j.type && <p className="job-type">{j.type}</p>}
                     {j.desc && <p className="job-desc">{j.desc}</p>}
                     <JobTable job={j} />
-                    <a className="job-apply" href={`mailto:${APPLY_EMAIL}?subject=[VIREN 지원] ${j.titleEn}`}>
-                      지원하기 ↗
-                    </a>
+                    <div className="job-apply-row">
+                      <button type="button" className="job-apply" onClick={() => setApplyJob(j)}>
+                        지원하기 <span aria-hidden="true">↗</span>
+                      </button>
+                      <a className="job-form-dl" href={APPLY_FORM_URL} download data-hover>
+                        지원서 양식 DOWNLOAD <span aria-hidden="true">↓</span>
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
@@ -130,6 +138,8 @@ export default function Career() {
           })}
         </div>
       </Reveal>
+
+      <ApplyModal open={!!applyJob} job={applyJob} onClose={() => setApplyJob(null)} />
     </section>
   )
 }

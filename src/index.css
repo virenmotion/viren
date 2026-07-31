@@ -646,9 +646,15 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   .job-table th{width:78px;font-size:12px;padding:12px 9px}
   .job-table td{padding:12px 9px;font-size:13px}
 }
-.job-apply{display:inline-block;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--fg);border-bottom:1px solid var(--accent);padding-bottom:4px;transition:color .25s}
+/* 지원하기(팝업 버튼) + 지원서 양식 다운로드 한 줄 */
+.job-apply-row{display:flex;align-items:center;gap:clamp(20px,3.2vw,44px);flex-wrap:wrap}
+.job-apply{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--fg);background:none;border:0;border-bottom:1px solid var(--accent);padding:0 0 4px;cursor:pointer;
+  font-family:inherit;transition:color .25s}
 .job-apply:hover{color:var(--accent)}
+.job-form-dl{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);transition:color .25s var(--ease)}
+.job-form-dl:hover{color:var(--accent)}
 .job-empty{color:var(--muted);padding:40px 4px;font-size:15px}
 
 /* 근무조건 — JOB POSITION과 동일한 아코디언(.job) 재사용, 펼침 상세만 별도 */
