@@ -19,7 +19,7 @@ export async function listJobs() {
 function toRow(j) {
   return {
     id: j.id,
-    cat: j.cat,
+    cat: j.cat || 'general', // cat 컬럼 NOT NULL — CAREER는 카테고리 미사용이라 기본값
     title_en: j.titleEn,
     title_ko: j.titleKo || null,
     type: j.type || null,

@@ -8,6 +8,13 @@ import { listJobs, getWorkConditions } from '../lib/careerStore'
 /* 지원서 양식 파일 (public/assets/에 배치, 파일은 추후 전달) */
 const APPLY_FORM_URL = '/assets/viren_application_form.pdf'
 
+/* **텍스트** → 노란색 강조. 그 외는 그대로(줄바꿈은 CSS white-space로 유지) */
+const renderRich = (text) =>
+  String(text || '').split(/(\*\*[^*]+\*\*)/g).map((p, i) => {
+    const m = p.match(/^\*\*([^*]+)\*\*$/)
+    return m ? <em key={i} className="em-accent">{m[1]}</em> : p
+  })
+
 /* 근무조건 세부내용 → 줄 배열. 줄바꿈(\n)과 / 를 모두 줄 구분자로 사용 */
 const condLines = (body) => {
   const raw = Array.isArray(body) ? body.join('\n') : String(body || '')
@@ -96,7 +103,7 @@ export default function Career() {
                 {open && (
                   <div className="job-panel">
                     {j.type && <p className="job-type">{j.type}</p>}
-                    {j.desc && <p className="job-desc">{j.desc}</p>}
+                    {j.desc && <p className="job-desc">{renderRich(j.desc)}</p>}
                     <JobTable job={j} />
                     {!isNotice && (
                       <div className="job-apply-row">

@@ -461,7 +461,8 @@ function JobManager() {
         <h2 className="adm-h2">{isNew ? '새 공지사항' : '공지 수정'}</h2>
         <p className="adm-muted">공지사항은 목록 맨 위에 고정됩니다. 제목과 소개문구만 입력하세요.</p>
         <label>공지 제목 *<input value={form.titleEn} onChange={set('titleEn')} placeholder="2026 상반기 공개채용 안내" required /></label>
-        <label>소개문구 (내용)<textarea rows={5} value={form.desc} onChange={set('desc')} placeholder="공지 내용을 입력하세요." /></label>
+        <label>소개문구 (내용)<textarea rows={5} value={form.desc} onChange={set('desc')} placeholder="공지 내용을 입력하세요." />
+          <span className="adm-hint">**강조**로 감싸면 노란색 강조글자가 됩니다. 줄바꿈은 그대로 반영됩니다.</span></label>
         {msg && <p className="adm-err">{msg}</p>}
         <div className="adm-form-actions">
           <button className="adm-btn adm-btn-primary" disabled={busy}>{busy ? '저장 중…' : '저장'}</button>
@@ -492,7 +493,8 @@ function JobManager() {
           <span>상단 고정 (공지처럼 목록 맨 위에 표시)</span>
         </label>
 
-        <label>소개(본문)<textarea rows={3} value={form.desc} onChange={set('desc')} placeholder="공고 상단 소개 문구" /></label>
+        <label>소개(본문)<textarea rows={3} value={form.desc} onChange={set('desc')} placeholder="공고 상단 소개 문구" />
+          <span className="adm-hint">**강조**로 감싸면 노란색 강조글자가 됩니다.</span></label>
 
         <label>모집인원<input value={form.headcount} onChange={set('headcount')} placeholder="0명(경력)" /></label>
         <label>담당업무<textarea rows={6} value={form.responsibilities} onChange={set('responsibilities')} placeholder="한 줄에 하나씩 입력" />

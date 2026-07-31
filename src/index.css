@@ -628,8 +628,9 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 /* 펼침 패널 */
 .job-panel{padding:0 4px clamp(24px,3.4vh,34px)}
 .job-type{font-size:12px;letter-spacing:.1em;color:var(--accent);margin-bottom:14px}
-.job-desc{font-size:15px;line-height:1.85;color:var(--muted);max-width:680px;
+.job-desc{font-size:15px;line-height:1.85;color:var(--muted);max-width:680px;white-space:pre-line;
   font-family:'Pretendard Variable',Pretendard,sans-serif;margin-bottom:24px}
+.job-desc .em-accent{color:var(--accent);font-style:normal;font-weight:600}
 
 /* 채용 상세 표 (모집인원/담당업무/자격요건/우대사항) */
 .job-table{width:100%;border-collapse:collapse;border-top:1px solid var(--line);
