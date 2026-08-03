@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 /* 프리로더: VIREN 로고 드로잉 애니메이션(iframe) + 커튼 리빌.
    완료되면 onDone()을 호출하고 커튼이 걷히며 자기 자신을 언마운트. */
-export default function Preloader({ onDone }) {
+export default function Preloader({ onDone, onGone }) {
   const [done, setDone] = useState(false)
   const [gone, setGone] = useState(false)
   const finishedRef = useRef(false)
@@ -17,7 +17,8 @@ export default function Preloader({ onDone }) {
       document.body.classList.remove('is-loading')
       document.body.classList.add('loaded')
       onDone?.()
-      setTimeout(() => setGone(true), 1900)
+      // 종료 전환(줌 1.15s + 페이드) 재생 후 자기 자신을 언마운트
+      setTimeout(() => { setGone(true); onGone?.() }, 1900)
     }
 
     /* 로고 드로잉 애니메이션 재생 시간(약 4초) 후 사이트 공개. 모션 최소화 시 즉시. */

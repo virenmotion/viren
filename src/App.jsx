@@ -109,18 +109,22 @@ function Chrome() {
 }
 
 /* 인트로 프리로더 게이트 — /admin 등 관리자 경로에선 인트로를 건너뛰고 즉시 진입 */
-function Boot({ ready, setReady }) {
+function Boot({ setReady }) {
   const { pathname } = useLocation()
   const isAdmin = pathname.startsWith('/admin')
+  // 프리로더는 onDone(사이트 공개) 이후에도 마운트를 유지하며 종료 전환(줌+페이드)을
+  // 스스로 재생한 뒤, onGone에서 마운트를 해제한다. (조기 언마운트 시 전환이 렌더되지 않음)
+  const [mounted, setMounted] = useState(true)
   useEffect(() => {
-    if (isAdmin && !ready) {
+    if (isAdmin) {
       document.body.classList.remove('is-loading')
       document.body.classList.add('loaded')
       setReady(true)
+      setMounted(false)
     }
-  }, [isAdmin, ready, setReady])
-  if (ready || isAdmin) return null
-  return <Preloader onDone={() => setReady(true)} />
+  }, [isAdmin, setReady])
+  if (isAdmin || !mounted) return null
+  return <Preloader onDone={() => setReady(true)} onGone={() => setMounted(false)} />
 }
 
 export default function App() {
@@ -129,7 +133,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ProjectsProvider>
-        <Boot ready={ready} setReady={setReady} />
+        <Boot setReady={setReady} />
         <Cursor />
         <ScrollManager />
 
