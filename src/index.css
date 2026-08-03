@@ -428,18 +428,26 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 @keyframes slide{to{transform:translateX(-50%)}}
 
 /* ---------- services ---------- */
-/* WHAT WE DO — 라벨↔대문구↔목록↔하단 세로 여백을 하나의 값(--wwd-gap)으로 균등하게.
+/* WHAT WE DO — 라벨↔대문구↔목록↔하단 세로 여백을 균등하게.
    라벨을 흐름 안에 넣고 flex gap으로 묶는다(원래 absolute 위치는 padding-top으로 유지).
    대문구는 flex 아이템 → 자체 BFC라 .line의 음수 마진이 부모로 새지 않아 박스가 글자 줄에 딱 맞는다.
-   padding-bottom의 덧셈분은 대문구 라인박스 위아래에 남는 여백(≈.16em) 보정 — 하단 여백이 같아 보이게. */
+   --wwd-ink = 대문구 라인박스 위아래에 남는 여백(≈.16em) 보정 → 하단 여백이 같아 '보이게' 한다. */
 #whatwedo{
-  --wwd-gap:clamp(64px,11vh,150px);
+  --wwd-gap:clamp(48px,7vh,110px);   /* 여백 최소값 (풀페이지에선 남는 높이만큼 늘어남) */
+  --wwd-ink:clamp(5px,1vw,15px);
   display:flex;flex-direction:column;gap:var(--wwd-gap);
   padding-top:clamp(64px,10vh,120px);
-  padding-bottom:calc(var(--wwd-gap) + clamp(5px,1vw,15px));
+  padding-bottom:calc(var(--wwd-gap) + var(--wwd-ink));
 }
 #whatwedo .sec-label{position:static}
 #whatwedo .sec-statement{margin:0}
+/* 풀페이지(≥761) — 섹션을 화면 높이에 맞추고 남는 공간을 세 여백에 똑같이 분배.
+   ::after는 하단 여백을 만들기 위한 빈 항목(이게 있어야 목록 아래에도 gap이 생긴다).
+   고정 vh 값 대신 실제 남는 높이를 쓰므로 항목 수가 늘어도 세 여백이 계속 같다. */
+@media(min-width:761px){
+  #whatwedo{min-height:100vh;justify-content:space-between;padding-bottom:var(--wwd-ink)}
+  #whatwedo::after{content:'';display:block}
+}
 
 .svc{border-top:1px solid var(--line)}
 .svc-row{
