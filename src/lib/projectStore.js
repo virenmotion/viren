@@ -105,6 +105,10 @@ export const saveCategories = (list) => saveSetting('work_categories', list)
 export const getWhatWeDo = () => getSetting('what_we_do')
 export const saveWhatWeDo = (list) => saveSetting('what_we_do', list)
 
+/* 홈 PHILOSOPHY 아래 마퀴 문구 — 문자열 배열, 순서=표시순서 */
+export const getBandWords = () => getSetting('band_words')
+export const saveBandWords = (list) => saveSetting('band_words', list)
+
 /* ---------- 인증 ---------- */
 export async function signIn(email, password) {
   requireDB()

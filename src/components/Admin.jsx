@@ -5,11 +5,13 @@ import {
   signIn, signOut, getUser, onAuthChange,
   createProject, updateProject, deleteProject, uploadThumb, reorderProjects,
   getCategories, saveCategories, getWhatWeDo, saveWhatWeDo,
+  getBandWords, saveBandWords,
 } from '../lib/projectStore'
 import { listJobs, createJob, updateJob, deleteJob, getWorkConditions, saveWorkConditions } from '../lib/careerStore'
 import { WORK_CONDITIONS } from '../careerJobs'
 import { catLabel, slugify, DEFAULT_CATEGORIES } from '../workProjects'
 import { WWD_DEFAULT } from './WhatWeDo'
+import { DEFAULT_BAND_WORDS } from './Band'
 import { useProjects } from '../ProjectsContext'
 
 export default function Admin() {
@@ -73,6 +75,7 @@ function Login({ onDone }) {
 
 /* ---------- 대시보드 (탭: WHAT WE DO / WORK / PROJECT / CAREER / CONDITIONS) ---------- */
 const ADMIN_TABS = [
+  { key: 'band', label: 'MARQUEE' },
   { key: 'whatwedo', label: 'WHAT WE DO' },
   { key: 'work', label: 'WORK' },
   { key: 'project', label: 'PROJECT' },
@@ -94,6 +97,7 @@ function Dashboard({ user }) {
           <button className="adm-btn" onClick={() => signOut()}>로그아웃</button>
         </div>
       </div>
+      {tab === 'band' && <BandManager />}
       {tab === 'whatwedo' && <WhatWeDoManager />}
       {tab === 'work' && <CategoryManager />}
       {tab === 'project' && <ProjectManager />}
@@ -542,6 +546,65 @@ function JobManager() {
 /* ---------- 근무조건(WORK CONDITIONS) 편집 ---------- */
 const condToForm = (list) =>
   (list || []).map((c) => ({ label: c.label || '', body: Array.isArray(c.body) ? c.body.join('\n') : (c.body || '') }))
+
+/* ---------- 홈 하단 마퀴 문구 관리 ---------- */
+function BandManager() {
+  const [items, setItems] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    getBandWords()
+      .then((list) => setItems((list && list.length ? list : DEFAULT_BAND_WORDS).map((text) => ({ text }))))
+      .catch(() => setItems(DEFAULT_BAND_WORDS.map((text) => ({ text }))))
+  }, [])
+
+  const update = (i, text) => setItems((a) => a.map((it, j) => (j === i ? { text } : it)))
+  const add = () => setItems((a) => [...a, { text: '' }])
+  const remove = (i) => setItems((a) => a.filter((_, j) => j !== i))
+  const move = (i, dir) => setItems((a) => {
+    const b = [...a]; const j = i + dir
+    if (j < 0 || j >= b.length) return a;
+    [b[i], b[j]] = [b[j], b[i]]; return b
+  })
+
+  async function save() {
+    setBusy(true); setMsg('')
+    try {
+      const clean = items.map((c) => c.text.trim()).filter(Boolean)
+      await saveBandWords(clean)
+      setMsg('저장되었습니다. 홈 화면 마퀴에 반영됩니다.')
+    } catch (e) { setMsg('저장 실패: ' + e.message) }
+    finally { setBusy(false) }
+  }
+
+  if (items === null) return <div className="adm-card adm-card-gap"><p className="adm-muted">마퀴 문구 불러오는 중…</p></div>
+
+  return (
+    <div className="adm-card adm-card-gap">
+      <h2 className="adm-h2">하단 마퀴 문구</h2>
+      <p className="adm-muted">홈 화면 PHILOSOPHY 아래에 흐르는 문구입니다. 짝수 번째 항목(2, 4, 6…)은 외곽선 스타일로 표시됩니다. 기존 8개 문구가 아닌 새 문구는 외곽선 그래픽이 없어 일반 글자로만 표시됩니다 — 외곽선 효과가 필요하면 알려주세요.</p>
+      {items.map((c, i) => (
+        <div className="adm-block" key={i}>
+          <div className="adm-block-head">
+            <span className="adm-block-lead"><strong>{i + 1}</strong>{i % 2 ? ' · 외곽선' : ''}</span>
+            <span className="adm-block-actions">
+              <button type="button" className="adm-btn" onClick={() => move(i, -1)} disabled={i === 0}>↑</button>
+              <button type="button" className="adm-btn" onClick={() => move(i, 1)} disabled={i === items.length - 1}>↓</button>
+              <button type="button" className="adm-btn adm-btn-danger" onClick={() => remove(i)}>삭제</button>
+            </span>
+          </div>
+          <input value={c.text} onChange={(e) => update(i, e.target.value)} placeholder="예: MEDIA ART" />
+        </div>
+      ))}
+      <div className="adm-block-add"><button type="button" className="adm-btn" onClick={add}>+ 문구 추가</button></div>
+      {msg && <p className={msg.includes('실패') ? 'adm-err' : 'adm-muted'}>{msg}</p>}
+      <div className="adm-form-actions">
+        <button type="button" className="adm-btn adm-btn-primary" onClick={save} disabled={busy}>{busy ? '저장 중…' : '마퀴 문구 저장'}</button>
+      </div>
+    </div>
+  )
+}
 
 function ConditionsManager() {
   const [items, setItems] = useState(null)

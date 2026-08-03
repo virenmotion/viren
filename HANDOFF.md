@@ -40,10 +40,12 @@
 - **테이블**
   - `projects` — WORK 프로젝트.
   - `jobs` — 채용 공고. 컬럼: `pinned`(상단 고정/공지), `cat`(**NOT NULL** → 저장 시 `cat: j.cat || 'general'` 처리됨).
-  - `site_settings` — jsonb key/value. 키: `work_conditions`, `work_categories`, `what_we_do`.
+  - `site_settings` — jsonb key/value. 키: `work_conditions`, `work_categories`, `what_we_do`, `band_words`(홈 하단 마퀴 문구, 문자열 배열).
 - **RLS**: public read / authenticated write.
 - **관리자 페이지**: `/admin` — 5탭 구조 `WHAT WE DO / WORK / PROJECT / CAREER / CONDITIONS`.
   - `/admin`은 인트로 프리로더를 건너뜀(`App.jsx`의 `Boot`에서 처리).
+  - 관리자 탭: `MARQUEE / WHAT WE DO / WORK / PROJECT / CAREER / CONDITIONS` (6탭).
+  - `MARQUEE` 탭 = 홈 PHILOSOPHY 아래 흐르는 문구(`Band.jsx`) 편집. 짝수번째 항목은 자동으로 외곽선(SVG path) 스타일 — 기존 8개 문구가 아닌 새 문구는 외곽선 그래픽이 없어 일반 글자로만 표시됨(원하면 `node scripts/genOutlines.cjs` 재실행 필요, [[VIREN 아웃라인 패스]] 참고).
 
 ## 5. 반응형 브레이크포인트
 
@@ -65,7 +67,8 @@
 | `src/components/ContactModal.jsx` | 문의 모달(portal 렌더) |
 | `src/components/Career.jsx` | CAREER. 공지(pinned)/공고 아코디언, 지원 팝업, 지원서 양식 다운로드 |
 | `src/components/ApplyModal.jsx` | 지원 팝업(portal). 이름*/이메일*/전화/다중 파일 첨부/동의 |
-| `src/components/Admin.jsx` | 관리자 5탭 + 각 Manager 컴포넌트 |
+| `src/components/Admin.jsx` | 관리자 6탭 + 각 Manager 컴포넌트 |
+| `src/components/Band.jsx` | 홈 PHILOSOPHY 아래 마퀴 문구(`site_settings.band_words`, 관리자 MARQUEE 탭 연동) |
 | `src/components/WhatWeDo.jsx` | ABOUT의 WHAT WE DO (CMS 연동, 항목별 페이지 링크) |
 | `src/lib/projectStore.js` | projects/categories/whatwedo CRUD |
 | `src/lib/careerStore.js` | jobs/work_conditions CRUD |
