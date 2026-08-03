@@ -22,7 +22,8 @@ img{max-width:100%;display:block}
 ::selection{background:var(--accent);color:#000}
 
 /* ---------- PRELOADER ---------- */
-#loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;pointer-events:none}
+#loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;pointer-events:none;
+  transition:opacity .8s var(--ease)}
 #loader .curtains{position:absolute;inset:0;display:flex}
 #loader .curtain{flex:1;background:var(--bg);transform:translateY(0);will-change:transform}
 #loader .inner{position:absolute;inset:0;z-index:2;display:block}
@@ -44,12 +45,11 @@ img{max-width:100%;display:block}
 #loader .count{font-size:12px;letter-spacing:.32em;color:var(--muted);font-variant-numeric:tabular-nums}
 #loader .bar{width:min(220px,40vw);height:1px;background:var(--line);position:relative;overflow:hidden}
 #loader .bar span{position:absolute;inset:0;background:var(--accent);transform:scaleX(0);transform-origin:left}
-#loader.done .curtain{transform:translateY(-101%);transition:transform 1.05s var(--ease)}
-#loader.done .curtain:nth-child(2){transition-delay:.07s}
-#loader.done .curtain:nth-child(3){transition-delay:.14s}
-#loader.done .curtain:nth-child(4){transition-delay:.21s}
-#loader.done .curtain:nth-child(5){transition-delay:.28s}
-#loader.done .inner{opacity:0;transform:translateY(-24px);transition:.5s var(--ease)}
+/* 종료: 로고 속으로 빨려들어가듯 줌인 + 전체 페이드아웃 */
+#loader.done{opacity:0}
+#loader.done .curtain{opacity:0;transition:opacity .55s var(--ease)}
+#loader.done .inner{transform:scale(13);opacity:0;transform-origin:center center;
+  transition:transform 1s cubic-bezier(.66,0,.86,0),opacity .8s var(--ease)}
 
 /* ---------- cursor ---------- */
 #cursor{
