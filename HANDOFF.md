@@ -1,7 +1,7 @@
 # VIREN 웹사이트 — 작업 인수인계 (Handoff)
 
 > 새 채팅/새 계정에서 이 파일을 먼저 읽으면 작업을 바로 이어받을 수 있습니다.
-> 마지막 업데이트: 2026-08-03
+> 마지막 업데이트: 2026-08-03 (2차)
 
 ---
 
@@ -30,7 +30,8 @@
 
 ## 3. 커밋/푸시 규칙
 
-- 커밋 메시지 마지막 줄: `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
+- 커밋 메시지 마지막 줄: `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`
+  - 실제 사용 중인 모델명으로 적는다(모델을 바꿨으면 그 이름으로).
 - **대용량 미디어 커밋 금지**: 쇼릴 영상 등은 `.gitignore`로 제외되어 있음(`/public/assets/showreel*`, `/public/assets/background/` 등). `git add -A` 전에 대용량 파일이 스테이징되는지 확인. GitHub은 100MB 초과 파일 거부.
 - 사용자가 명시적으로 요청할 때만 commit/push.
 
@@ -77,21 +78,32 @@
 
 ## 7. 가장 최근 작업 (이번 세션) ✅ 완료·배포됨
 
-**로딩 종료 시 "로고 속으로 빨려들어가는" 줌인+페이드 전환**
+**(1) 관리자 MARQUEE 탭 — 홈 하단 마퀴 문구 CMS화** (커밋 `ad0668d`)
 
-- 증상: 로더가 줌 없이 컷으로 사라짐(사용자 녹화로 확인).
-- **근본 원인**: `App.jsx`의 `Boot`이 `if (ready) return null` 구조여서, 프리로더가 `onDone()`으로 `ready=true`를 켜는 순간 **부모가 프리로더를 즉시 언마운트** → `#loader.done` 종료 전환이 렌더될 틈이 없었음.
-- **수정**:
-  - `Boot`을 `ready` 대신 자체 `mounted` 상태로 제어. `onDone`은 사이트만 공개, 프리로더는 마운트를 유지하며 종료 전환을 재생한 뒤 `onGone`에서 언마운트.
-  - `Preloader.jsx`: `onGone` prop 추가, `setTimeout(() => { setGone(true); onGone?.() }, 1900)`. 로더 지속시간 `4200ms`(프로덕션 값 — 디버그로 20000/30000 넣지 말 것).
-  - `index.css`: `#loader.done .inner { transform:scale(15); transition:transform 1.15s cubic-bezier(.45,0,.6,.32); }` + 페이드 0.6s 지연(줌이 충분히 커진 뒤 사라지게). `.inner`에 `will-change:transform,opacity`.
-- **검증**: dev에서 `done` 부여 시 `scale 1→15, opacity 1→0` 실측, 중간 줌 스크린샷으로 로고 확대 확인.
-- 관련 커밋: `7062a55`(언마운트 타이밍 수정, 최종), 앞서 `732ccb9`(타이밍/이징), `5f9367e`(초기 줌 도입).
+- `site_settings.band_words`(문자열 배열) 신규 키. `projectStore.js`에 `getBandWords`/`saveBandWords`.
+- `Band.jsx`가 DB 값을 읽고, 없으면 `DEFAULT_BAND_WORDS` 폴백. Admin에 `BandManager`(추가/삭제/순서변경).
+- ⚠️ 짝수 인덱스는 아웃라인 SVG로 렌더 → **기존 8개 외 새 단어는 아웃라인 패스가 없어 일반 텍스트 폴백**. 필요 시 `node scripts/genOutlines.cjs` 재실행(5절 참고).
+
+**(2) Outro 배경영상 복구** (커밋 `d9a789e`)
+
+- 증상: Beyond 패널 배경영상이 안 나옴.
+- **근본 원인**: `public/assets/outro-bg.mp4`(2.14MB)가 `ed07f5e`(관리자 CMS 작업, 7/31)에서 **영상과 무관하게 실수로 삭제**됨. `Outro.jsx`의 `<source>` 참조는 그대로여서 조용히 깨져 있었음.
+- **수정**: `git checkout dde99b6 -- public/assets/outro-bg.mp4`로 복구. 라이브 200/`video/mp4` 확인.
+- 교훈: 이 파일은 `.gitignore` 대상이 **아님**(대용량 목록에 없음). `git add -A` 시 미디어 삭제가 딸려가지 않는지 `git status` 확인할 것.
+
+**(3) WHAT WE DO 세로 여백 균등화** (커밋 `d9a789e`)
+
+- 증상: 라벨↔대문구↔목록↔하단 세 여백이 제각각(실측 105/115/121px).
+- **근본 원인**: 세 여백이 서로 다른 값에서 나옴 — 섹션 `padding-top`+절대배치 `.sec-label`, 대문구 `margin-bottom`, 섹션 `padding-bottom`.
+- **수정**(`index.css`의 `#whatwedo`): flex column + `--wwd-gap` 하나로 통일. `.sec-label`을 `position:static`으로 흐름에 넣고 원래 위치는 `padding-top`으로 유지. 대문구가 flex 아이템이 되며 자체 BFC → `.line`의 음수 마진이 부모로 새지 않아 박스가 글자 줄에 딱 맞음. `padding-bottom`엔 라인박스 잔여 여백(≈.16em) 보정분을 더함.
+- 태블릿은 미디어쿼리 안에서 `--wwd-gap`만 재정의(기존 `.sec-statement` margin 오버라이드 대체).
+- **검증**: 실측 편차 16px → 2~3px. 데스크톱 118/116/117, 태블릿 32/31/34, 모바일 100/98/98.
 
 ## 8. 현재 상태 / 다음 확인
 
-- 위 줌 전환 배포 완료. **사용자가 Ctrl+Shift+R 후 재녹화로 최종 확인 예정.** 줌 세기(scale 15)나 속도가 과/약하면 `index.css`의 `#loader.done .inner` 수치만 조정.
-- 미해결 이슈 없음(위 확인 대기만 남음).
+- 위 3건 모두 배포 반영 확인 완료(번들 해시 일치 + 영상 200).
+- 미해결 이슈 없음.
+- 참고: `showreel-build/`는 커밋하지 않은 로컬 작업 폴더(쇼릴 빌드용).
 
 ## 9. 검증 팁 (이 프로젝트 특성)
 
