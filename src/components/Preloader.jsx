@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
-/* 프리로더: 카운터 + 커튼 리빌. 완료되면 onDone()을 호출하고 자기 자신을 언마운트. */
+/* 프리로더: VIREN 로고 드로잉 애니메이션(iframe) + 커튼 리빌.
+   완료되면 onDone()을 호출하고 커튼이 걷히며 자기 자신을 언마운트. */
 export default function Preloader({ onDone }) {
-  const [pct, setPct] = useState(0)
   const [done, setDone] = useState(false)
   const [gone, setGone] = useState(false)
   const finishedRef = useRef(false)
@@ -17,30 +17,24 @@ export default function Preloader({ onDone }) {
       document.body.classList.remove('is-loading')
       document.body.classList.add('loaded')
       onDone?.()
-      setTimeout(() => setGone(true), 1600)
+      setTimeout(() => setGone(true), 1400)
     }
 
-    if (reduced) {
-      setPct(100)
-      finish()
-      return
-    }
-
-    let p = 0
-    const tick = setInterval(() => {
-      p += Math.random() * 9 + 3
-      if (p >= 100) {
-        p = 100
-        clearInterval(tick)
-        setPct(100)
-        setTimeout(finish, 620)
-      } else {
-        setPct(p)
-      }
-    }, 130)
-
-    return () => clearInterval(tick)
+    /* 로고 드로잉 애니메이션 재생 시간(약 4초) 후 사이트 공개. 모션 최소화 시 즉시. */
+    const t = setTimeout(finish, reduced ? 300 : 4200)
+    return () => clearTimeout(t)
   }, [onDone])
+
+  /* 번들 애니메이션의 로딩/에러 인디케이터 숨김 (same-origin) */
+  const onFrameLoad = (e) => {
+    try {
+      const doc = e.currentTarget.contentDocument
+      if (!doc) return
+      const s = doc.createElement('style')
+      s.textContent = '#__bundler_loading,#__bundler_err{display:none!important}'
+      doc.head?.appendChild(s)
+    } catch { /* cross-origin 등 무시 */ }
+  }
 
   if (gone) return null
 
@@ -51,12 +45,15 @@ export default function Preloader({ onDone }) {
         <div className="curtain" /><div className="curtain" />
       </div>
       <div className="inner">
-        <div className="mark-wrap"><img className="mark" src="/assets/viren_CI.png" alt="VIREN" /></div>
-        <div className="wordmark wm"><img src="/assets/viren_wordmark.png" alt="VIREN" /></div>
-        <div className="bar">
-          <span style={{ transform: `scaleX(${pct / 100})`, transition: 'transform .3s cubic-bezier(.16,1,.3,1)' }} />
-        </div>
-        <div className="count">LOADING <b>{String(Math.floor(pct)).padStart(3, '0')}</b></div>
+        <iframe
+          className="loader-anim"
+          src="/viren-draw-animation.html"
+          title="VIREN"
+          tabIndex={-1}
+          aria-hidden="true"
+          scrolling="no"
+          onLoad={onFrameLoad}
+        />
       </div>
     </div>
   )
