@@ -170,10 +170,9 @@ export default function WorkDetail() {
 
   return (
     <section id="work-detail">
+      {/* 카테고리(좌) + 로케이션(우) — 한 줄에 같은 baseline으로 배치 */}
       <div className="wd-breadcrumb">
         <Link to={`/work#${p.cat}`}>{catLabel(p.cat)}</Link>
-      </div>
-      <div className="wd-tagrow">
         {p.location && <span className="wd-loc">{p.location}</span>}
       </div>
 

@@ -514,12 +514,11 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 
 /* ---------- WORK 상세 페이지 (게시글) ---------- */
 #work-detail{max-width:1400px;margin:0 auto;padding:clamp(104px,14vh,168px) var(--pad) clamp(70px,11vh,130px)}
-.wd-breadcrumb{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;font-size:15px;color:var(--muted);margin-bottom:14px}
-.wd-breadcrumb a{color:var(--muted);transition:color .3s var(--ease)}
-.wd-breadcrumb a:hover{color:var(--accent)}
-.wd-breadcrumb span{color:var(--fg)}
-.wd-tagrow{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;
+/* 카테고리(좌) + 로케이션(우)을 한 줄에. baseline 정렬이라 글자 크기가 달라도 밑선이 맞는다 */
+.wd-breadcrumb{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;font-size:15px;color:var(--muted);
   padding-bottom:22px;border-bottom:1px solid var(--line);margin-bottom:clamp(30px,5vh,52px)}
+.wd-breadcrumb a{color:var(--accent);transition:opacity .3s var(--ease)}
+.wd-breadcrumb a:hover{opacity:.7}
 /* margin-left:auto — 로케이션은 항상 오른쪽 끝에 고정(왼쪽이 비어도 붙지 않게) */
 .wd-loc{font-size:13.5px;color:var(--fg);text-align:right;letter-spacing:.01em;margin-left:auto;
   font-family:'Pretendard Variable',Pretendard,sans-serif}
