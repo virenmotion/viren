@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { catLabel } from '../workProjects'
 import { useProjects } from '../ProjectsContext'
 import Reveal from './Reveal'
 
@@ -149,7 +148,7 @@ function renderBlockGroups(blocks) {
 /* WORK 상세 — /work/:slug. 카테고리·제목 브레드크럼 + 영상 임베드 + 날짜·본문. */
 export default function WorkDetail() {
   const { id } = useParams() // 라우트 파라미터명은 id지만 slug로 사용
-  const { findProject, loading } = useProjects()
+  const { findProject, loading, catLabel } = useProjects()
   const p = findProject(id)
 
   if (loading) {
@@ -175,7 +174,6 @@ export default function WorkDetail() {
         <Link to={`/work#${p.cat}`}>{catLabel(p.cat)}</Link>
       </div>
       <div className="wd-tagrow">
-        {p.kind && <span className="wd-tag">{p.kind}</span>}
         {p.location && <span className="wd-loc">{p.location}</span>}
       </div>
 

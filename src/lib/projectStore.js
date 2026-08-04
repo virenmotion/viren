@@ -24,7 +24,7 @@ function toRow(p) {
   return {
     slug: p.slug,
     cat: p.cat,
-    kind: p.kind || null,
+    /* kind(구분 태그)는 UI에서 제거됨. 여기서 쓰지 않으므로 기존 DB 값은 저장 시에도 보존된다. */
     client: p.client || null,
     year: p.year || null,
     title_en: p.titleEn || null,

@@ -9,7 +9,7 @@ import {
 } from '../lib/projectStore'
 import { listJobs, createJob, updateJob, deleteJob, getWorkConditions, saveWorkConditions } from '../lib/careerStore'
 import { WORK_CONDITIONS } from '../careerJobs'
-import { catLabel, slugify, DEFAULT_CATEGORIES } from '../workProjects'
+import { slugify, DEFAULT_CATEGORIES } from '../workProjects'
 import { WWD_DEFAULT } from './WhatWeDo'
 import { DEFAULT_BAND_WORDS } from './Band'
 import { useProjects } from '../ProjectsContext'
@@ -109,13 +109,13 @@ function Dashboard({ user }) {
 
 /* ---------- WORK 관리 ---------- */
 const EMPTY_PROJECT = {
-  slug: '', cat: 'media-art', kind: '',
+  slug: '', cat: 'media-art',
   client: '', year: '', titleEn: '', titleKo: '',
   youtube: '', location: '', deliverables: '', thumb: '', desc: '', blocks: [], sort: 0,
 }
 
 function ProjectManager() {
-  const { projects, loading, refresh, categories } = useProjects()
+  const { projects, loading, refresh, categories, catLabel } = useProjects()
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(EMPTY_PROJECT)
   const [busy, setBusy] = useState(false)
@@ -250,7 +250,6 @@ function ProjectManager() {
               {!categories.some((c) => c.slug === form.cat) && form.cat && <option value={form.cat}>{form.cat} (목록에 없음)</option>}
             </select>
           </label>
-          <label>구분(태그)<input value={form.kind} onChange={set('kind')} /></label>
         </div>
 
         <div className="adm-grid2">
