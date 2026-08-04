@@ -1,7 +1,7 @@
 # VIREN 웹사이트 — 작업 인수인계 (Handoff)
 
 > 새 채팅/새 계정에서 이 파일을 먼저 읽으면 작업을 바로 이어받을 수 있습니다.
-> 마지막 업데이트: 2026-08-03 (2차)
+> 마지막 업데이트: 2026-08-04
 
 ---
 
@@ -43,10 +43,11 @@
   - `jobs` — 채용 공고. 컬럼: `pinned`(상단 고정/공지), `cat`(**NOT NULL** → 저장 시 `cat: j.cat || 'general'` 처리됨).
   - `site_settings` — jsonb key/value. 키: `work_conditions`, `work_categories`, `what_we_do`, `band_words`(홈 하단 마퀴 문구, 문자열 배열).
 - **RLS**: public read / authenticated write.
-- **관리자 페이지**: `/admin` — 5탭 구조 `WHAT WE DO / WORK / PROJECT / CAREER / CONDITIONS`.
+- **관리자 페이지**: `/admin` — 6탭 `MARQUEE / WHAT WE DO / WORK / PROJECT / CAREER / CONDITIONS`.
   - `/admin`은 인트로 프리로더를 건너뜀(`App.jsx`의 `Boot`에서 처리).
-  - 관리자 탭: `MARQUEE / WHAT WE DO / WORK / PROJECT / CAREER / CONDITIONS` (6탭).
-  - `MARQUEE` 탭 = 홈 PHILOSOPHY 아래 흐르는 문구(`Band.jsx`) 편집. 짝수번째 항목은 자동으로 외곽선(SVG path) 스타일 — 기존 8개 문구가 아닌 새 문구는 외곽선 그래픽이 없어 일반 글자로만 표시됨(원하면 `node scripts/genOutlines.cjs` 재실행 필요, [[VIREN 아웃라인 패스]] 참고).
+  - `MARQUEE` = 홈 PHILOSOPHY 아래 흐르는 문구(`Band.jsx`). 짝수번째 항목은 자동으로 외곽선(SVG path) 스타일 — 기존 8개 문구가 아닌 새 문구는 외곽선 그래픽이 없어 일반 글자로 폴백(필요 시 `node scripts/genOutlines.cjs` 재실행, 5절 참고).
+  - `WORK` = WORK 분야(카테고리) 관리. **WORK 상세 페이지 상단에 뜨는 분야명이 여기서 나온다.**
+  - 계정 추가는 코드에 없음 → **Supabase 대시보드 → Authentication → Users → Add user**로 생성.
 
 ## 5. 반응형 브레이크포인트
 
@@ -73,7 +74,8 @@
 | `src/components/WhatWeDo.jsx` | ABOUT의 WHAT WE DO (CMS 연동, 항목별 페이지 링크) |
 | `src/lib/projectStore.js` | projects/categories/whatwedo CRUD |
 | `src/lib/careerStore.js` | jobs/work_conditions CRUD |
-| `src/ProjectsContext.jsx` | projects+categories 전역 제공, `catLabel` |
+| `src/ProjectsContext.jsx` | projects+categories 전역 제공, **`catLabel`(카테고리 라벨은 반드시 이걸 쓸 것)** |
+| `src/components/WorkDetail.jsx` | WORK 상세. 상단 = 카테고리(accent, 좌) + 로케이션(우) 한 줄 |
 | `public/assets/viren_application_form.pdf` | 지원서 양식 원본(다운로드 대상) |
 
 ## 7. 가장 최근 작업 (이번 세션) ✅ 완료·배포됨
@@ -95,19 +97,37 @@
 
 - 증상: 라벨↔대문구↔목록↔하단 세 여백이 제각각(실측 105/115/121px).
 - **근본 원인**: 세 여백이 서로 다른 값에서 나옴 — 섹션 `padding-top`+절대배치 `.sec-label`, 대문구 `margin-bottom`, 섹션 `padding-bottom`.
-- **수정**(`index.css`의 `#whatwedo`): flex column + `--wwd-gap` 하나로 통일. `.sec-label`을 `position:static`으로 흐름에 넣고 원래 위치는 `padding-top`으로 유지. 대문구가 flex 아이템이 되며 자체 BFC → `.line`의 음수 마진이 부모로 새지 않아 박스가 글자 줄에 딱 맞음. `padding-bottom`엔 라인박스 잔여 여백(≈.16em) 보정분을 더함.
+- **수정**(`index.css`의 `#whatwedo`): flex column + `--wwd-gap` 하나로 통일. `.sec-label`을 `position:static`으로 흐름에 넣고 원래 위치는 `padding-top`으로 유지. 대문구가 flex 아이템이 되며 자체 BFC → `.line`의 음수 마진이 부모로 새지 않아 박스가 글자 줄에 딱 맞음.
 - 태블릿은 미디어쿼리 안에서 `--wwd-gap`만 재정의(기존 `.sec-statement` margin 오버라이드 대체).
-- **검증**: 실측 편차 16px → 2~3px. 데스크톱 118/116/117, 태블릿 32/31/34, 모바일 100/98/98.
+
+**(4) WHAT WE DO 여백 2차 — 남는 높이를 균등 분배** (커밋 `2faac7e`)
+
+- (3)으로 수치는 같아졌는데 사용자는 계속 "안 고쳐졌다"고 함. 원인은 **고정 vh 여백이라 섹션이 100vh를 넘겨(2532×1263에서 1392px) 하단 여백 155px 중 26px만 보이고 잘린 것**. 값이 아니라 가시성 문제였음.
+- **수정**: `min-height:100vh` + `justify-content:space-between` + 하단 여백용 빈 `::after`. `--wwd-gap`은 고정값이 아니라 **최소값(7vh)** 역할로 바뀌고, 남는 높이를 세 여백이 똑같이 나눠 갖는다. 항목 수가 늘어도 자동으로 균등.
+- **검증**: 2532×1263에서 섹션 1263px(화면에 딱 맞음), 여백 112.2/111.6/111.0, 마지막 줄 아래 보이는 여백 26px→111px.
+- ⚠️ 남는 제약: **창 세로 ~1100px 미만이면 항목 6개가 한 화면에 안 들어감**(여백은 균등하나 하단이 잘림). 해결하려면 `.svc-row`의 상하 padding(36px)을 화면 높이에 따라 줄여야 함.
+
+**(5) WORK 상세 — 카테고리 라벨 버그 / 로케이션 / 태그** (커밋 `c2cf185`, `6835043`)
+
+- **카테고리가 슬러그로 표시되던 버그**(`led`, `media-facade`, `commercial`): `catLabel`이 **두 벌** 있었음 — `workProjects.js`의 정적 버전은 하드코딩된 기본 5개만 알아서 관리자에서 추가한 분야는 라벨을 못 찾고 슬러그를 그대로 노출. `WorkDetail.jsx`와 `Admin.jsx` 프로젝트 목록이 정적 버전을 쓰고 있어 **`ProjectsContext`의 동적 버전으로 교체**.
+  - ⚠️ 앞으로 카테고리 라벨이 필요하면 **반드시 `useProjects()`의 `catLabel`**을 쓸 것. `workProjects.js`의 export는 하위호환용 잔재.
+- **태그(구분/`kind`) 제거**: 프로젝트 8개 중 7개가 비어 있고 나머지 1개도 카테고리와 중복이라 상세 표시·관리자 입력칸을 삭제. `projectStore.js`의 `toRow`에서 `kind`를 빼서 **저장해도 기존 DB 값이 보존**된다(되살리려면 `toRow`에 `kind` 복구 + Admin 입력칸 + WorkDetail 렌더 3곳).
+- **레이아웃**: 두 줄이던 `.wd-breadcrumb`(카테고리) / `.wd-tagrow`(로케이션)를 한 줄로 병합(`.wd-tagrow` 제거). `align-items:baseline` + `.wd-loc{margin-left:auto}` → 글자 크기가 달라도 밑선이 맞고 로케이션은 항상 우측 고정. 카테고리는 `var(--accent)` 포인트컬러, hover는 `opacity:.7`.
 
 ## 8. 현재 상태 / 다음 확인
 
-- 위 3건 모두 배포 반영 확인 완료(번들 해시 일치 + 영상 200).
-- 미해결 이슈 없음.
+- 위 5건 모두 배포·라이브 검증 완료(번들 해시 일치 + 실측).
+- 미해결 이슈 없음. 다만 (4)의 "창 세로 ~1100px 미만에서 WHAT WE DO 6개가 한 화면에 안 들어감"은 남아 있음 — 사용자 화면(1263)에서는 문제 없어 보류 중.
 - 참고: `showreel-build/`는 커밋하지 않은 로컬 작업 폴더(쇼릴 빌드용).
 
 ## 9. 검증 팁 (이 프로젝트 특성)
 
 - dev 서버는 **Browser 프리뷰 탭(localhost:5173)**으로 확인. `preview_start`/`navigate`/`javascript_tool`.
+- ⚠️ **여백/레이아웃 지적은 사용자 화면 크기부터 맞추고 측정할 것.** 이 사이트는 여백이 vh/vw 기반이라 창 크기가 다르면 값이 완전히 달라진다. 실제로 임의의 크기(1398×1270, 2000×1000)에서 측정해 "이미 고쳤다/캐시 문제다"라고 두 번 잘못 답한 적 있음. 사용자 실제 창은 2532×1263이었고 거기서만 재현됨.
+  - 스크린샷에서 창 크기 역산: **`.svc-row` 행 간격은 실제 121px 고정** → 스크린샷의 행 간격과 비교하면 축소 배율이 나오고, 이미지 폭 ÷ 배율 = 실제 창 폭.
+  - 측정은 `getBoundingClientRect`보다 **`offsetTop` 누적**이 안전(Reveal/framer-motion의 transform이 rect에 섞여 들어옴).
+- 풀페이지 홈은 `body{overflow:clip}` + CSS `scroll-behavior:smooth`라 `window.scrollTo({behavior:'auto'})`가 **비동기로 동작해 직후 읽으면 0이 나온다**. `behavior:'instant'`를 쓸 것.
+- Browser 패널이 화면에 표시돼 있지 않으면 **스크린샷이 타임아웃**된다(페이지가 프레임을 합성하지 않음). 시각 확인이 필요하면 사용자에게 패널을 열어달라고 요청.
 - 프리로더는 수명이 ~6s로 짧고 자동화 브라우저 지연 때문에 **실시간 캡처가 잘 안 됨**. 필요 시 로더 지속시간을 임시로 크게 늘리고 `#loader`에 `done` 클래스를 직접 부여해 `.inner`의 computed transform/opacity를 측정하는 방식이 확실함. **측정 후 지속시간 4200으로 반드시 복구.**
 - 영상 프레임 분석: ffmpeg 설치됨(`winget Gyan.FFmpeg`). `ffmpeg -i in.mp4 -vf "fps=12,scale=360:-1,tile=6x4" out.jpg`로 콘택트시트 생성 후 Read로 확인.
 
