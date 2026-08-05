@@ -35,3 +35,5 @@ dist-ssr
 /public/assets/showreel-poster.jpg
 /public/assets/background/
 /public/assets/Showreel*.mp4
+# 로고 모션 원본 마스터(3840x800, 23.5MB) — 배포본은 public/assets/viren-logo-motion.mp4
+/public/VIREN_motion_wide.mp4

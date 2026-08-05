@@ -692,6 +692,24 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 
 
 /* ---------- CONTACT 페이지 (Giant Step식) ---------- */
+/* 소셜 위 로고 모션 밴드.
+   원본(1920x400)은 로고 위아래로 검은 여백이 넓어서 object-fit:cover로 잘라 로고를 키운다.
+   aspect-ratio 1920/230 — 잘라내고 보이는 소스 영역이 항상 세로 230px가 되게 고정한다.
+   로고 실측 범위는 세로 109~286px(177px)이라 위아래 26.5px씩 여백이 남고, 화면 크기가 변해도 비율이
+   같으므로 절대 잘리지 않는다. (고정 height로 두면 넓은 화면에서 아래가 잘렸음)
+   object-position 48.5% — 로고 중심이 프레임의 49.4%에 있어 위아래 여백을 같게 맞춘 값.
+   mix-blend-mode:screen — 영상의 검은 배경(#000)을 페이지 배경(#0a0a0a)에 녹여 경계가 안 보이게.
+   ⚠️ .ct-logo에 background가 반드시 필요하다. `main > section`이 position:relative+z-index로 독립
+   stacking context를 만들어서, 배경을 칠하는 main이 그 바깥에 있다 → 블렌드할 대상이 없어 영상이
+   순검정 사각형으로 보였음. 부모에 같은 배경색을 깔아 블렌드 대상(backdrop)을 만들어 준다. */
+.ct-logo{overflow:hidden;aspect-ratio:1920/230;margin:clamp(26px,4.5vh,60px) 0;background:var(--bg)}
+.ct-logo video{display:block;width:100%;height:100%;object-fit:cover;object-position:center 48.5%;
+  mix-blend-mode:screen}
+/* 모바일 — 같은 비율을 쓰면 밴드가 너무 납작해져 로고가 132px까지 작아진다.
+   밴드를 높이면 cover가 세로 기준으로 맞춰지며 좌우를 잘라내 로고가 커진다(좌우 여백은 어차피 검정). */
+@media(max-width:760px){
+  .ct-logo{aspect-ratio:5/2}
+}
 .contact-intro{margin:0 0 clamp(40px,7vh,80px)}
 .contact-intro p{color:var(--muted);line-height:1.85;font-size:15px;
   font-family:'Pretendard Variable',Pretendard,sans-serif}

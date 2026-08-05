@@ -57,7 +57,14 @@ export default function Contact() {
 
       <div className="ct-rule" />
 
-      {/* 3. 소셜 */}
+      {/* 3. 로고 모션 (VIsion→Render→ENvision→VIctory→VIREN) */}
+      <div className="ct-logo">
+        <video autoPlay muted loop playsInline preload="metadata" aria-hidden="true">
+          <source src="/assets/viren-logo-motion.mp4" type="video/mp4" />
+        </video>
+      </div>
+
+      {/* 4. 소셜 */}
       <div className="ct-bottom">
         <ul className="ct-social">
           {SOCIAL.map((s) => (
