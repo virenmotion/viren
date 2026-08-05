@@ -1,7 +1,7 @@
 # VIREN 웹사이트 — 작업 인수인계 (Handoff)
 
 > 새 채팅/새 계정에서 이 파일을 먼저 읽으면 작업을 바로 이어받을 수 있습니다.
-> 마지막 업데이트: 2026-08-04
+> 마지막 업데이트: 2026-08-05
 
 ---
 
@@ -65,7 +65,9 @@
 | `src/components/Preloader.jsx` | 인트로 로더 — `/viren-draw-animation.html` iframe + 종료 줌 전환 |
 | `public/viren-draw-animation.html` | 로더용 VIREN 로고 드로잉 애니메이션(자체 완결 번들, ~113KB) |
 | `src/index.css` | 전역 스타일. 로더/줌 전환은 `#loader`~`#loader.done` 규칙(약 24–52행) |
-| `src/components/Contact.jsx` | CONTACT. 전화 010-7770-1614, 이메일 virenmotion@viren.kr, SEOUL+MAP, 문의하기 모달 |
+| `src/components/Contact.jsx` | CONTACT. 전화 010-7770-1614, 이메일 virenmotion@viren.kr, SEOUL+MAP, 문의하기 모달, 소셜 위 로고 모션 밴드 |
+| `src/socials.jsx` | 소셜 링크 4개 + 아이콘 **단일 소스**(Contact·Footer 공용). 배열 순서 = 표시 순서 |
+| `public/assets/viren-logo-motion.mp4` | CONTACT 로고 모션 배포본(1920×400, 0.19MB). 마스터는 `public/VIREN_motion_wide.mp4`(gitignore) |
 | `src/components/ContactModal.jsx` | 문의 모달(portal 렌더) |
 | `src/components/Career.jsx` | CAREER. 공지(pinned)/공고 아코디언, 지원 팝업, 지원서 양식 다운로드 |
 | `src/components/ApplyModal.jsx` | 지원 팝업(portal). 이름*/이메일*/전화/다중 파일 첨부/동의 |
@@ -114,10 +116,31 @@
 - **태그(구분/`kind`) 제거**: 프로젝트 8개 중 7개가 비어 있고 나머지 1개도 카테고리와 중복이라 상세 표시·관리자 입력칸을 삭제. `projectStore.js`의 `toRow`에서 `kind`를 빼서 **저장해도 기존 DB 값이 보존**된다(되살리려면 `toRow`에 `kind` 복구 + Admin 입력칸 + WorkDetail 렌더 3곳).
 - **레이아웃**: 두 줄이던 `.wd-breadcrumb`(카테고리) / `.wd-tagrow`(로케이션)를 한 줄로 병합(`.wd-tagrow` 제거). `align-items:baseline` + `.wd-loc{margin-left:auto}` → 글자 크기가 달라도 밑선이 맞고 로케이션은 항상 우측 고정. 카테고리는 `var(--accent)` 포인트컬러, hover는 `opacity:.7`.
 
+**(6) 소셜 링크 정비** (커밋 `5c9d88d`)
+
+- Vimeo → **LinkedIn** 교체(라벨·URL·아이콘 SVG). YouTube·Behance가 `url:'#'` 플레이스홀더였어서 실제 주소도 연결.
+- 표시 순서: **YouTube → Instagram → Behance → LinkedIn**.
+- `socials.jsx`의 `SOCIAL` 배열이 Contact·Footer 공용 단일 소스라 **한 곳만 고치면 모바일·태블릿·데스크톱 전부 반영**된다(데스크톱=텍스트 `.soc-txt`, 모바일=아이콘 `.soc-ic`). 소셜을 늘리려면 배열에 항목 추가 + 24×24 뷰박스 아이콘 path만 넣으면 됨.
+
+**(7) CONTACT 로고 모션 밴드** (커밋 `ff874c1`)
+
+- 위치: 주소 블록 아래 구분선 ↔ 소셜 사이(`.ct-logo`).
+- **영상 경량화**: 마스터 3840×800·19.7Mbps·23.5MB → `1920×400 CRF22`로 재인코딩해 **0.19MB(99.2%↓)**. 평면 색상이라 화질 손실 없음. 마스터 `public/VIREN_motion_wide.mp4`는 `.gitignore` 처리(로컬엔 남아 있음).
+  ```
+  ffmpeg -i public/VIREN_motion_wide.mp4 -vf "scale=1920:400:flags=lanczos" \
+    -c:v libx264 -crf 22 -preset slow -pix_fmt yuv420p -an -movflags +faststart \
+    public/assets/viren-logo-motion.mp4
+  ```
+- ⚠️ **`.ct-logo`의 `background:var(--bg)`를 지우지 말 것.** 영상 배경이 순검정(#000)이고 페이지는 `#0a0a0a`라 `mix-blend-mode:screen`으로 녹이는데, `main > section`이 `position:relative`+`z-index`로 독립 stacking context를 만들어 **배경을 칠하는 `main`이 그 바깥에 있다** → 블렌드 대상이 없어 검은 사각형이 그대로 보였음. 부모에 같은 배경색을 깔아야 backdrop이 생긴다.
+- ⚠️ **높이는 `aspect-ratio`로.** 고정 `height`로 두면 넓은 화면에서 로고 아래가 잘린다(실측 16px). `aspect-ratio:1920/230`이면 잘라내고 보이는 소스 영역이 항상 세로 230px로 고정돼 로고(실측 y 109~286px)가 절대 안 잘린다. `object-position:center 48.5%`는 위아래 여백을 맞춘 값.
+- 모바일(≤760)은 같은 비율이면 로고가 132px까지 작아져 `aspect-ratio:5/2`로 별도 처리(세로를 키우면 cover가 좌우를 잘라 로고가 커짐 — 좌우는 어차피 검정 여백).
+- **검증**: 2532×1263 로고 886px(폭의 38%), 1440×900 482px(38%), 390×844 253px(72%). 전 구간 잘림 없음.
+
 ## 8. 현재 상태 / 다음 확인
 
 - 위 5건 모두 배포·라이브 검증 완료(번들 해시 일치 + 실측).
 - 미해결 이슈 없음. 다만 (4)의 "창 세로 ~1100px 미만에서 WHAT WE DO 6개가 한 화면에 안 들어감"은 남아 있음 — 사용자 화면(1263)에서는 문제 없어 보류 중.
+- (7) 로고 밴드의 로고 크기는 데스크톱에서 콘텐츠 폭의 38%. 원본 영상 좌우 검은 여백 때문인데, 더 키우려면 `aspect-ratio`를 높이면 됨(대신 밴드가 세로로 커져 아래가 밀림). 사용자 확인 후 현재 값으로 확정.
 - 참고: `showreel-build/`는 커밋하지 않은 로컬 작업 폴더(쇼릴 빌드용).
 
 ## 9. 검증 팁 (이 프로젝트 특성)
@@ -130,6 +153,7 @@
 - Browser 패널이 화면에 표시돼 있지 않으면 **스크린샷이 타임아웃**된다(페이지가 프레임을 합성하지 않음). 시각 확인이 필요하면 사용자에게 패널을 열어달라고 요청.
 - 프리로더는 수명이 ~6s로 짧고 자동화 브라우저 지연 때문에 **실시간 캡처가 잘 안 됨**. 필요 시 로더 지속시간을 임시로 크게 늘리고 `#loader`에 `done` 클래스를 직접 부여해 `.inner`의 computed transform/opacity를 측정하는 방식이 확실함. **측정 후 지속시간 4200으로 반드시 복구.**
 - 영상 프레임 분석: ffmpeg 설치됨(`winget Gyan.FFmpeg`). `ffmpeg -i in.mp4 -vf "fps=12,scale=360:-1,tile=6x4" out.jpg`로 콘택트시트 생성 후 Read로 확인.
+- 영상 위에 얹은 요소가 잘리는지 확인할 땐 **캔버스 픽셀 측정**이 확실하다. `drawImage`로 여러 시점(예: 1·2.5·4·5·6.5·8·9.5초)을 그려 비검정 픽셀의 최대 경계를 구하고, `object-fit:cover`가 보여주는 소스 영역과 비교. 한 프레임만 보면 최대 범위를 놓친다(로고 실측이 121~262 → 109~286으로 커졌음).
 
 ## 10. 과거에 반영된 주요 작업 (참고)
 
