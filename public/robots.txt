@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+
+# 네이버 검색로봇
+User-agent: Yeti
+Allow: /
+Disallow: /admin
+
+Sitemap: https://www.viren.kr/sitemap.xml
