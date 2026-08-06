@@ -61,6 +61,8 @@
 
 | 파일 | 역할 |
 |---|---|
+| `index.html` | 메타/OG/JSON-LD + **검색엔진 소유확인 태그(삭제 금지, 10절)** + noscript 본문 |
+| `public/robots.txt` · `public/sitemap.xml` | 검색엔진용. 프로젝트 추가 시 sitemap 갱신 필요(10절) |
 | `src/App.jsx` | 라우팅 + `Boot`(인트로 프리로더 게이트, /admin 건너뜀) |
 | `src/components/Preloader.jsx` | 인트로 로더 — `/viren-draw-animation.html` iframe + 종료 줌 전환 |
 | `public/viren-draw-animation.html` | 로더용 VIREN 로고 드로잉 애니메이션(자체 완결 번들, ~113KB) |
@@ -141,6 +143,7 @@
 - 위 5건 모두 배포·라이브 검증 완료(번들 해시 일치 + 실측).
 - 미해결 이슈 없음. 다만 (4)의 "창 세로 ~1100px 미만에서 WHAT WE DO 6개가 한 화면에 안 들어감"은 남아 있음 — 사용자 화면(1263)에서는 문제 없어 보류 중.
 - (7) 로고 밴드의 로고 크기는 데스크톱에서 콘텐츠 폭의 38%. 원본 영상 좌우 검은 여백 때문인데, 더 키우려면 `aspect-ratio`를 높이면 됨(대신 밴드가 세로로 커져 아래가 밀림). 사용자 확인 후 현재 값으로 확정.
+- **SEO 설정 완료(10절)** — 네이버·구글 등록 및 색인 요청까지 끝. 색인 반영 대기 중(구글 수일 / 네이버 1~2주). 일주일 뒤에도 노출 없으면 prerendering 검토.
 - 참고: `showreel-build/`는 커밋하지 않은 로컬 작업 폴더(쇼릴 빌드용).
 
 ## 9. 검증 팁 (이 프로젝트 특성)
@@ -155,7 +158,44 @@
 - 영상 프레임 분석: ffmpeg 설치됨(`winget Gyan.FFmpeg`). `ffmpeg -i in.mp4 -vf "fps=12,scale=360:-1,tile=6x4" out.jpg`로 콘택트시트 생성 후 Read로 확인.
 - 영상 위에 얹은 요소가 잘리는지 확인할 땐 **캔버스 픽셀 측정**이 확실하다. `drawImage`로 여러 시점(예: 1·2.5·4·5·6.5·8·9.5초)을 그려 비검정 픽셀의 최대 경계를 구하고, `object-fit:cover`가 보여주는 소스 영역과 비교. 한 프레임만 보면 최대 범위를 놓친다(로고 실측이 121~262 → 109~286으로 커졌음).
 
-## 10. 과거에 반영된 주요 작업 (참고)
+## 10. 검색 노출(SEO) — 네이버·구글 (2026-08-06 설정 완료)
+
+### ⚠️ 건드리면 안 되는 것
+- `index.html`의 소유확인 메타 태그 **2줄을 지우면 검색엔진 등록이 해제된다.**
+  ```html
+  <meta name="naver-site-verification" content="9a0eb5b4..." />
+  <meta name="google-site-verification" content="0nMFnQ34r-..." />
+  ```
+- `public/robots.txt`, `public/sitemap.xml` 삭제 금지.
+
+### 설정 내용
+| 파일 | 내용 |
+|---|---|
+| `index.html` | title `VIREN 바이렌`, description(80자 이내), canonical, OG 태그, JSON-LD(Organization: 상호·주소·전화·소셜 4개), `<noscript>` 본문 |
+| `public/robots.txt` | 전체 허용 + `/admin` 제외, Yeti 명시, Sitemap 경로 |
+| `public/sitemap.xml` | 메인 4개 + 프로젝트 상세 8개 = 12 URL |
+
+### 왜 안 떴었나 (원인 4가지)
+1. **사이트 어디에도 '바이렌'이라는 문자열이 없었다** — 해당 키워드로는 매칭 자체가 불가능했음.
+2. `robots.txt`·`sitemap.xml`이 실제로 없었다. `vercel.json`의 전체 리라이트가 잡아 HTML을 200으로 반환해 **있는 것처럼 보였을 뿐**. `public/`에 실제 파일을 두면 Vercel 파일시스템 검사가 리라이트보다 먼저 처리한다.
+3. CSR SPA라 크롤러가 받는 HTML이 `<div id="root"></div>`로 비어 있었다. **네이버 Yeti는 JS를 실행하지 않아** 색인할 내용이 아예 없었음 → `<noscript>` 본문으로 보완.
+4. canonical·OG·구조화 데이터 부재.
+
+### 유지보수
+- **WORK 프로젝트를 추가/삭제하면 `sitemap.xml`도 갱신할 것.** SPA라 크롤러가 `/work`의 링크를 따라가지 못해 사이트맵이 프로젝트 상세의 유일한 발견 경로다.
+- 페이지 설명은 **80자 이내**(네이버 URL 검사 권장). 넘으면 경고.
+
+### 관리 콘솔
+- 네이버 서치어드바이저 · 구글 서치 콘솔 모두 소유확인 완료, 색인 요청 완료.
+- **사이트맵 제출 경로 형식이 서로 반대다** — 네이버는 전체 URL(`https://www.viren.kr/sitemap.xml`), 구글은 상대 경로(`sitemap.xml`). 네이버에 상대 경로를 넣으면 "올바른 URL 형식으로 입력해주세요" 오류.
+- 네이버가 robots.txt를 예전 상태로 캐시하고 있으면 URL 검사가 "접근할 수 없습니다"로 실패한다. **검증 → robots.txt → `수집요청`**으로 캐시를 갱신한 뒤 재검사할 것(실제로 이것 때문에 한 번 막혔음).
+
+### 남은 과제
+- 색인 결과는 구글 수일 / 네이버 1~2주 소요. 일주일 뒤에도 노출이 없으면 구글 서치 콘솔의 **`렌더링된 HTML 보기`** 로 JS 렌더링 여부를 확인.
+- 거기서도 비어 있으면 **prerendering(빌드 시 정적 HTML 생성)** 도입 검토. 페이지별 개별 title/description이 생겨 프로젝트 상세도 검색에 잡힌다.
+- 네이버 통합검색 상단 노출은 **스마트플레이스(업체 등록)** 영향이 큼 — 사업자등록증 필요, 사용자 몫.
+
+## 11. 과거에 반영된 주요 작업 (참고)
 
 WORK 콘텐츠 블록(라벨/중앙/특징카드/텍스트, 드래그 재정렬), 특징카드 수량별 중앙정렬·균등 구분선, CONTACT 재배치, footer 소셜 가로1열·여백 축소, Philosophy 폰트 로테이션·프레임·간격, Outro 배경영상(4K→1080p 다운스케일), CAREER 공지 고정·지원 팝업·지원서 PDF 연동, WORK 분야/WHAT WE DO CMS(독립 관리+페이지 링크), 태블릿 전용 8개 수정, 모바일 footer 이메일 SplitText 글리치 수정(will-change 제거), CONTACT 모달 portal화.
 
