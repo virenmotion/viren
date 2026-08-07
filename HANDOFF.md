@@ -80,7 +80,8 @@
 | `src/lib/careerStore.js` | jobs/work_conditions CRUD |
 | `src/ProjectsContext.jsx` | projects+categories 전역 제공, **`catLabel`(카테고리 라벨은 반드시 이걸 쓸 것)** |
 | `src/components/WorkDetail.jsx` | WORK 상세. 상단 = 카테고리(accent, 좌) + 로케이션(우) 한 줄 |
-| `public/assets/viren_application_form.pdf` | 지원서 양식 원본(다운로드 대상) |
+| `public/assets/viren_application_form.pdf` | 지원서 양식 원본(CAREER 지원 팝업에서 다운로드) |
+| `public/assets/viren_company_profile.pdf` | 회사소개서(푸터 `회사소개서 DOWNLOAD`). 27p·12.7MB, 압축본은 화질 저하로 반려됨 |
 
 ## 7. 가장 최근 작업 (이번 세션) ✅ 완료·배포됨
 
@@ -144,6 +145,10 @@
 - 미해결 이슈 없음. 다만 (4)의 "창 세로 ~1100px 미만에서 WHAT WE DO 6개가 한 화면에 안 들어감"은 남아 있음 — 사용자 화면(1263)에서는 문제 없어 보류 중.
 - (7) 로고 밴드의 로고 크기는 데스크톱에서 콘텐츠 폭의 38%. 원본 영상 좌우 검은 여백 때문인데, 더 키우려면 `aspect-ratio`를 높이면 됨(대신 밴드가 세로로 커져 아래가 밀림). 사용자 확인 후 현재 값으로 확정.
 - **SEO 설정 완료(10절)** — 네이버·구글 등록 및 색인 요청까지 끝. 색인 반영 대기 중(구글 수일 / 네이버 1~2주). 일주일 뒤에도 노출 없으면 prerendering 검토.
+- ⚠️ **`public/` 아래 다운로드/정적 파일이 없으면 `vercel.json` 전체 리라이트에 걸려 `index.html`이 200으로 내려간다.** 파일이 없는 게 아니라 "깨진 파일이 받아지는" 형태로 드러나므로 발견이 늦다. robots.txt·sitemap.xml·회사소개서 PDF 모두 이 문제였음. 새 다운로드 파일을 붙일 땐 라이브에서 `Content-Type`을 반드시 확인할 것.
+  ```bash
+  curl -sI https://www.viren.kr/assets/<파일명> | grep -i content-type
+  ```
 - 참고: `showreel-build/`는 커밋하지 않은 로컬 작업 폴더(쇼릴 빌드용).
 
 ## 9. 검증 팁 (이 프로젝트 특성)
