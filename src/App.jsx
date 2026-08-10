@@ -65,11 +65,22 @@ const SEO = {
   },
 }
 
+/* 페이지 주제를 알리는 h1. 화면의 헤딩이 전부 영문 장식 문구라 h1이 없었고,
+   그 탓에 '바이렌'이 본문 텍스트에 한 번도 등장하지 않아 해당 키워드로 매칭이 불가능했다.
+   스크린리더 사용자에게도 페이지 주제를 알려주는 역할을 겸한다. */
+const H1 = {
+  home: '바이렌(VIREN) — 미디어아트 · 미디어파사드 · LED 콘텐츠 제작 스튜디오',
+  work: '바이렌(VIREN) 프로젝트 — 미디어아트 · 미디어파사드 · LED 콘텐츠 제작 사례',
+  career: '바이렌(VIREN) 채용 — 함께할 크리에이터를 찾습니다',
+  contact: '바이렌(VIREN) 문의 — 서울 마포구 콘텐츠 프로덕션 스튜디오',
+}
+
 function HomePage({ ready }) {
   useFullpage(ready)
   useSeo(SEO.home)
   return (
     <main className="home">
+      <h1 className="sr-only">{H1.home}</h1>
       <Backdrop />
       <div className="fp-panel"><Hero ready={ready} /></div>
       <div className="fp-panel"><About /></div>
@@ -84,6 +95,7 @@ function WorkPage() {
   useSeo(SEO.work)
   return (
     <main>
+      <h1 className="sr-only">{H1.work}</h1>
       <Work />
     </main>
   )
@@ -101,6 +113,7 @@ function CareerPage() {
   useSeo(SEO.career)
   return (
     <main>
+      <h1 className="sr-only">{H1.career}</h1>
       <Career />
     </main>
   )
@@ -110,6 +123,7 @@ function ContactPage() {
   useSeo(SEO.contact)
   return (
     <main>
+      <h1 className="sr-only">{H1.contact}</h1>
       <Contact />
     </main>
   )

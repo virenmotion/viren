@@ -10,6 +10,11 @@
   --baseline:clamp(76px,11vh,130px);
 }
 *{margin:0;padding:0;box-sizing:border-box}
+/* 화면에는 안 보이지만 스크린리더와 검색엔진은 읽는 텍스트.
+   이 사이트의 보이는 헤딩은 영문 장식 문구(We Create… 등)라 페이지 주제를 알리는 h1이 없었다.
+   ⚠️ 눈에 보이는 내용과 다른 문구를 넣지 말 것(클로킹으로 간주됨). */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
 html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;overflow-x:clip}
 body{
   background:var(--bg);color:var(--fg);
