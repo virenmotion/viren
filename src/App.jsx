@@ -18,6 +18,7 @@ import Contact from './components/Contact'
 import Footer from './components/Footer'
 import { ProjectsProvider } from './ProjectsContext'
 import useFullpage from './lib/useFullpage'
+import useSeo, { BRAND } from './lib/useSeo'
 
 /* 라우트/해시 변경 시 스크롤 관리 — 해시가 있으면 해당 요소로(헤더 오프셋은 scroll-margin으로),
    없으면 페이지 최상단으로. 새 페이지가 마운트될 때까지 잠깐 재시도한다. */
@@ -40,8 +41,33 @@ function ScrollManager() {
   return null
 }
 
+/* 페이지별 검색 노출용 제목·설명(80자 이내 — 네이버 URL 검사 권장치) */
+const SEO = {
+  home: {
+    title: BRAND,
+    description: '바이렌(VIREN)은 미디어아트, 미디어파사드, LED 콘텐츠를 제작하는 서울의 콘텐츠 프로덕션 스튜디오입니다.',
+    path: '/',
+  },
+  work: {
+    title: `WORK 프로젝트 | ${BRAND}`,
+    description: '바이렌(VIREN)이 제작한 미디어아트, 미디어파사드, LED 콘텐츠 프로젝트를 소개합니다.',
+    path: '/work',
+  },
+  career: {
+    title: `CAREER 채용 | ${BRAND}`,
+    description: '바이렌(VIREN)과 함께할 크리에이터를 찾습니다. 채용 공고와 지원 방법을 확인하세요.',
+    path: '/career',
+  },
+  contact: {
+    title: `CONTACT 문의 | ${BRAND}`,
+    description: '프로젝트 문의와 협업 제안은 바이렌(VIREN)으로 연락 주세요. 서울 마포구 소재.',
+    path: '/contact',
+  },
+}
+
 function HomePage({ ready }) {
   useFullpage(ready)
+  useSeo(SEO.home)
   return (
     <main className="home">
       <Backdrop />
@@ -55,6 +81,7 @@ function HomePage({ ready }) {
 }
 
 function WorkPage() {
+  useSeo(SEO.work)
   return (
     <main>
       <Work />
@@ -71,6 +98,7 @@ function WorkDetailPage() {
 }
 
 function CareerPage() {
+  useSeo(SEO.career)
   return (
     <main>
       <Career />
@@ -79,6 +107,7 @@ function CareerPage() {
 }
 
 function ContactPage() {
+  useSeo(SEO.contact)
   return (
     <main>
       <Contact />

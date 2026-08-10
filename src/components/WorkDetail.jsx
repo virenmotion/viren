@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useProjects } from '../ProjectsContext'
+import useSeo, { BRAND } from '../lib/useSeo'
 import Reveal from './Reveal'
 
 /* 라벨 — 기본 자간(.32em) 유지, 텍스트가 기준 폭을 넘을 때만 자간 자동 축소 */
@@ -150,6 +151,15 @@ export default function WorkDetail() {
   const { id } = useParams() // 라우트 파라미터명은 id지만 slug로 사용
   const { findProject, loading, catLabel } = useProjects()
   const p = findProject(id)
+
+  /* 프로젝트별 고유 제목·설명·canonical. 훅은 조건부 호출이 불가하므로 p가 없을 때도 호출한다.
+     설명은 본문 요약을 80자로 자르고, 없으면 카테고리 기반 문구로 대체. */
+  const seoTitle = p ? `${p.titleKo || p.titleEn} | ${BRAND}` : undefined
+  const seoDesc = p
+    ? ((p.desc || '').replace(/\s+/g, ' ').trim().slice(0, 78) ||
+       `${catLabel(p.cat)} 프로젝트 — 바이렌(VIREN)이 제작한 ${p.titleKo || p.titleEn}입니다.`.slice(0, 78))
+    : undefined
+  useSeo({ title: seoTitle, description: seoDesc, path: p ? `/work/${p.slug}` : undefined })
 
   if (loading) {
     return (
