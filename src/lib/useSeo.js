@@ -14,13 +14,17 @@ export const BRAND = 'VIREN 바이렌'
 
    ⚠️ 이건 JS 실행 후에만 반영된다. 구글은 렌더링하므로 문제없지만 네이버 Yeti는
    원본 HTML만 읽으므로 index.html의 기본값을 계속 본다(그쪽은 noscript가 담당). */
-export default function useSeo({ title, description, path }) {
+export default function useSeo({ title, description, path, noindex = false }) {
   useEffect(() => {
     const set = (selector, attr, value) => {
       if (!value) return
       const el = document.head.querySelector(selector)
       if (el) el.setAttribute(attr, value)
     }
+
+    /* robots는 항상 명시한다. noindex 페이지에서 클라이언트 라우팅으로 정상 페이지에 가면
+       noindex가 그대로 남기 때문에, 매 라우트에서 index/noindex를 다시 써줘야 한다. */
+    set('meta[name="robots"]', 'content', noindex ? 'noindex, follow' : 'index, follow')
 
     if (title) {
       document.title = title
@@ -35,5 +39,5 @@ export default function useSeo({ title, description, path }) {
       set('link[rel="canonical"]', 'href', url)
       set('meta[property="og:url"]', 'content', url)
     }
-  }, [title, description, path])
+  }, [title, description, path, noindex])
 }

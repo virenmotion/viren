@@ -159,7 +159,16 @@ export default function WorkDetail() {
     ? ((p.desc || '').replace(/\s+/g, ' ').trim().slice(0, 78) ||
        `${catLabel(p.cat)} 프로젝트 — 바이렌(VIREN)이 제작한 ${p.titleKo || p.titleEn}입니다.`.slice(0, 78))
     : undefined
-  useSeo({ title: seoTitle, description: seoDesc, path: p ? `/work/${p.slug}` : undefined })
+  /* 삭제된 프로젝트 주소는 SPA라 200으로 응답해 구글에 소프트 404로 잡힌다 → noindex 처리.
+     ⚠️ 조건에 !loading이 반드시 필요하다. 로딩 중에도 p는 없으므로, loading을 빼면
+     정상 페이지가 데이터 도착 전에 noindex로 스냅샷될 수 있다. */
+  const notFound = !loading && !p
+  useSeo({
+    title: notFound ? `페이지를 찾을 수 없습니다 | ${BRAND}` : seoTitle,
+    description: seoDesc,
+    path: p ? `/work/${p.slug}` : undefined,
+    noindex: notFound,
+  })
 
   if (loading) {
     return (
