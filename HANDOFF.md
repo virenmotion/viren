@@ -1,7 +1,7 @@
 # VIREN 웹사이트 — 작업 인수인계 (Handoff)
 
 > 새 채팅/새 계정에서 이 파일을 먼저 읽으면 작업을 바로 이어받을 수 있습니다.
-> 마지막 업데이트: 2026-08-05
+> 마지막 업데이트: 2026-08-10
 
 ---
 
@@ -79,6 +79,7 @@
 | `src/lib/projectStore.js` | projects/categories/whatwedo CRUD |
 | `src/lib/careerStore.js` | jobs/work_conditions CRUD |
 | `src/ProjectsContext.jsx` | projects+categories 전역 제공, **`catLabel`(카테고리 라벨은 반드시 이걸 쓸 것)** |
+| `src/lib/useSeo.js` | 라우트별 title/description/canonical 갱신 (10절 함정 주의) |
 | `src/components/WorkDetail.jsx` | WORK 상세. 상단 = 카테고리(accent, 좌) + 로케이션(우) 한 줄 |
 | `public/assets/viren_application_form.pdf` | 지원서 양식 원본(CAREER 지원 팝업에서 다운로드) |
 | `public/assets/viren_company_profile.pdf` | 회사소개서(푸터 `회사소개서 DOWNLOAD`). 27p·12.7MB, 압축본은 화질 저하로 반려됨 |
@@ -176,19 +177,37 @@
 ### 설정 내용
 | 파일 | 내용 |
 |---|---|
-| `index.html` | title `VIREN 바이렌`, description(80자 이내), canonical, OG 태그, JSON-LD(Organization: 상호·주소·전화·소셜 4개), `<noscript>` 본문 |
+| `index.html` | 기본 title/description, canonical, OG 태그, JSON-LD(Organization: 상호·주소·전화·소셜 4개), `<noscript>` 본문, 소유확인 2줄 |
 | `public/robots.txt` | 전체 허용 + `/admin` 제외, Yeti 명시, Sitemap 경로 |
 | `public/sitemap.xml` | 메인 4개 + 프로젝트 상세 8개 = 12 URL |
+| `src/lib/useSeo.js` | **라우트별** title/description/canonical/og 갱신 |
+| `src/App.jsx` | `SEO`·`H1` 상수 + 페이지별 `<h1 className="sr-only">` |
+
+### ⚠️ useSeo의 두 가지 함정 (2026-08-10 추가)
+- **태그를 새로 만들지 말고 index.html의 기존 태그를 덮어쓸 것.** 추가 방식이면 head에
+  `title`·`canonical`이 둘씩 생기고, 크롤러는 보통 앞의 것(=정적 홈 값)을 채택해 수정이 무의미해진다.
+  검증법: `document.head.querySelectorAll('title').length === 1`.
+- **JS 실행 후에만 반영된다.** 구글은 렌더링하므로 OK, 네이버 Yeti는 원본 HTML만 읽으므로
+  `index.html`의 기본값을 계속 본다(네이버 쪽은 `<noscript>` 본문이 담당).
 
 ### 왜 안 떴었나 (원인 4가지)
 1. **사이트 어디에도 '바이렌'이라는 문자열이 없었다** — 해당 키워드로는 매칭 자체가 불가능했음.
 2. `robots.txt`·`sitemap.xml`이 실제로 없었다. `vercel.json`의 전체 리라이트가 잡아 HTML을 200으로 반환해 **있는 것처럼 보였을 뿐**. `public/`에 실제 파일을 두면 Vercel 파일시스템 검사가 리라이트보다 먼저 처리한다.
 3. CSR SPA라 크롤러가 받는 HTML이 `<div id="root"></div>`로 비어 있었다. **네이버 Yeti는 JS를 실행하지 않아** 색인할 내용이 아예 없었음 → `<noscript>` 본문으로 보완.
 4. canonical·OG·구조화 데이터 부재.
+5. **(8/10 발견) 12개 URL이 전부 canonical을 홈(`/`)으로 선언하고 있었다.** SPA라 `index.html`
+   하나를 공유한 탓. 구글에 "하위 페이지는 모두 홈의 중복이니 색인하지 마라"고 말한 셈 →
+   `useSeo`로 라우트별 canonical 부여.
+6. **(8/10 발견) `/`·`/work`·`/career`·`/contact`에 `h1`이 아예 없었고, 렌더링 본문에 '바이렌'이
+   0회 등장했다.** 보이는 헤딩이 전부 영문 장식 문구(`We Create…`)라서. 제목·메타에만 있고
+   본문에 없으면 '바이렌 미디어파사드' 같은 **조합 키워드 매칭이 불가능** → `.sr-only` h1 추가.
+   화면 변화 없음(실측 1x1px), 스크린리더 접근성도 함께 개선.
 
 ### 유지보수
 - **WORK 프로젝트를 추가/삭제하면 `sitemap.xml`도 갱신할 것.** SPA라 크롤러가 `/work`의 링크를 따라가지 못해 사이트맵이 프로젝트 상세의 유일한 발견 경로다.
 - 페이지 설명은 **80자 이내**(네이버 URL 검사 권장). 넘으면 경고.
+- 프로젝트 상세의 title/description은 **DB의 한글 프로젝트명·본문 요약에서 자동 생성**된다(`WorkDetail.jsx`). 관리자에서 프로젝트를 추가하면 따로 손댈 것 없음.
+- 페이지를 새로 만들면 `SEO`·`H1` 상수(`App.jsx`)에 항목을 추가하고 `useSeo()` 호출 + `<h1 className="sr-only">`를 넣을 것.
 
 ### 관리 콘솔
 - 네이버 서치어드바이저 · 구글 서치 콘솔 모두 소유확인 완료, 색인 요청 완료.
@@ -201,9 +220,21 @@
 - 색인된 버전 기록에서 "리소스 2/4개 로드하지 못함"(JS·CSS)이 뜨지만 **오탐**이다. 두 URL 모두 Googlebot UA로 200/90ms 응답하고, 본문은 500ms 안에 DOM에 들어온다(실측 1,617자). GSC는 렌더링 서비스가 캐시/할당량 때문에 재요청하지 않은 리소스도 "기타 오류"로 표시한다. **이걸 보고 prerendering을 검토하지 말 것.**
 - 단, **네이버 Yeti는 여전히 JS를 실행하지 않으므로 `<noscript>` 본문이 유일한 색인 대상**이다. 네이버 노출을 더 키우려면 그때 prerendering이 실질적인 카드다.
 
+### 색인 현황 (2026-08-10 기준)
+- 구글 서치 콘솔 `색인생성 → 페이지`: **색인 1 / 미색인 11**, 사유 `발견됨 - 현재 색인이 생성되지 않음`.
+- ⚠️ 이건 **정상 단계다.** "발견됨"은 사이트맵이 작동해 구글이 12개 URL을 모두 알고 있다는 뜻이고,
+  크롤링 순서를 기다리는 중이다. `크롤링됨 - 미색인`이나 `중복 페이지`였다면 문제였을 것.
+- 위 5·6번 수정이 없었다면 크롤링 시점에 전부 `중복 페이지 — 사용자가 표준으로 지정하지 않음`으로
+  탈락했을 상태였다.
+- 사용자 완료: 네이버 스마트플레이스 등록, 소셜 프로필(유튜브·인스타·비핸즈·링크드인)에 홈페이지 링크.
+
 ### 남은 과제
-- 색인 반영은 구글 수일 / 네이버 1~2주 소요.
-- 네이버 통합검색 상단 노출은 **스마트플레이스(업체 등록)** 영향이 큼 — 사업자등록증 필요, 사용자 몫.
+- 1~2주 뒤 서치 콘솔 `페이지`에서 색인된 페이지 수 증가 확인.
+- **`바이렌` 단독 검색 상위는 기술로 해결되지 않는다.** 한국어 위키백과 문서를 가진 중국 반도체
+  기업(바이렌 테크놀로지), 두유메이커, Isabel Marant 모카신이 선점한 경쟁 키워드다.
+  현실적 목표는 `바이렌 미디어파사드`·`APEC 경주 미디어파사드` 같은 **조합/프로젝트명 키워드**이고,
+  프로젝트 상세는 이미 한글 본문(발주처·연도·기획의도)이 충실해 색인만 되면 잡힐 여지가 크다.
+  그 위는 보도자료·수주 기사·발주처 사이트 시공사 표기 등 **외부 언급량**이 쌓여야 한다.
 - `개선사항: URL에 개선사항이 없습니다` / `향상된 내용이 없습니다`는 정상. Organization 스키마는 리치 결과 유형이 아니라 이 패널에 잡히지 않는다.
 
 ## 11. 과거에 반영된 주요 작업 (참고)
