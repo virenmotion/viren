@@ -82,6 +82,26 @@ export async function uploadThumb(file) {
   return data.publicUrl
 }
 
+/* 본문 영상 파일 업로드 → 공개 URL 반환.
+   유튜브 임베드 대신 직접 재생하고 싶을 때 사용. 저장소·대역폭을 쓰므로 짧은 클립 위주로.
+   Supabase 무료 플랜은 저장 1GB·대역폭 월 5GB 수준이라 대용량 영상은 유튜브를 권장. */
+export const MAX_VIDEO_MB = 50
+export async function uploadVideo(file) {
+  requireDB()
+  const mb = file.size / (1024 * 1024)
+  if (mb > MAX_VIDEO_MB) {
+    throw new Error(`영상이 ${mb.toFixed(1)}MB입니다. ${MAX_VIDEO_MB}MB 이하로 줄이거나 유튜브를 이용하세요.`)
+  }
+  const ext = (file.name.split('.').pop() || 'mp4').toLowerCase()
+  const path = `video-${slugSafeStamp()}.${ext}`
+  const { error } = await supabase.storage.from(THUMB_BUCKET).upload(path, file, {
+    cacheControl: '3600', upsert: false, contentType: file.type || 'video/mp4',
+  })
+  if (error) throw error
+  const { data } = supabase.storage.from(THUMB_BUCKET).getPublicUrl(path)
+  return data.publicUrl
+}
+
 /* ---------- 사이트 설정: WORK 분야 · WHAT WE DO (site_settings jsonb) ---------- */
 const SETTINGS_TABLE = 'site_settings'
 

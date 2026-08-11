@@ -5,7 +5,7 @@ import {
   signIn, signOut, getUser, onAuthChange,
   createProject, updateProject, deleteProject, uploadThumb, reorderProjects,
   getCategories, saveCategories, getWhatWeDo, saveWhatWeDo,
-  getBandWords, saveBandWords,
+  getBandWords, saveBandWords, uploadVideo, MAX_VIDEO_MB,
 } from '../lib/projectStore'
 import { listJobs, createJob, updateJob, deleteJob, getWorkConditions, saveWorkConditions } from '../lib/careerStore'
 import { WORK_CONDITIONS } from '../careerJobs'
@@ -189,6 +189,15 @@ function ProjectManager() {
     catch (e2) { setMsg('이미지 업로드 실패: ' + e2.message) }
     finally { e.target.value = '' }
   }
+  const [videoUploading, setVideoUploading] = useState(-1) // 업로드 중인 블록 인덱스
+  async function uploadBlockVideo(i, e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setMsg(''); setVideoUploading(i)
+    try { const url = await uploadVideo(file); updateBlock(i, { media: url }) }
+    catch (e2) { setMsg('영상 업로드 실패: ' + e2.message) }
+    finally { setVideoUploading(-1); e.target.value = '' }
+  }
 
   async function onFile(e) {
     const file = e.target.files?.[0]
@@ -328,7 +337,25 @@ function ProjectManager() {
               {b.type === 'video' && (
                 <>
                   <input placeholder="YouTube 주소 또는 ID" value={b.media || ''} onChange={(e) => updateBlock(i, { media: e.target.value })} />
+                  <label className="adm-hint" style={{ display: 'block' }}>
+                    또는 영상 파일 직접 업로드 (mp4 · 최대 {MAX_VIDEO_MB}MB)
+                    <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => uploadBlockVideo(i, e)} />
+                  </label>
+                  {videoUploading === i && <span className="adm-hint">업로드 중… (용량에 따라 시간이 걸립니다)</span>}
+                  {/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(b.media || '') && (
+                    <>
+                      <video className="adm-block-preview" src={b.media} controls muted playsInline preload="metadata" />
+                      <label className="adm-check">
+                        <input type="checkbox" checked={!!b.loop} onChange={(e) => updateBlock(i, { loop: e.target.checked })} />
+                        <span>소리 없이 자동 반복 재생 (컨트롤 숨김 — 짧은 클립용)</span>
+                      </label>
+                    </>
+                  )}
                   <input placeholder="캡션 (선택)" value={b.caption || ''} onChange={(e) => updateBlock(i, { caption: e.target.value })} />
+                  <span className="adm-hint">
+                    유튜브 주소를 넣으면 임베드, 파일을 올리면 사이트에서 바로 재생됩니다.<br />
+                    긴 영상은 저장공간·트래픽을 많이 쓰니 <strong>유튜브</strong>를, 몇 초짜리 짧은 클립은 <strong>직접 업로드</strong>를 권합니다.
+                  </span>
                 </>
               )}
               {b.type === 'center' && (

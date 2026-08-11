@@ -145,16 +145,41 @@ function BlockBody({ b }) {
     )
   }
   if (b.type === 'video' && b.media) {
+    /* media가 영상 파일 URL이면 직접 재생, 아니면 유튜브 ID로 보고 임베드.
+       기존 데이터는 전부 유튜브 ID/주소라 자동 판별로도 깨지지 않는다. */
+    const isFile = /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(b.media)
     return (
       <figure className="wb-figure">
-        <div className="wb-video">
-          <iframe
-            src={`https://www.youtube.com/embed/${ytId(b.media)}?rel=0`}
-            title={b.caption || 'video'}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
-        </div>
+        {isFile ? (
+          b.loop ? (
+            /* 소리 없이 반복되는 짧은 클립 — 컨트롤 없이 배경처럼 재생 */
+            <video
+              className="wb-clip"
+              src={b.media}
+              autoPlay muted loop playsInline preload="metadata"
+              aria-label={b.caption || '영상'}
+              onContextMenu={(e) => e.preventDefault()}
+            />
+          ) : (
+            <video
+              className="wb-clip"
+              src={b.media}
+              controls playsInline preload="metadata"
+              controlsList="nodownload"
+              aria-label={b.caption || '영상'}
+              onContextMenu={(e) => e.preventDefault()}
+            />
+          )
+        ) : (
+          <div className="wb-video">
+            <iframe
+              src={`https://www.youtube.com/embed/${ytId(b.media)}?rel=0`}
+              title={b.caption || 'video'}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        )}
         {b.caption && <figcaption className="wb-caption">{b.caption}</figcaption>}
       </figure>
     )
