@@ -586,21 +586,20 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .wb-c-frame i.r::after{right:0}
 .wb-c-title{font-size:clamp(20px,2.4vw,30px);font-weight:700;letter-spacing:-.01em;line-height:1.25;
   white-space:nowrap;flex:0 0 auto}
-/* 제목 아래 좌/우 2열 — 왼쪽은 좌측정렬, 오른쪽은 우측정렬, 윗변을 맞춰 같은 높이에서 시작 */
-.wb-c-cols{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,64px);
-  align-items:start;margin-top:clamp(20px,3vh,34px);text-align:initial}
+/* 제목 아래 = 왼쪽 라벨 1칸 + 오른쪽 문단 N칸을 균등 분할(--cols = 1 + 문단수).
+   .wb-c-right가 display:contents라 문단들이 그리드에 직접 배치돼 라벨과 같은 폭을 갖는다. */
+.wb-c-cols{display:grid;grid-template-columns:repeat(var(--cols,2),1fr);
+  gap:clamp(20px,2.6vw,40px);align-items:start;margin-top:clamp(20px,3vh,34px);text-align:initial}
 .wb-c-left{text-align:left}
-/* 오른쪽 문단들은 세로로 쌓지 않고 가로로 나란히 — 문단 수만큼 열이 생긴다 */
-.wb-c-right{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
-  gap:clamp(16px,2.4vw,36px);text-align:right}
-.wb-c-ko{font-size:clamp(15px,1.35vw,18px);line-height:1.95;color:var(--muted);
-  font-family:'Pretendard Variable',Pretendard,sans-serif;white-space:pre-line;word-break:keep-all}
-.wb-c-en{font-size:clamp(13px,1.05vw,15px);line-height:1.85;color:var(--muted);opacity:.72;
-  letter-spacing:.01em;white-space:pre-line;word-break:keep-all}
-/* 모바일 — 가로 2·3열은 폭이 부족해 세로로 쌓고 양쪽 모두 좌측정렬 */
+.wb-c-right{display:contents}
+/* 왼쪽 라벨 — 포인트컬러 + 굵게 */
+.wb-c-ko{font-size:clamp(15px,1.5vw,20px);font-weight:700;line-height:1.6;color:var(--accent);
+  letter-spacing:-.01em;white-space:pre-line;word-break:keep-all}
+.wb-c-en{font-size:clamp(13px,1.05vw,15px);line-height:1.85;color:var(--muted);
+  letter-spacing:.01em;white-space:pre-line;word-break:keep-all;text-align:left}
+/* 모바일 — 균등 다열은 폭이 부족해 세로로 쌓는다 */
 @media(max-width:760px){
-  .wb-c-cols{grid-template-columns:1fr;gap:clamp(14px,2.2vh,20px)}
-  .wb-c-right{grid-auto-flow:row;text-align:left;gap:clamp(12px,1.8vh,18px)}
+  .wb-c-cols{grid-template-columns:1fr;gap:clamp(12px,1.8vh,18px)}
 }
 
 /* 특징 카드 — 다크 카드, 항목 수(1·2·3)에 맞춰 박스가 폭을 줄이고 전체 중앙정렬.

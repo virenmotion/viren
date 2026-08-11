@@ -82,7 +82,8 @@ function BlockBody({ b }) {
           </div>
         )}
         {(b.body || rightParas.length > 0) && (
-          <div className="wb-c-cols">
+          /* 왼쪽 1칸 + 문단 수만큼의 칸을 균등 분할 → 문단이 늘어도 각 칸 폭이 같다 */
+          <div className="wb-c-cols" style={{ '--cols': 1 + Math.max(rightParas.length, 1) }}>
             <div className="wb-c-left">{b.body && <p className="wb-c-ko">{b.body}</p>}</div>
             <div className="wb-c-right">
               {rightParas.map((p, i) => <p className="wb-c-en" key={i}>{p}</p>)}
