@@ -296,9 +296,10 @@ function ProjectManager() {
                 >⠿</span>
                 <select value={b.type} onChange={(e) => updateBlock(i, { type: e.target.value })}>
                   <option value="text">텍스트</option>
-                  <option value="center">중앙 텍스트(한/영)</option>
+                  <option value="center">제목 + 좌/우 텍스트</option>
                   <option value="label">라벨(Concept 등)</option>
                   <option value="features">특징 카드</option>
+                  <option value="specs">상세 항목(라벨/한/영)</option>
                   <option value="image">이미지</option>
                   <option value="video">영상</option>
                   <option value="divider">구분선</option>
@@ -332,9 +333,10 @@ function ProjectManager() {
               )}
               {b.type === 'center' && (
                 <>
-                  <input placeholder="제목" value={b.heading || ''} onChange={(e) => updateBlock(i, { heading: e.target.value })} />
-                  <textarea rows={3} placeholder="한글 내용" value={b.body || ''} onChange={(e) => updateBlock(i, { body: e.target.value })} />
-                  <textarea rows={3} placeholder="영문 내용 (선택)" value={b.bodyEn || ''} onChange={(e) => updateBlock(i, { bodyEn: e.target.value })} />
+                  <input placeholder="제목 (가운데 표시)" value={b.heading || ''} onChange={(e) => updateBlock(i, { heading: e.target.value })} />
+                  <textarea rows={3} placeholder="왼쪽 텍스트 (좌측정렬)" value={b.body || ''} onChange={(e) => updateBlock(i, { body: e.target.value })} />
+                  <textarea rows={5} placeholder={'오른쪽 텍스트 (우측정렬)\n\n빈 줄로 문단을 나누면 가로로 나란히 배치됩니다\n\n첫 번째 문단\n\n두 번째 문단\n\n세 번째 문단'} value={b.bodyEn || ''} onChange={(e) => updateBlock(i, { bodyEn: e.target.value })} />
+                  <span className="adm-hint">왼쪽·오른쪽 텍스트는 같은 높이에서 나란히 표시됩니다 · 오른쪽은 <strong>빈 줄</strong>로 문단 구분 → 문단이 <strong>가로로</strong> 나열됩니다(모바일에선 세로로 쌓임)</span>
                 </>
               )}
               {b.type === 'label' && (
@@ -346,14 +348,21 @@ function ProjectManager() {
                   <span className="adm-hint">한 줄 = 한 열 · 형식: 한글 | 영문 · 칸 안 줄바꿈: /</span>
                 </>
               )}
+              {b.type === 'specs' && (
+                <>
+                  <textarea rows={5} placeholder={'한 줄에 한 항목, "라벨 | 한글 | 영문" 형식\n예) Object | 서울역 플랫폼의 장소성을 해석 / 이동과 출발을 상징 | Interpreting Seoul Station. / Using objects of movement.\n칸 안에서 줄바꿈은 / 로 구분'} value={b.body || ''} onChange={(e) => updateBlock(i, { body: e.target.value })} />
+                  <span className="adm-hint">한 줄 = 한 항목 · 형식: 라벨 | 한글 | 영문 · 칸 안 줄바꿈: / · 영문은 비워도 됩니다</span>
+                </>
+              )}
               {b.type === 'divider' && <span className="adm-hint">— 구분선 (이 지점에서 구역이 나뉘고, 구역별로 스크롤 효과가 적용됩니다) —</span>}
             </div>
           ))}
           <div className="adm-block-add">
             <button type="button" className="adm-btn" onClick={() => addBlock('text')}>+ 텍스트</button>
-            <button type="button" className="adm-btn" onClick={() => addBlock('center')}>+ 중앙텍스트</button>
+            <button type="button" className="adm-btn" onClick={() => addBlock('center')}>+ 좌우텍스트</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('label')}>+ 라벨</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('features')}>+ 특징</button>
+            <button type="button" className="adm-btn" onClick={() => addBlock('specs')}>+ 상세항목</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('image')}>+ 이미지</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('video')}>+ 영상</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('divider')}>+ 구분선</button>

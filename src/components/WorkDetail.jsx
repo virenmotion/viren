@@ -65,8 +65,13 @@ function BlockBody({ b }) {
   if (b.type === 'label' && b.text) {
     return <LabelBlock text={b.text} />
   }
-  /* 중앙 텍스트 — 제목 + 한글 + 영문 (이중언어 센터) */
+  /* 중앙 텍스트 — 제목(중앙 프레임) + 아래에 좌/우 텍스트를 같은 높이에서 나란히.
+     오른쪽 텍스트는 빈 줄로 문단을 나눈다(한 줄 개행은 문단 안의 줄바꿈으로 유지). */
   if (b.type === 'center') {
+    const rightParas = String(b.bodyEn || '')
+      .split(/\n\s*\n/)
+      .map((s) => s.replace(/\s+$/, '').replace(/^\s+/, ''))
+      .filter(Boolean)
     return (
       <div className="wb-center">
         {b.heading && (
@@ -76,8 +81,14 @@ function BlockBody({ b }) {
             <i className="r" />
           </div>
         )}
-        {b.body && <p className="wb-c-ko">{b.body}</p>}
-        {b.bodyEn && <p className="wb-c-en">{b.bodyEn}</p>}
+        {(b.body || rightParas.length > 0) && (
+          <div className="wb-c-cols">
+            <div className="wb-c-left">{b.body && <p className="wb-c-ko">{b.body}</p>}</div>
+            <div className="wb-c-right">
+              {rightParas.map((p, i) => <p className="wb-c-en" key={i}>{p}</p>)}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -96,6 +107,31 @@ function BlockBody({ b }) {
           </div>
         ))}
       </div>
+    )
+  }
+  /* 상세 항목 표 — 한 줄 = "라벨 | 한글 | 영문", / 로 줄바꿈.
+     Object / Tone & Manner / Story 처럼 항목별 설명을 3열로 나열한다. */
+  if (b.type === 'specs') {
+    const brk = (s) => String(s || '').split('/').map((t) => t.trim()).filter(Boolean).join('\n')
+    const rows = String(b.body || '').split('\n').map((l) => l.trim()).filter(Boolean)
+      .map((l) => {
+        const [label, ko, en] = l.split('|').map((s) => (s || '').trim())
+        return { label, ko: brk(ko), en: brk(en) }
+      })
+      .filter((r) => r.label || r.ko || r.en)
+    if (!rows.length) return null
+    return (
+      <dl className="wb-specs">
+        {rows.map((r, i) => (
+          <div className="wb-spec" key={i}>
+            <dt className="wb-spec-label">{r.label}</dt>
+            <dd className="wb-spec-body">
+              {r.ko && <p className="wb-spec-ko">{r.ko}</p>}
+              {r.en && <p className="wb-spec-en">{r.en}</p>}
+            </dd>
+          </div>
+        ))}
+      </dl>
     )
   }
   if (b.type === 'image' && b.media) {

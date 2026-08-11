@@ -586,11 +586,22 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .wb-c-frame i.r::after{right:0}
 .wb-c-title{font-size:clamp(20px,2.4vw,30px);font-weight:700;letter-spacing:-.01em;line-height:1.25;
   white-space:nowrap;flex:0 0 auto}
-.wb-center>.wb-c-ko,.wb-center>.wb-c-en{max-width:680px;margin-left:auto;margin-right:auto}
-.wb-c-ko{margin-top:clamp(16px,2.2vh,24px);font-size:clamp(15px,1.35vw,18px);line-height:1.95;color:var(--muted);
-  font-family:'Pretendard Variable',Pretendard,sans-serif;white-space:pre-line}
-.wb-c-en{margin-top:14px;font-size:clamp(13px,1.05vw,15px);line-height:1.85;color:var(--muted);opacity:.72;
-  letter-spacing:.01em;white-space:pre-line}
+/* 제목 아래 좌/우 2열 — 왼쪽은 좌측정렬, 오른쪽은 우측정렬, 윗변을 맞춰 같은 높이에서 시작 */
+.wb-c-cols{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,64px);
+  align-items:start;margin-top:clamp(20px,3vh,34px);text-align:initial}
+.wb-c-left{text-align:left}
+/* 오른쪽 문단들은 세로로 쌓지 않고 가로로 나란히 — 문단 수만큼 열이 생긴다 */
+.wb-c-right{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
+  gap:clamp(16px,2.4vw,36px);text-align:right}
+.wb-c-ko{font-size:clamp(15px,1.35vw,18px);line-height:1.95;color:var(--muted);
+  font-family:'Pretendard Variable',Pretendard,sans-serif;white-space:pre-line;word-break:keep-all}
+.wb-c-en{font-size:clamp(13px,1.05vw,15px);line-height:1.85;color:var(--muted);opacity:.72;
+  letter-spacing:.01em;white-space:pre-line;word-break:keep-all}
+/* 모바일 — 가로 2·3열은 폭이 부족해 세로로 쌓고 양쪽 모두 좌측정렬 */
+@media(max-width:760px){
+  .wb-c-cols{grid-template-columns:1fr;gap:clamp(14px,2.2vh,20px)}
+  .wb-c-right{grid-auto-flow:row;text-align:left;gap:clamp(12px,1.8vh,18px)}
+}
 
 /* 특징 카드 — 다크 카드, 항목 수(1·2·3)에 맞춰 박스가 폭을 줄이고 전체 중앙정렬.
    내부 구분선은 gap(1px) + 컨테이너 배경으로 그려 여러 행에서도 균일 */
@@ -604,6 +615,24 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   letter-spacing:.03em;white-space:pre-line}
 @media(max-width:720px){
   .wb-features{grid-template-columns:1fr;width:auto;max-width:420px}
+}
+
+/* 상세 항목 표 — 라벨 | 한글 | 영문 3열. 행마다 윗줄(구분선)을 두고 마지막에 아랫줄로 닫는다.
+   dl/dt/dd 구조라 스크린리더에 '항목-설명' 쌍으로 읽힌다. */
+.wb-specs{width:100%;border-bottom:1px solid var(--line)}
+.wb-spec{display:grid;grid-template-columns:minmax(140px,1fr) 2.1fr 2.1fr;
+  gap:clamp(20px,3vw,48px);align-items:start;
+  padding:clamp(26px,3.4vw,40px) 0;border-top:1px solid var(--line)}
+.wb-spec-label{font-size:clamp(15px,1.4vw,19px);font-weight:700;letter-spacing:-.01em;color:#fff}
+.wb-spec-body{display:contents} /* 한글·영문을 각각 2·3열에 직접 배치 */
+.wb-spec-ko,.wb-spec-en{font-size:clamp(13px,1.05vw,15px);line-height:1.85;white-space:pre-line;
+  word-break:keep-all}
+.wb-spec-ko{color:var(--fg)}
+.wb-spec-en{color:var(--muted);letter-spacing:.01em}
+/* 영문이 비면 한글이 2열에 그대로 남아 3열이 빈칸으로 유지된다(정렬 흐트러짐 방지) */
+@media(max-width:860px){
+  .wb-spec{grid-template-columns:1fr;gap:10px}
+  .wb-spec-label{margin-bottom:6px}
 }
 
 .wd-back{display:inline-block;margin-top:clamp(44px,7vh,72px);
