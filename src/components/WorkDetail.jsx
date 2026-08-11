@@ -132,7 +132,14 @@ function BlockBody({ b }) {
   if (b.type === 'image' && b.media) {
     return (
       <figure className="wb-figure">
-        <img src={b.media} alt={b.caption || ''} loading="lazy" />
+        {/* 우클릭 저장·드래그 반출 차단 (완전 차단은 불가 — 개발자도구·스크린샷은 못 막는다) */}
+        <img
+          src={b.media}
+          alt={b.caption || ''}
+          loading="lazy"
+          draggable="false"
+          onContextMenu={(e) => e.preventDefault()}
+        />
         {b.caption && <figcaption className="wb-caption">{b.caption}</figcaption>}
       </figure>
     )
