@@ -576,16 +576,9 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .wb-label i.dr::after{left:-2px}
 @media(max-width:760px){.wb-label{gap:clamp(10px,3vw,18px)}}
 
-/* 중앙 텍스트 블록 — 제목 + 한글 + 영문 (이중언어 센터) */
-.wb-center{text-align:center;max-width:none;margin:0 auto}
-/* 제목 프레임 — 좌우 포인트컬러 가로선 + 바깥 끝이 아래로 꺾이는 코너 */
-.wb-c-frame{display:flex;align-items:center;justify-content:center;gap:clamp(18px,2.6vw,40px)}
-.wb-c-frame i{flex:1;position:relative;height:1.5px;background:var(--accent)}
-.wb-c-frame i::after{content:'';position:absolute;top:0;width:1.5px;height:clamp(16px,2.6vh,30px);background:var(--accent)}
-.wb-c-frame i.l::after{left:0}
-.wb-c-frame i.r::after{right:0}
-.wb-c-title{font-size:clamp(20px,2.4vw,30px);font-weight:700;letter-spacing:-.01em;line-height:1.25;
-  white-space:nowrap;flex:0 0 auto}
+/* 제목 + 좌/우 텍스트 블록 — 전체 좌측정렬(장식선 없음) */
+.wb-center{text-align:left;max-width:none;margin:0}
+.wb-c-title{font-size:clamp(18px,2vw,26px);font-weight:700;letter-spacing:-.01em;line-height:1.3}
 /* 제목 아래 = 왼쪽 라벨 1칸 + 오른쪽 문단 N칸을 균등 분할(--cols = 1 + 문단수).
    .wb-c-right가 display:contents라 문단들이 그리드에 직접 배치돼 라벨과 같은 폭을 갖는다. */
 .wb-c-cols{display:grid;grid-template-columns:repeat(var(--cols,2),1fr);
@@ -593,7 +586,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .wb-c-left{text-align:left}
 .wb-c-right{display:contents}
 /* 왼쪽 라벨 — 포인트컬러 + 굵게 */
-.wb-c-ko{font-size:clamp(15px,1.5vw,20px);font-weight:700;line-height:1.6;color:var(--accent);
+.wb-c-ko{font-size:clamp(16px,1.75vw,23px);font-weight:700;line-height:1.55;color:var(--accent);
   letter-spacing:-.01em;white-space:pre-line;word-break:keep-all}
 .wb-c-en{font-size:clamp(13px,1.05vw,15px);line-height:1.85;color:var(--muted);
   letter-spacing:.01em;white-space:pre-line;word-break:keep-all;text-align:left}

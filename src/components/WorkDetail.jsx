@@ -74,13 +74,7 @@ function BlockBody({ b }) {
       .filter(Boolean)
     return (
       <div className="wb-center">
-        {b.heading && (
-          <div className="wb-c-frame">
-            <i className="l" />
-            <h3 className="wb-c-title">{b.heading}</h3>
-            <i className="r" />
-          </div>
-        )}
+        {b.heading && <h3 className="wb-c-title">{b.heading}</h3>}
         {(b.body || rightParas.length > 0) && (
           /* 왼쪽 1칸 + 문단 수만큼의 칸을 균등 분할 → 문단이 늘어도 각 칸 폭이 같다 */
           <div className="wb-c-cols" style={{ '--cols': 1 + Math.max(rightParas.length, 1) }}>
