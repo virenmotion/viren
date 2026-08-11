@@ -334,9 +334,13 @@ function ProjectManager() {
               {b.type === 'center' && (
                 <>
                   <input placeholder="제목 (가운데 표시)" value={b.heading || ''} onChange={(e) => updateBlock(i, { heading: e.target.value })} />
-                  <textarea rows={3} placeholder="왼쪽 텍스트 (좌측정렬)" value={b.body || ''} onChange={(e) => updateBlock(i, { body: e.target.value })} />
+                  <textarea rows={3} placeholder={'왼쪽 텍스트 (좌측정렬)\n\nEnter를 치면 그 자리에서 줄이 바뀝니다\n예) TRACE OF TIME\n    — 풍경에 새겨진 시간'} value={b.body || ''} onChange={(e) => updateBlock(i, { body: e.target.value })} />
                   <textarea rows={5} placeholder={'오른쪽 텍스트 (우측정렬)\n\n빈 줄로 문단을 나누면 가로로 나란히 배치됩니다\n\n첫 번째 문단\n\n두 번째 문단\n\n세 번째 문단'} value={b.bodyEn || ''} onChange={(e) => updateBlock(i, { bodyEn: e.target.value })} />
-                  <span className="adm-hint">왼쪽·오른쪽 텍스트는 같은 높이에서 나란히 표시됩니다 · 오른쪽은 <strong>빈 줄</strong>로 문단 구분 → 문단이 <strong>가로로</strong> 나열됩니다(모바일에선 세로로 쌓임)</span>
+                  <span className="adm-hint">
+                    왼쪽·오른쪽 텍스트는 같은 높이에서 나란히 표시됩니다 (모바일에선 세로로 쌓임)<br />
+                    · <strong>왼쪽</strong>: <strong>Enter</strong> = 줄바꿈. 안 넣으면 칸 너비에 맞춰 자동으로 끊깁니다<br />
+                    · <strong>오른쪽</strong>: <strong>빈 줄</strong> = 문단 구분(문단이 가로로 나열) · <strong>Enter</strong> 한 번 = 문단 안 줄바꿈
+                  </span>
                 </>
               )}
               {b.type === 'label' && (
