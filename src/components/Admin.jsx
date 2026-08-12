@@ -107,6 +107,37 @@ function Dashboard({ user }) {
   )
 }
 
+/* 편집 화면에서 브라우저 뒤로가기 → 목록으로.
+   편집 화면은 라우트가 아니라 상태(editing)로만 전환되므로, 그대로 두면 뒤로가기가
+   /admin 이전 페이지(대개 홈)로 나가버린다. 편집을 열 때 히스토리 항목을 하나 쌓고
+   popstate에서 닫아, 뒤로가기가 목록으로 돌아오게 한다.
+   ⚠️ StrictMode는 이펙트를 두 번 실행하므로 pushed ref로 중복 push를 막는다.
+   (ref는 StrictMode 재실행 사이에도 유지된다) */
+function useBackToList(open, onBack) {
+  const cb = useRef(onBack)
+  cb.current = onBack
+  const pushed = useRef(false)
+
+  useEffect(() => {
+    if (!open) return
+    if (!pushed.current) {
+      window.history.pushState({ admEdit: true }, '')
+      pushed.current = true
+    }
+    const onPop = () => { pushed.current = false; cb.current() }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [open])
+
+  /* 취소·저장 버튼으로 닫은 경우엔 쌓아둔 항목을 되돌려 히스토리가 늘어나지 않게 한다.
+     뒤로가기로 닫혔다면 pushed가 이미 false라 아무것도 하지 않는다. */
+  useEffect(() => {
+    if (open || !pushed.current) return
+    pushed.current = false
+    if (window.history.state?.admEdit) window.history.back()
+  }, [open])
+}
+
 /* ---------- WORK 관리 ---------- */
 const EMPTY_PROJECT = {
   slug: '', cat: 'media-art',
@@ -154,6 +185,7 @@ function ProjectManager() {
   function startNew() { setEditing(''); setForm(EMPTY_PROJECT); setMsg('') }
   function startEdit(p) { setEditing(p.slug); setForm({ ...EMPTY_PROJECT, ...p, blocks: Array.isArray(p.blocks) ? p.blocks : [] }); setMsg('') }
   function cancel() { setEditing(null); setForm(EMPTY_PROJECT); setMsg('') }
+  useBackToList(editing !== null, cancel) // 뒤로가기 → 프로젝트 목록
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   /* 본문 하단 콘텐츠 블록 (텍스트/이미지/영상) */
@@ -474,6 +506,7 @@ function JobManager() {
   function startNotice() { setEditing(''); setNotice(true); setForm({ ...EMPTY_JOB, pinned: true }); setMsg('') }
   function startEdit(j) { setEditing(j.id); setNotice(isNoticeLike(j)); setForm({ ...EMPTY_JOB, ...j }); setMsg('') }
   function cancel() { setEditing(null); setNotice(false); setForm(EMPTY_JOB); setMsg('') }
+  useBackToList(editing !== null, cancel) // 뒤로가기 → 채용 공고 목록
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   async function save(e) {
