@@ -47,6 +47,11 @@
   - `/admin`은 인트로 프리로더를 건너뜀(`App.jsx`의 `Boot`에서 처리).
   - `MARQUEE` = 홈 PHILOSOPHY 아래 흐르는 문구(`Band.jsx`). 짝수번째 항목은 자동으로 외곽선(SVG path) 스타일 — 기존 8개 문구가 아닌 새 문구는 외곽선 그래픽이 없어 일반 글자로 폴백(필요 시 `node scripts/genOutlines.cjs` 재실행, 5절 참고).
   - `WORK` = WORK 분야(카테고리) 관리. **WORK 상세 페이지 상단에 뜨는 분야명이 여기서 나온다.**
+  - **편집 화면은 라우트가 아니라 `editing` 상태로만 전환된다.** 그래서 뒤로가기가 홈으로
+    나가던 문제가 있었고, `useBackToList(open, onBack)` 훅으로 히스토리 항목을 쌓아 해결했다
+    (PROJECT·CAREER 두 폼에 적용). 편집 폼을 새로 만들면 이 훅도 함께 붙일 것.
+    ⚠️ StrictMode 이중 실행 대비로 `pushed` ref 가드가 들어 있다. 훅을 수정할 땐
+    "뒤로가기로 닫기"와 "취소 버튼으로 닫기" 두 경우 모두 히스토리가 원위치인지 확인할 것.
   - 계정 추가는 코드에 없음 → **Supabase 대시보드 → Authentication → Users → Add user**로 생성.
 
 ## 5. 반응형 브레이크포인트
@@ -96,8 +101,26 @@
 | `label` | 라벨(Concept 등) | text | 자간 자동 축소 |
 | `features` | 특징 카드 | body | 한 줄 = `한글 \| 영문`, 칸 안 줄바꿈 `/` |
 | `specs` | **상세 항목(라벨/한/영)** | body | 한 줄 = `라벨 \| 한글 \| 영문`, 칸 안 줄바꿈 `/` |
-| `image` / `video` | 이미지 / 영상 | media, caption | |
+| `image` | 이미지 | media, caption | 업로드 → Supabase Storage |
+| `video` | 영상 | media, caption, loop | **유튜브 / mp4 직접 업로드 둘 다 가능** — 아래 설명 |
 | `divider` | 구분선 | — | 이 지점에서 스크롤 효과 구역이 나뉨 |
+
+### video — 유튜브 / 직접 업로드 (2026-08-11 확장)
+- `media`가 `.mp4/.webm/.mov/.m4v`로 끝나면 `<video>`, 아니면 유튜브 ID로 보고 iframe.
+  **자동 판별**이라 기존 유튜브 데이터는 그대로 동작한다.
+- `loop: true` → `muted+loop+autoplay`, 컨트롤 숨김(짧은 파노라마 클립용).
+  `false` → `controls` 표시(`controlsList="nodownload"`).
+- 업로드는 `uploadVideo()` — `work-thumbs` 버킷, **50MB 상한**(`MAX_VIDEO_MB`).
+- ⚠️ Supabase 무료 플랜은 저장 1GB·대역폭 월 5GB 수준. **긴 영상은 유튜브를 쓸 것.**
+  10MB 영상을 500명이 보면 대역폭이 소진된다.
+
+### 이미지 보호 (2026-08-11)
+- `.wb-figure img`에 `draggable=false` + `onContextMenu` preventDefault + CSS
+  `-webkit-user-drag:none`, `-webkit-touch-callout:none`.
+- WORK 목록 썸네일은 `background-image`라 원래부터 우클릭 저장 불가.
+- ⚠️ **완전 차단은 원리상 불가.** 개발자도구 Network 탭·이미지 URL 직접 접근·스크린샷은
+  못 막는다. 사용자와 "이미지만 막기(가벼운 마찰)" 수준으로 합의함. 페이지 전체 우클릭
+  차단은 방문자 불편이 커서 선택하지 않음.
 
 ### specs (2026-08-11 신설)
 - `라벨 | 한글 | 영문` 3열 표. Object / Tone & Manner / Story 같은 항목별 설명용.
@@ -187,8 +210,13 @@
 4. 신규 프로젝트(몬순·벚꽃콘텐츠) 구글 색인 요청 미완료.
 
 ### 상태
-- 2026-08-11 커밋 4건 전부 배포·라이브 검증 완료. sitemap 13 URL(DB 9개 프로젝트와 일치).
+- **2026-08-11 커밋 9건 전부 배포·라이브 검증 완료.** sitemap 13 URL(DB 9개 프로젝트와 일치).
+  - WORK 편집: `specs` 블록 신설 / `center` 블록 좌·우 배치 개편(3커밋) / `video` mp4 직접 업로드
+  - 이미지 우클릭·드래그 차단, 관리자 줄바꿈 안내, 관리자 뒤로가기 → 목록
 - 작업 트리 깨끗(`showreel-build/`만 untracked).
+- ⚠️ **`video` 직접 업로드는 실사용 검증 전이다.** 현재 video 블록을 쓰는 프로젝트가 0개라
+  회귀 위험은 없으나, 실제 업로드→재생은 사용자가 처음 넣어볼 때 확인이 필요하다.
+  (판별 정규식 9케이스·빌드·훅 배치는 검증 완료)
 - 위 5건 모두 배포·라이브 검증 완료(번들 해시 일치 + 실측).
 - 미해결 이슈 없음. 다만 (4)의 "창 세로 ~1100px 미만에서 WHAT WE DO 6개가 한 화면에 안 들어감"은 남아 있음 — 사용자 화면(1263)에서는 문제 없어 보류 중.
 - (7) 로고 밴드의 로고 크기는 데스크톱에서 콘텐츠 폭의 38%. 원본 영상 좌우 검은 여백 때문인데, 더 키우려면 `aspect-ratio`를 높이면 됨(대신 밴드가 세로로 커져 아래가 밀림). 사용자 확인 후 현재 값으로 확정.
