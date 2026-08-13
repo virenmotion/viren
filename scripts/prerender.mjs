@@ -107,7 +107,10 @@ function paras(text) {
 /* 콘텐츠 블록에서 크롤러에게 보여줄 텍스트만 추출 (이미지·영상은 캡션만) */
 function blockText(b) {
   switch (b?.type) {
+    /* ⚠️ text는 화면에 heading·body만 렌더된다(bodyEn은 무시됨).
+       여기서 bodyEn을 넣으면 크롤러만 보는 텍스트가 생겨 클로킹이 된다. */
     case 'text':
+      return (b.heading ? `<h3>${esc(b.heading)}</h3>` : '') + paras(b.body)
     case 'center':
       return (b.heading ? `<h3>${esc(b.heading)}</h3>` : '') + paras(b.body) + paras(b.bodyEn)
     case 'label':
