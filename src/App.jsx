@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
 import Preloader from './components/Preloader'
 import Cursor from './components/Cursor'
 import Header from './components/Header'
@@ -18,7 +18,8 @@ import Contact from './components/Contact'
 import Footer from './components/Footer'
 import { ProjectsProvider } from './ProjectsContext'
 import useFullpage from './lib/useFullpage'
-import useSeo, { BRAND } from './lib/useSeo'
+import useSeo from './lib/useSeo'
+import { SEO, H1, BRAND } from './lib/seoRoutes'
 
 /* 라우트/해시 변경 시 스크롤 관리 — 해시가 있으면 해당 요소로(헤더 오프셋은 scroll-margin으로),
    없으면 페이지 최상단으로. 새 페이지가 마운트될 때까지 잠깐 재시도한다. */
@@ -39,40 +40,6 @@ function ScrollManager() {
     }
   }, [pathname, hash])
   return null
-}
-
-/* 페이지별 검색 노출용 제목·설명(80자 이내 — 네이버 URL 검사 권장치) */
-const SEO = {
-  home: {
-    title: BRAND,
-    description: '바이렌(VIREN)은 미디어아트, 미디어파사드, LED 콘텐츠를 제작하는 서울의 콘텐츠 프로덕션 스튜디오입니다.',
-    path: '/',
-  },
-  work: {
-    title: `WORK 프로젝트 | ${BRAND}`,
-    description: '바이렌(VIREN)이 제작한 미디어아트, 미디어파사드, LED 콘텐츠 프로젝트를 소개합니다.',
-    path: '/work',
-  },
-  career: {
-    title: `CAREER 채용 | ${BRAND}`,
-    description: '바이렌(VIREN)과 함께할 크리에이터를 찾습니다. 채용 공고와 지원 방법을 확인하세요.',
-    path: '/career',
-  },
-  contact: {
-    title: `CONTACT 문의 | ${BRAND}`,
-    description: '프로젝트 문의와 협업 제안은 바이렌(VIREN)으로 연락 주세요. 서울 마포구 소재.',
-    path: '/contact',
-  },
-}
-
-/* 페이지 주제를 알리는 h1. 화면의 헤딩이 전부 영문 장식 문구라 h1이 없었고,
-   그 탓에 '바이렌'이 본문 텍스트에 한 번도 등장하지 않아 해당 키워드로 매칭이 불가능했다.
-   스크린리더 사용자에게도 페이지 주제를 알려주는 역할을 겸한다. */
-const H1 = {
-  home: '바이렌(VIREN) — 미디어아트 · 미디어파사드 · LED 콘텐츠 제작 스튜디오',
-  work: '바이렌(VIREN) 프로젝트 — 미디어아트 · 미디어파사드 · LED 콘텐츠 제작 사례',
-  career: '바이렌(VIREN) 채용 — 함께할 크리에이터를 찾습니다',
-  contact: '바이렌(VIREN) 문의 — 서울 마포구 콘텐츠 프로덕션 스튜디오',
 }
 
 function HomePage({ ready }) {
@@ -105,6 +72,21 @@ function WorkDetailPage() {
   return (
     <main>
       <WorkDetail />
+    </main>
+  )
+}
+
+/* 없는 주소 처리. SPA라 서버는 어떤 경로든 200을 주므로, 라우트가 없으면 빈 화면이
+   200으로 응답돼 검색엔진에 소프트 404로 잡힌다(예: /about — ABOUT은 홈의 한 구간이라
+   별도 주소가 없다). noindex로 색인에서 빼고 홈으로 돌아갈 길을 준다. */
+function NotFoundPage() {
+  useSeo({ title: `페이지를 찾을 수 없습니다 | ${BRAND}`, noindex: true })
+  return (
+    <main>
+      <section id="work-detail">
+        <p className="wd-empty">페이지를 찾을 수 없습니다.</p>
+        <Link className="wd-back" to="/">← 홈으로</Link>
+      </section>
     </main>
   )
 }
@@ -187,6 +169,7 @@ export default function App() {
           <Route path="/career" element={<CareerPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
 
         <Chrome />

@@ -66,8 +66,10 @@
 
 | 파일 | 역할 |
 |---|---|
-| `index.html` | 메타/OG/JSON-LD + **검색엔진 소유확인 태그(삭제 금지, 10절)** + noscript 본문 |
-| `public/robots.txt` · `public/sitemap.xml` | 검색엔진용. 프로젝트 추가 시 sitemap 갱신 필요(10절) |
+| `index.html` | 프리렌더 **템플릿**. 메타/OG/JSON-LD + **검색엔진 소유확인 태그(삭제 금지, 10절)** + noscript 본문 |
+| `src/lib/seoRoutes.js` | 라우트별 title/description/h1 **단일 출처**. 앱과 빌드 스크립트가 공유(react import 금지) |
+| `scripts/prerender.mjs` | 빌드 후 라우트별 정적 HTML 13쪽 + `sitemap.xml` 생성(10-3절) |
+| `public/robots.txt` | 검색엔진용. `sitemap.xml`은 빌드가 생성하므로 `public/`에 두지 않는다 |
 | `src/App.jsx` | 라우팅 + `Boot`(인트로 프리로더 게이트, /admin 건너뜀) |
 | `src/components/Preloader.jsx` | 인트로 로더 — `/viren-draw-animation.html` iframe + 종료 줌 전환 |
 | `public/viren-draw-animation.html` | 로더용 VIREN 로고 드로잉 애니메이션(자체 완결 번들, ~113KB) |
@@ -256,23 +258,25 @@
   <meta name="naver-site-verification" content="9a0eb5b4..." />
   <meta name="google-site-verification" content="0nMFnQ34r-..." />
   ```
-- `public/robots.txt`, `public/sitemap.xml` 삭제 금지.
+- `public/robots.txt` 삭제 금지. (`sitemap.xml`은 빌드 산출물이라 `public/`에 없는 게 정상)
 
 ### 설정 내용
 | 파일 | 내용 |
 |---|---|
-| `index.html` | 기본 title/description, canonical, OG 태그, JSON-LD(Organization: 상호·주소·전화·소셜 4개), `<noscript>` 본문, 소유확인 2줄 |
+| `index.html` | 프리렌더 템플릿. 기본 title/description, canonical, OG 태그, JSON-LD(Organization: 상호·주소·전화·소셜 4개), `<noscript>` 본문, 소유확인 2줄 |
 | `public/robots.txt` | 전체 허용 + `/admin` 제외, Yeti 명시, Sitemap 경로 |
-| `public/sitemap.xml` | 메인 4개 + 프로젝트 상세 8개 = 12 URL |
-| `src/lib/useSeo.js` | **라우트별** title/description/canonical/og 갱신 |
-| `src/App.jsx` | `SEO`·`H1` 상수 + 페이지별 `<h1 className="sr-only">` |
+| `scripts/prerender.mjs` | 라우트별 정적 HTML + `sitemap.xml` 생성(10-3절) |
+| `src/lib/seoRoutes.js` | `SEO`·`H1`·프로젝트 제목/설명 규칙 — 앱과 프리렌더의 **단일 출처** |
+| `src/lib/useSeo.js` | **라우트별** title/description/canonical/og 갱신(클라이언트 라우팅용) |
+| `src/App.jsx` | 페이지별 `<h1 className="sr-only">` + `path="*"` 404(noindex) |
 
 ### ⚠️ useSeo의 두 가지 함정 (2026-08-10 추가)
 - **태그를 새로 만들지 말고 index.html의 기존 태그를 덮어쓸 것.** 추가 방식이면 head에
   `title`·`canonical`이 둘씩 생기고, 크롤러는 보통 앞의 것(=정적 홈 값)을 채택해 수정이 무의미해진다.
   검증법: `document.head.querySelectorAll('title').length === 1`.
-- **JS 실행 후에만 반영된다.** 구글은 렌더링하므로 OK, 네이버 Yeti는 원본 HTML만 읽으므로
-  `index.html`의 기본값을 계속 본다(네이버 쪽은 `<noscript>` 본문이 담당).
+- **JS 실행 후에만 반영된다.** 구글은 렌더링하므로 OK, 네이버 Yeti는 원본 HTML만 읽는다.
+  → 2026-08-13부터 `scripts/prerender.mjs`가 라우트별 원본 HTML을 따로 구워 해결(10-3절).
+  `useSeo`는 이제 **클라이언트 라우팅 시 갱신**을 담당한다.
 
 ### 왜 안 떴었나 (원인 4가지)
 1. **사이트 어디에도 '바이렌'이라는 문자열이 없었다** — 해당 키워드로는 매칭 자체가 불가능했음.
@@ -288,18 +292,19 @@
    화면 변화 없음(실측 1x1px), 스크린리더 접근성도 함께 개선.
 
 ### 유지보수
-- **WORK 프로젝트를 추가/삭제하면 `sitemap.xml`도 갱신할 것.** SPA라 크롤러가 `/work`의 링크를 따라가지 못해 사이트맵이 프로젝트 상세의 유일한 발견 경로다.
-  DB와 대조하는 스니펫(불일치 즉시 확인):
-  ```bash
-  # DB 슬러그 목록
-  curl -s "$SUPA/rest/v1/projects?select=slug&order=sort.asc" -H "apikey: $KEY" -H "Authorization: Bearer $KEY"
-  # sitemap 슬러그 목록
-  grep -o '/work/[a-z0-9-]*' public/sitemap.xml
-  ```
+- ~~프로젝트 추가 시 sitemap 수동 갱신~~ → **불필요.** 사이트맵·프로젝트 목록·홈 noscript가
+  전부 빌드 때 DB에서 생성된다(10-3절). **관리자에서 글만 쓰고 재배포하면 끝.**
+  (Vercel은 푸시 없이도 `Deployments → Redeploy`로 재빌드 가능 — DB만 바뀌었을 때 이 방법을 쓴다.)
 - 페이지 설명은 **80자 이내**(네이버 URL 검사 권장). 넘으면 경고.
-- 프로젝트 상세의 title/description은 **DB의 한글 프로젝트명·본문 요약에서 자동 생성**된다(`WorkDetail.jsx`). 관리자에서 프로젝트를 추가하면 sitemap 외에는 손댈 것 없음.
-- 페이지를 새로 만들면 `SEO`·`H1` 상수(`App.jsx`)에 항목을 추가하고 `useSeo()` 호출 + `<h1 className="sr-only">`를 넣을 것.
-- **삭제된 프로젝트 주소는 자동으로 `noindex` 처리된다**(`WorkDetail.jsx`의 `notFound`). SPA라 없는 slug도 200을 반환해 구글에 소프트 404로 잡히기 때문. 조건이 `!loading && !p`인 이유는 10절 함정 참고.
+- 프로젝트 상세의 title/description은 **DB의 한글 프로젝트명·본문 요약에서 자동 생성**된다
+  (`seoRoutes.js`의 `projectTitle`/`projectDescription` — 화면과 프리렌더가 같은 함수를 쓴다).
+- 페이지를 새로 만들면 `seoRoutes.js`의 `SEO`·`H1`에 항목을 추가하고, `useSeo()` 호출 +
+  `<h1 className="sr-only">` + `prerender.mjs`의 `pages` 배열에 한 줄을 넣을 것.
+- **없는 주소는 자동으로 `noindex` 처리된다.** SPA라 서버가 어떤 경로든 200을 반환해 소프트 404가 되기 때문.
+  삭제된 프로젝트는 `WorkDetail.jsx`의 `notFound`(조건에 `!loading`이 필요한 이유는 10절 함정 참고),
+  그 외 경로는 `App.jsx`의 `path="*"` → `NotFoundPage`가 담당한다.
+- ⚠️ **`/about` 주소는 존재하지 않는다.** ABOUT은 홈의 한 구간(`fp-panel`)이라 라우트가 없다.
+  검색엔진 수집 요청에 `/about`을 넣지 말 것 — 실제로 한 번 잘못 제출했다. 유효한 주소는 사이트맵 13개가 전부다.
 - ⚠️ **`slugify`는 곡선 따옴표(`“ ” ‘ ’`)를 걸러내지 못한다.** 영문 제목에 따옴표가 있으면 슬러그에 그대로 들어가 URL이 `%E2%80%9C`로 인코딩된다(실제로 한 번 발생). 프로젝트 등록 시 **URL 슬러그 칸을 직접 확인**할 것. 사용자 요청으로 함수는 수정하지 않음.
 
 ### 관리 콘솔
@@ -307,11 +312,11 @@
 - **사이트맵 제출 경로 형식이 서로 반대다** — 네이버는 전체 URL(`https://www.viren.kr/sitemap.xml`), 구글은 상대 경로(`sitemap.xml`). 네이버에 상대 경로를 넣으면 "올바른 URL 형식으로 입력해주세요" 오류.
 - 네이버가 robots.txt를 예전 상태로 캐시하고 있으면 URL 검사가 "접근할 수 없습니다"로 실패한다. **검증 → robots.txt → `수집요청`**으로 캐시를 갱신한 뒤 재검사할 것(실제로 이것 때문에 한 번 막혔음).
 
-### 구글 렌더링은 정상 — prerendering 불필요 (확인됨)
+### 구글 렌더링은 정상 (확인됨)
 - 구글 서치 콘솔 **실시간 테스트** 결과 "URL을 Google에 등록할 수 있음" + **`동영상 디스커버리: 동영상 감지됨`**.
   원본 HTML에는 `<video>`가 없고 React 렌더 후에만 생기므로, **Googlebot이 JS를 실행했다는 증거**다.
-- 색인된 버전 기록에서 "리소스 2/4개 로드하지 못함"(JS·CSS)이 뜨지만 **오탐**이다. 두 URL 모두 Googlebot UA로 200/90ms 응답하고, 본문은 500ms 안에 DOM에 들어온다(실측 1,617자). GSC는 렌더링 서비스가 캐시/할당량 때문에 재요청하지 않은 리소스도 "기타 오류"로 표시한다. **이걸 보고 prerendering을 검토하지 말 것.**
-- 단, **네이버 Yeti는 여전히 JS를 실행하지 않으므로 `<noscript>` 본문이 유일한 색인 대상**이다. 네이버 노출을 더 키우려면 그때 prerendering이 실질적인 카드다.
+- 색인된 버전 기록에서 "리소스 2/4개 로드하지 못함"(JS·CSS)이 뜨지만 **오탐**이다. 두 URL 모두 Googlebot UA로 200/90ms 응답하고, 본문은 500ms 안에 DOM에 들어온다(실측 1,617자). GSC는 렌더링 서비스가 캐시/할당량 때문에 재요청하지 않은 리소스도 "기타 오류"로 표시한다. **구글 문제로 오해하지 말 것.**
+- 네이버 쪽은 사정이 달라 결국 프리렌더가 필요했다 → 10-3절.
 
 ### 색인 현황 (2026-08-10 기준)
 - 구글 서치 콘솔 `색인생성 → 페이지`: **색인 1 / 미색인 11**, 사유 `발견됨 - 현재 색인이 생성되지 않음`.
@@ -360,6 +365,50 @@
   프로젝트 상세는 이미 한글 본문(발주처·연도·기획의도)이 충실해 색인만 되면 잡힐 여지가 크다.
   그 위는 보도자료·수주 기사·발주처 사이트 시공사 표기 등 **외부 언급량**이 쌓여야 한다.
 - `개선사항: URL에 개선사항이 없습니다` / `향상된 내용이 없습니다`는 정상. Organization 스키마는 리치 결과 유형이 아니라 이 패널에 잡히지 않는다.
+
+## 10-3. 라우트별 프리렌더 (2026-08-13) — 네이버 색인의 실제 병목
+
+### 무엇이 문제였나
+네이버 서치어드바이저 `리포트 → 수집 현황`이 **2건에서 멈춰 있었다.** 서버는 멀쩡했다
+(Yeti UA로 `/` 200, robots·sitemap 200, 수집 **제한 0건**). 원인은 응답 내용이었다:
+
+```
+/         canonical: https://www.viren.kr/   ← 정상
+/work     canonical: https://www.viren.kr/   ← 홈을 가리킴
+/contact  canonical: https://www.viren.kr/   ← 홈을 가리킴
+```
+
+SPA라 모든 주소가 같은 `index.html`을 받고, `useSeo`가 canonical을 고치는 건 **JS 실행 후**다.
+구글은 렌더링하므로 4쪽이 색인됐지만, **Yeti는 원본만 읽어 "이 페이지의 원본은 홈"이라는
+선언을 그대로 믿고 버렸다.** 수집 요청을 아무리 넣어도 전부 홈 하나로 합쳐지던 상태.
+
+### 해결
+`vite build` 뒤 `node scripts/prerender.mjs`가 라우트별 HTML을 `dist`에 굽는다.
+
+- `dist/index.html`(홈) · `dist/work/index.html` · `dist/work/<slug>/index.html` … **13쪽**
+- 각 쪽의 `title`·`description`·`canonical`·`og:*`·`<noscript>` 본문을 **덮어쓴다**(추가 아님 — 10절 함정)
+- `<noscript>` 본문·프로젝트 목록·`sitemap.xml`을 **DB에서 생성**한다(PostgREST 직접 호출)
+- Vercel 라우팅 순서가 `redirects → 파일시스템 → rewrites`라, 정적 파일이 있으면
+  `vercel.json`의 전체 리라이트보다 먼저 처리된다. **사용자 동작은 그대로, 크롤러가 받는 원본만 달라진다.**
+
+### 규칙
+- **문구는 `src/lib/seoRoutes.js` 한 곳에만.** 앱(`useSeo`/`WorkDetail`)과 프리렌더가 같이 쓴다.
+  두 곳에 적으면 반드시 한쪽만 고쳐지고, 화면과 크롤러가 보는 내용이 달라지면 **클로킹**으로 간주된다.
+- `seoRoutes.js`에 **react를 import하지 말 것.** Node가 빌드 중에 그대로 불러 쓴다.
+- `index.html`은 이제 **템플릿**이다. `<title>`·`<noscript>` 등의 태그 형태를 바꾸면
+  프리렌더의 정규식이 못 찾고 **빌드가 실패한다**(조용히 넘어가지 않도록 일부러 그렇게 했다).
+- DB에 못 닿으면 시드로 폴백하고 빌드 로그에 경고를 남긴다. 배포 로그에
+  `! DB 미연결 → 시드 프로젝트로 폴백`이 보이면 프로젝트 페이지가 누락된 것이니 환경변수를 확인할 것.
+- 성공 로그: `✓ 프리렌더 13쪽 + 사이트맵 13건 (프로젝트 9)`
+
+### 검증법
+```bash
+for p in / /work /contact /work/coastal-multimedia-show; do
+  curl -s -A "Mozilla/5.0 (compatible; Yeti/1.1; +https://naver.me/spd)" "https://www.viren.kr$p" \
+    | grep -o 'rel="canonical" href="[^"]*"'
+done
+```
+네 줄이 **서로 다르면** 정상. 전부 같으면 정적 파일이 안 나가고 리라이트를 타는 것이다.
 
 ## 11. 과거에 반영된 주요 작업 (참고)
 

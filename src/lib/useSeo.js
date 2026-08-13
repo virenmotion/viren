@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
+import { SITE } from './seoRoutes'
 
-const SITE = 'https://www.viren.kr'
-export const BRAND = 'VIREN 바이렌'
+export { BRAND } from './seoRoutes'
 
 /* 페이지별 title / description / canonical 갱신.
    SPA라 모든 라우트가 index.html의 태그 하나를 공유했고, canonical이 전부 홈(/)으로
@@ -13,7 +13,8 @@ export const BRAND = 'VIREN 바이렌'
    앞의 것(=정적 홈 값)을 채택해 수정이 무의미해진다.
 
    ⚠️ 이건 JS 실행 후에만 반영된다. 구글은 렌더링하므로 문제없지만 네이버 Yeti는
-   원본 HTML만 읽으므로 index.html의 기본값을 계속 본다(그쪽은 noscript가 담당). */
+   원본 HTML만 읽는다. 그래서 빌드 때 scripts/prerender.mjs가 라우트별 HTML을 따로
+   구워 두고, Yeti는 그 정적 파일을 받는다. 이 훅은 클라이언트 라우팅용이다. */
 export default function useSeo({ title, description, path, noindex = false }) {
   useEffect(() => {
     const set = (selector, attr, value) => {

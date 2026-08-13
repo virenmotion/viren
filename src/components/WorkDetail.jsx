@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useProjects } from '../ProjectsContext'
 import useSeo, { BRAND } from '../lib/useSeo'
+import { projectTitle, projectDescription } from '../lib/seoRoutes'
 import Reveal from './Reveal'
 
 /* 라벨 — 기본 자간(.32em) 유지, 텍스트가 기준 폭을 넘을 때만 자간 자동 축소 */
@@ -216,12 +217,9 @@ export default function WorkDetail() {
   const p = findProject(id)
 
   /* 프로젝트별 고유 제목·설명·canonical. 훅은 조건부 호출이 불가하므로 p가 없을 때도 호출한다.
-     설명은 본문 요약을 80자로 자르고, 없으면 카테고리 기반 문구로 대체. */
-  const seoTitle = p ? `${p.titleKo || p.titleEn} | ${BRAND}` : undefined
-  const seoDesc = p
-    ? ((p.desc || '').replace(/\s+/g, ' ').trim().slice(0, 78) ||
-       `${catLabel(p.cat)} 프로젝트 — 바이렌(VIREN)이 제작한 ${p.titleKo || p.titleEn}입니다.`.slice(0, 78))
-    : undefined
+     문구 규칙은 seoRoutes에 두고 빌드 프리렌더와 공유한다(어긋나면 클로킹으로 간주됨). */
+  const seoTitle = p ? projectTitle(p) : undefined
+  const seoDesc = p ? projectDescription(p, catLabel) : undefined
   /* 삭제된 프로젝트 주소는 SPA라 200으로 응답해 구글에 소프트 404로 잡힌다 → noindex 처리.
      ⚠️ 조건에 !loading이 반드시 필요하다. 로딩 중에도 p는 없으므로, loading을 빼면
      정상 페이지가 데이터 도착 전에 noindex로 스냅샷될 수 있다. */
