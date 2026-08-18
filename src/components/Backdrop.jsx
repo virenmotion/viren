@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react'
-import Scene3D from './Scene3D'
 
-/* 3D 오브젝트 고정 배경 레이어.
-   ABOUT 섹션이 화면 60% 지점까지 올라오면 1 → 0.2로 어두워진다. */
+/* 홈 고정 배경 레이어.
+   ABOUT 섹션이 화면 60% 지점까지 올라오면 1 → 0.2로 어두워진다.
+
+   ⚠️ 원래 내용물은 three.js 3D 로고(Scene3D)였다. 2026-08-18 APEC 레퍼런스 영상으로 교체.
+   되돌리려면 아래 <video>를 지우고 `import Scene3D from './Scene3D'` + <Scene3D />로 바꾸면 된다.
+   Scene3D.jsx는 지우지 않았고, 사본이 클로드/VIREN_3D로고_백업/ 에도 있다. */
 export default function Backdrop() {
   const ref = useRef(null)
 
@@ -38,7 +41,18 @@ export default function Backdrop() {
 
   return (
     <div className="backdrop" ref={ref}>
-      <Scene3D />
+      <video
+        className="backdrop-video"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        aria-hidden="true"
+      >
+        <source src="/assets/hero-bg.mp4" type="video/mp4" />
+      </video>
+      <div className="backdrop-veil" aria-hidden="true" />
     </div>
   )
 }

@@ -135,6 +135,12 @@ header.nav-open .nav-toggle span:nth-child(3){transform:translateY(-8px) rotate(
 .backdrop{
   position:fixed;inset:0;z-index:0;pointer-events:none;will-change:opacity;
 }
+/* 홈 배경 영상(APEC 레퍼런스). 원래 자리는 three.js 3D 로고였다 — Backdrop.jsx 주석 참고 */
+.backdrop-video{width:100%;height:100%;object-fit:cover;display:block}
+/* 영상 위 어둠막 — 밝은 장면에서 hero 문구가 묻히지 않게. Outro의 .outro-veil과 같은 역할.
+   글자가 놓이는 위(네비)와 아래(대문구)를 진하게, 가운데는 영상이 살도록 옅게. */
+.backdrop-veil{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(8,8,10,.45) 0%,rgba(8,8,10,.28) 40%,rgba(8,8,10,.78) 100%)}
 main > section,main > .band{position:relative;z-index:1}
 .hero,.intro{background:transparent}
 /* PHILOSOPHY는 투명 유지 → 고정된 3D 회전 배경이 hero/about처럼 비친다.
