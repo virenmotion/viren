@@ -1,4 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+
+/* 모바일(≤760px)은 세로 화면이라 16:9 원본을 그대로 깔면 가로가 74% 잘려 구도가 사라진다.
+   가운데를 9:16으로 잘라낸 별도 인코딩을 쓴다(용량도 9.7MB → 4.0MB로 내려간다).
+   ⚠️ 재생 중에 소스를 바꾸면 영상이 처음부터 다시 시작하므로 마운트 시점에 한 번만 정한다.
+   (브라우저가 <source media="…">를 신뢰성 있게 처리하지 않아 JS로 고른다) */
+const pickSrc = () =>
+  matchMedia('(max-width:760px)').matches ? '/assets/hero-bg-mobile.mp4' : '/assets/hero-bg.mp4'
 
 /* 홈 고정 배경 레이어.
    ABOUT 섹션이 화면 60% 지점까지 올라오면 1 → 0.2로 어두워진다.
@@ -8,6 +15,7 @@ import { useEffect, useRef } from 'react'
    Scene3D.jsx는 지우지 않았고, 사본이 클로드/VIREN_3D로고_백업/ 에도 있다. */
 export default function Backdrop() {
   const ref = useRef(null)
+  const [src] = useState(pickSrc)
 
   useEffect(() => {
     const el = ref.current
@@ -50,7 +58,7 @@ export default function Backdrop() {
         preload="auto"
         aria-hidden="true"
       >
-        <source src="/assets/hero-bg.mp4" type="video/mp4" />
+        <source src={src} type="video/mp4" />
       </video>
       <div className="backdrop-veil" aria-hidden="true" />
     </div>
