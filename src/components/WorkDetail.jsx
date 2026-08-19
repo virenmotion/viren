@@ -48,6 +48,37 @@ function ytId(v) {
   return s
 }
 
+/* 화면에 들어올 때만 재생하는 클립.
+   ⚠️ autoPlay를 쓰면 preload="metadata"가 무시되고 페이지를 열자마자 전체를 내려받는다.
+   APEC 경주 상세는 그 탓에 영상 3개(32MB)가 한꺼번에 받아졌다. src는 그대로 둬야
+   메타데이터로 세로 크기가 잡힌다(빼면 로드될 때 레이아웃이 튄다).
+   화면 밖으로 나가면 일시정지 — 데이터·배터리도 아낀다. */
+function LazyClip({ src, label }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const play = () => el.play?.().catch(() => {}) // 자동재생 차단 시 조용히 무시
+    if (typeof IntersectionObserver !== 'function') { play(); return }
+    const io = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) play(); else el.pause?.() },
+      { rootMargin: '150px' }, // 살짝 미리 시작해 스크롤 시 끊기지 않게
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  return (
+    <video
+      ref={ref}
+      className="wb-clip"
+      src={src}
+      muted loop playsInline preload="metadata"
+      aria-label={label}
+      onContextMenu={(e) => e.preventDefault()}
+    />
+  )
+}
+
 /* 콘텐츠 블록 하나 렌더 */
 function BlockBody({ b }) {
   if (b.type === 'text') {
@@ -154,13 +185,7 @@ function BlockBody({ b }) {
         {isFile ? (
           b.loop ? (
             /* 소리 없이 반복되는 짧은 클립 — 컨트롤 없이 배경처럼 재생 */
-            <video
-              className="wb-clip"
-              src={b.media}
-              autoPlay muted loop playsInline preload="metadata"
-              aria-label={b.caption || '영상'}
-              onContextMenu={(e) => e.preventDefault()}
-            />
+            <LazyClip src={b.media} label={b.caption || '영상'} />
           ) : (
             <video
               className="wb-clip"
