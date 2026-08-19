@@ -51,10 +51,10 @@ img{max-width:100%;display:block}
 #loader .bar{width:min(220px,40vw);height:1px;background:var(--line);position:relative;overflow:hidden}
 #loader .bar span{position:absolute;inset:0;background:var(--accent);transform:scaleX(0);transform-origin:left}
 /* 종료: 로고 속으로 빨려들어가듯 줌인(가속) → 뒤늦게 페이드(줌이 충분히 보인 뒤 사라짐) */
-#loader.done{opacity:0;transition:opacity .55s var(--ease) .6s}
-#loader.done .curtain{opacity:0;transition:opacity .45s var(--ease) .6s}
+#loader.done{opacity:0;transition:opacity .45s var(--ease) .28s}
+#loader.done .curtain{opacity:0;transition:opacity .38s var(--ease) .28s}
 #loader.done .inner{transform:scale(15);opacity:0;transform-origin:center center;
-  transition:transform 1.15s cubic-bezier(.45,0,.6,.32),opacity .55s var(--ease) .6s}
+  transition:transform .85s cubic-bezier(.45,0,.6,.32),opacity .45s var(--ease) .28s}
 
 /* ---------- cursor ---------- */
 #cursor{
