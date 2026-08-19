@@ -19,6 +19,13 @@ export default function Preloader({ onDone, onGone }) {
   const [gone, setGone] = useState(false)
   const finishedRef = useRef(false)
   const finishRef = useRef(null) // onFrameLoad에서 조기 종료를 호출하려면 필요
+  /* ⚠️ 콜백을 ref에 담아 effect 의존성에서 뺀다.
+     Boot이 <Preloader onDone={() => setReady(true)}>처럼 인라인 함수를 넘기므로
+     리렌더마다 함수 identity가 바뀐다. 의존성에 두면 effect가 재실행되며
+     타이머가 처음부터 다시 시작하고, 그만큼 공개가 늦어진다
+     (실측: 목표 2.6초가 3.24초로 밀렸다). */
+  const cb = useRef({ onDone, onGone })
+  cb.current = { onDone, onGone }
 
   useEffect(() => {
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -32,9 +39,9 @@ export default function Preloader({ onDone, onGone }) {
       /* 공개 시각 기록 — 프리로더는 수명이 짧아 자동화 브라우저로 실시간 캡처가 안 된다.
          로딩 시간을 재려면: performance.getEntriesByName('viren:reveal')[0].startTime */
       performance.mark?.('viren:reveal')
-      onDone?.()
+      cb.current.onDone?.()
       // 종료 전환(줌 .85s + 페이드) 재생 후 자기 자신을 언마운트
-      setTimeout(() => { setGone(true); onGone?.() }, 1250)
+      setTimeout(() => { setGone(true); cb.current.onGone?.() }, 1250)
     }
 
     /* 남은 시간만 기다린다 → 로딩이 빨랐든 느렸든 총 시간이 REVEAL_AT로 수렴한다.
@@ -43,7 +50,7 @@ export default function Preloader({ onDone, onGone }) {
     finishRef.current = finish
     const t = setTimeout(finish, wait)
     return () => clearTimeout(t)
-  }, [onDone])
+  }, []) // 마운트 시 한 번만 — 위 주석 참고
 
   /* 번들 애니메이션의 로딩/에러 인디케이터 숨김 + 재생 가속 (same-origin) */
   const onFrameLoad = (e) => {
