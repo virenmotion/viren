@@ -86,7 +86,8 @@
 | `src/components/Admin.jsx` | 관리자 6탭 + 각 Manager 컴포넌트 |
 | `src/components/Band.jsx` | 홈 PHILOSOPHY 아래 마퀴 문구(`site_settings.band_words`, 관리자 MARQUEE 탭 연동) |
 | `src/components/WhatWeDo.jsx` | ABOUT의 WHAT WE DO (CMS 연동, 항목별 페이지 링크) |
-| `src/lib/projectStore.js` | projects/categories/whatwedo CRUD |
+| `src/lib/projectStore.js` | projects/categories/whatwedo CRUD + 업로드 |
+| `src/lib/mediaCompress.js` | **업로드 전 이미지 자동 압축**(WebP·2400px) + 영상 비트레이트 검사(11절) |
 | `src/lib/careerStore.js` | jobs/work_conditions CRUD |
 | `src/ProjectsContext.jsx` | projects+categories 전역 제공, **`catLabel`(카테고리 라벨은 반드시 이걸 쓸 것)** |
 | `src/lib/useSeo.js` | 라우트별 title/description/canonical 갱신 (10절 함정 주의) |
@@ -106,7 +107,7 @@
 | `label` | 라벨(Concept 등) | text | 자간 자동 축소 |
 | `features` | 특징 카드 | body | 한 줄 = `한글 \| 영문`, 칸 안 줄바꿈 `/` |
 | `specs` | **상세 항목(라벨/한/영)** | body | 한 줄 = `라벨 \| 한글 \| 영문`, 칸 안 줄바꿈 `/` |
-| `image` | 이미지 | media, caption | 업로드 → Supabase Storage |
+| `image` | 이미지 | media, caption | 업로드 시 **WebP·2400px으로 자동 압축**(11절) |
 | `video` | 영상 | media, caption, loop | **유튜브 / mp4 직접 업로드 둘 다 가능** — 아래 설명 |
 | `divider` | 구분선 | — | 이 지점에서 스크롤 효과 구역이 나뉨 |
 
@@ -115,9 +116,10 @@
   **자동 판별**이라 기존 유튜브 데이터는 그대로 동작한다.
 - `loop: true` → `muted+loop+autoplay`, 컨트롤 숨김(짧은 파노라마 클립용).
   `false` → `controls` 표시(`controlsList="nodownload"`).
-- 업로드는 `uploadVideo()` — `work-thumbs` 버킷, **50MB 상한**(`MAX_VIDEO_MB`).
+- 업로드는 `uploadVideo()` — `work-thumbs` 버킷, **20MB 상한**(`MAX_VIDEO_MB`, mediaCompress.js).
+  4Mbps를 넘으면 업로드는 되지만 관리자 화면에 ffmpeg 압축 명령이 뜬다(11절).
 - ⚠️ Supabase 무료 플랜은 저장 1GB·대역폭 월 5GB 수준. **긴 영상은 유튜브를 쓸 것.**
-  10MB 영상을 500명이 보면 대역폭이 소진된다.
+  2026-08-18에 실제로 한도를 넘겼다 — 원인과 대응은 11절.
 
 ### 이미지 보호 (2026-08-11)
 - `.wb-figure img`에 `draggable=false` + `onContextMenu` preventDefault + CSS
@@ -279,9 +281,18 @@
    대조표는 `VIREN_유튜브_설명문.md` 맨 아래. 사이트는 요약/유튜브는 전체 내역이라
    **똑같이 맞출 필요는 없다**는 데 사용자와 합의됨. 총 개수만 어긋나지 않으면 됨.
 4. **모바일 히어로 크롭 위치** — 현재 가운데(1920 중 656~1264px). 다른 구간이 낫다고
+5. **APEC 경주 상세 34.1MB** — 1600×400 영상 3개가 압축 후에도 크다. 자동재생을 끄거나
+   해상도를 낮추는 판단이 필요하다(11절 "남은 것").
+6. **Cached Egress 7.114GB** — 8/27 주기 리셋 전까지 초과 배지가 남아 있을 수 있다.
+   다음 주기부터는 페이지 용량이 1/10이라 정상으로 돌아올 것.
    판단되면 7절 (3)의 `crop` x값만 바꿔 재인코딩하면 된다.
 
 ### 완료됨 (2026-08-18)
+- **미디어 대청소**: 스토리지 1,064MB → 88MB. 고아 29개 삭제, 이미지 64개 WebP화(−97.5%),
+  영상 10개 CRF20 재인코딩(−75%). 페이지당 157MB → 12.8MB. 상세는 11절.
+- **업로드 자동 압축 기능** 추가(`mediaCompress.js`) — 같은 일이 반복되지 않도록.
+- `service_role` 키는 사용 후 폐기 완료(legacy JWT 비활성화 + Revoke). 사이트는 신형
+  `sb_publishable_` 키로 동작하므로 영향 없음(번들 실측 확인).
 - 네이버: 수집 요청 5건 + 사이트맵 재제출, 스마트플레이스 대표키워드·영업시간 수정.
 - 구글: 몬순·벚꽃콘텐츠 색인 요청 완료.
 - 유튜브: 대천해수욕장 설명문 해상도 `3072×1536` 반영 완료.
@@ -487,7 +498,74 @@ done
 ```
 네 줄이 **서로 다르면** 정상. 전부 같으면 정적 파일이 안 나가고 리라이트를 타는 것이다.
 
-## 11. 과거에 반영된 주요 작업 (참고)
+## 11. 미디어 용량·대역폭 (2026-08-18 대청소)
+
+### 무슨 일이 있었나
+Supabase 무료 플랜 한도를 넘겼다. `EXCEEDING USAGE LIMITS` 배지가 떠 있었고,
+원인은 방문자가 많아서가 아니라 **페이지 하나가 157MB**였기 때문이다.
+
+| 항목 | 정리 전 | 정리 후 |
+|---|---|---|
+| 스토리지 | 1,063.9MB (한도 1GB 초과) | **87.8MB** |
+| 이미지 64개 | 536.8MB | 13.4MB (−97.5%) |
+| 영상 10개 | 297.4MB | 74.3MB (−75.0%) |
+| 고아 파일 29개 | 229.7MB | 0 |
+| 청주 서문교 1회 방문 | 157.8MB | 12.8MB |
+
+Cached Egress는 이미 7.114GB로 5GB 한도를 넘긴 상태였다(주기 리셋 8/27).
+
+### 원인
+- **이미지를 인쇄용 PNG 원본 그대로 업로드**했다. 최대 7801×2601·36.7MB.
+  화면에서 그려지는 폭은 `#work-detail`의 1400px뿐이다.
+- **영상이 거의 무손실**이었다. 960×600을 15.7Mbps로 인코딩한 파일이 49.7MB.
+  유튜브가 1080p를 4~5Mbps로 내보내는 것과 비교하면 자릿수가 다르다.
+- **블록을 교체하며 남은 파일이 지워지지 않는다.** 관리자에서 이미지를 바꿔도
+  이전 파일은 스토리지에 남는다(29개·229.7MB가 그렇게 쌓였다).
+
+### 재발 방지 — 업로드 시 자동 압축 (`src/lib/mediaCompress.js`)
+- `compressImage`: 긴 변 2400px + WebP q82. `uploadThumb`이 자동으로 거친다.
+  - 2400px 근거: 화면 최대 1400px × 레티나 2배 ≈ 2800, 여유 두고 2400.
+  - ⚠️ **gif·svg는 건드리지 않는다**(애니메이션·벡터가 깨진다).
+  - ⚠️ 결과가 원본보다 크면 원본을 쓴다(작은 이미지에서 실제로 발생).
+  - EXIF 회전은 `imageOrientation:'from-image'`로 반영. 빼면 휴대폰 사진이 눕는다.
+- `inspectVideo` + `MAX_VIDEO_MB = 20`(기존 50) + `WARN_MBPS = 4`:
+  브라우저에서 영상 재인코딩은 비현실적이라(ffmpeg.wasm 수십 MB·매우 느림)
+  **막지 않고 알려준다.** 4Mbps를 넘으면 ffmpeg 명령을 화면에 띄운다.
+- ⚠️ **이미 올라간 파일에는 소급 적용되지 않는다.** 새 업로드부터만 적용된다.
+
+### 수동 정리가 필요할 때
+스토리지 쓰기는 `anon` 키로 안 된다(RLS: public read / authenticated write).
+`service_role` 키를 `.env.local`에 `SUPABASE_SERVICE_ROLE_KEY=`로 넣고 스크립트를 돌린 뒤,
+**대시보드에서 반드시 폐기**할 것(`API Keys → Legacy 탭 → Disable JWT-based API keys`
+→ `JWT Keys → PREVIOUS KEY → Revoke key`. 순서를 지켜야 한다).
+
+- ⚠️ **삭제 API는 권한이 없어도 200을 준다.** 응답 본문이 빈 배열 `[]`이면 아무것도
+  안 지워진 것이다. 상태 코드만 보고 성공으로 판단하지 말 것(실제로 속았다).
+- ⚠️ **고아 파일 판정은 지우기 직전에 다시 하라.** 사용자가 그 사이 블록을 교체하면
+  결과가 달라진다. 실제로 아침에 참조되던 이미지 3장이 오후엔 고아가 되어 있었다.
+- 삭제 전 백업은 필수. 원본은 저장소 밖에 있다(8절 목록 참고).
+
+### 압축 기준 (검증된 값)
+```bash
+# 이미지 — 눈으로 구분 불가, 97% 감소
+ffmpeg -i in.png -vf "scale='min(2400,iw)':'min(2400,ih)':force_original_aspect_ratio=decrease:flags=lanczos" \
+  -c:v libwebp -quality 82 -compression_level 6 out.webp
+
+# 작품 영상 — SSIM 0.979, 눈으로 구분 불가
+ffmpeg -i in.mp4 -c:v libx264 -crf 20 -preset slow -pix_fmt yuv420p -c:a copy -movflags +faststart out.mp4
+```
+- 히어로 배경(7절)은 CRF 33이지만 **작품 영상에 그 값을 쓰면 안 된다.** 배경은 글자 뒤에
+  깔리고 20% 불투명도로 흐려지지만, WORK 영상은 결과물 그 자체다.
+- 파일명은 `.png` 그대로인데 내용은 WebP다. **브라우저는 Content-Type을 보므로 정상**이고,
+  같은 이름으로 덮어써야 DB의 URL을 안 건드린다.
+
+### 남은 것
+- **APEC 경주 34.1MB** — 1600×400 영상 3개(13.3/12.2/6.9MB)가 유독 크다. 가로로 긴
+  미디어파사드 원본이라 압축이 덜 먹혔다.
+- 자동재생을 끄고 포스터+재생버튼으로 바꾸면 대역폭이 10분의 1 이하가 된다.
+  첫인상에서 움직임이 사라지는 게 trade-off. 사용자 판단 대기.
+
+## 12. 과거에 반영된 주요 작업 (참고)
 
 WORK 콘텐츠 블록(라벨/중앙/특징카드/텍스트, 드래그 재정렬), 특징카드 수량별 중앙정렬·균등 구분선, CONTACT 재배치, footer 소셜 가로1열·여백 축소, Philosophy 폰트 로테이션·프레임·간격, Outro 배경영상(4K→1080p 다운스케일), CAREER 공지 고정·지원 팝업·지원서 PDF 연동, WORK 분야/WHAT WE DO CMS(독립 관리+페이지 링크), 태블릿 전용 8개 수정, 모바일 footer 이메일 SplitText 글리치 수정(will-change 제거), CONTACT 모달 portal화.
 
