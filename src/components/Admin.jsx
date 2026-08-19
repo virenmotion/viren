@@ -7,6 +7,7 @@ import {
   getCategories, saveCategories, getWhatWeDo, saveWhatWeDo,
   getBandWords, saveBandWords, uploadVideo, MAX_VIDEO_MB,
 } from '../lib/projectStore'
+import { inspectVideo, ffmpegHint, mbText, WARN_MBPS } from '../lib/mediaCompress'
 import { listJobs, createJob, updateJob, deleteJob, getWorkConditions, saveWorkConditions } from '../lib/careerStore'
 import { WORK_CONDITIONS } from '../careerJobs'
 import { slugify, DEFAULT_CATEGORIES } from '../workProjects'
@@ -217,7 +218,11 @@ function ProjectManager() {
     const file = e.target.files?.[0]
     if (!file) return
     setMsg('')
-    try { const url = await uploadThumb(file); updateBlock(i, { media: url }) }
+    try {
+      const url = await uploadThumb(file, (r) =>
+        setMsg(`이미지를 자동 압축했습니다 — ${mbText(r.before)} → ${mbText(r.after)}`))
+      updateBlock(i, { media: url })
+    }
     catch (e2) { setMsg('이미지 업로드 실패: ' + e2.message) }
     finally { e.target.value = '' }
   }
@@ -226,7 +231,19 @@ function ProjectManager() {
     const file = e.target.files?.[0]
     if (!file) return
     setMsg(''); setVideoUploading(i)
-    try { const url = await uploadVideo(file); updateBlock(i, { media: url }) }
+    try {
+      /* 브라우저에서 영상을 재인코딩할 수는 없으니, 과한 비트레이트를 알려만 준다.
+         960x600을 15.7Mbps로 올린 파일들 때문에 대역폭이 터진 적이 있다. */
+      const info = await inspectVideo(file)
+      const url = await uploadVideo(file)
+      updateBlock(i, { media: url })
+      if (info && info.mbps > WARN_MBPS) {
+        setMsg(
+          `올렸습니다. 다만 ${info.width}×${info.height} 영상이 ${Math.round(info.mbps)}Mbps로 과합니다 ` +
+          `(${mbText(file.size)}). 화질 손실 없이 더 줄일 수 있습니다:
+${ffmpegHint(file.name)}`)
+      }
+    }
     catch (e2) { setMsg('영상 업로드 실패: ' + e2.message) }
     finally { setVideoUploading(-1); e.target.value = '' }
   }
@@ -236,7 +253,8 @@ function ProjectManager() {
     if (!file) return
     setUploading(true); setMsg('')
     try {
-      const url = await uploadThumb(file)
+      const url = await uploadThumb(file, (r) =>
+        setMsg(`이미지를 자동 압축했습니다 — ${mbText(r.before)} → ${mbText(r.after)}`))
       setForm((f) => ({ ...f, thumb: url }))
     } catch (e2) {
       setMsg('이미지 업로드 실패: ' + e2.message)
@@ -432,7 +450,7 @@ function ProjectManager() {
           </div>
         </div>
 
-        {msg && <p className="adm-err">{msg}</p>}
+        {msg && <p className={msg.includes('실패') ? 'adm-err' : 'adm-note'}>{msg}</p>}
         <div className="adm-form-actions">
           <button className="adm-btn adm-btn-primary" disabled={busy}>{busy ? '저장 중…' : '저장'}</button>
           <button type="button" className="adm-btn" onClick={cancel}>취소</button>

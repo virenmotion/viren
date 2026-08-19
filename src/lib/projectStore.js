@@ -1,5 +1,8 @@
 import { supabase, isConfigured, THUMB_BUCKET } from './supabase'
 import { SEED_PROJECTS } from '../workProjects'
+import { compressImage, ffmpegHint, MAX_VIDEO_MB } from './mediaCompress'
+
+export { MAX_VIDEO_MB }
 
 const TABLE = 'projects'
 /* DB 컬럼(snake_case) → 앱(camelCase) alias. description은 예약어 desc 회피용. */
@@ -69,13 +72,17 @@ export async function reorderProjects(slugs) {
   if (bad) throw bad.error
 }
 
-/* 썸네일 이미지 업로드 → 공개 URL 반환 */
-export async function uploadThumb(file) {
+/* 썸네일·본문 이미지 업로드 → 공개 URL 반환.
+   업로드 전에 WebP로 다시 인코딩하고 긴 변을 2400px으로 줄인다(mediaCompress 참고).
+   onCompress(무엇이 얼마나 줄었는지)는 선택 — 관리자 화면에 결과를 보여주는 용도. */
+export async function uploadThumb(file, onCompress) {
   requireDB()
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+  const r = await compressImage(file)
+  if (r.changed) onCompress?.(r)
+  const ext = (r.file.name.split('.').pop() || 'jpg').toLowerCase()
   const path = `${slugSafeStamp()}.${ext}`
-  const { error } = await supabase.storage.from(THUMB_BUCKET).upload(path, file, {
-    cacheControl: '3600', upsert: false,
+  const { error } = await supabase.storage.from(THUMB_BUCKET).upload(path, r.file, {
+    cacheControl: '3600', upsert: false, contentType: r.file.type || undefined,
   })
   if (error) throw error
   const { data } = supabase.storage.from(THUMB_BUCKET).getPublicUrl(path)
@@ -84,13 +91,17 @@ export async function uploadThumb(file) {
 
 /* 본문 영상 파일 업로드 → 공개 URL 반환.
    유튜브 임베드 대신 직접 재생하고 싶을 때 사용. 저장소·대역폭을 쓰므로 짧은 클립 위주로.
-   Supabase 무료 플랜은 저장 1GB·대역폭 월 5GB 수준이라 대용량 영상은 유튜브를 권장. */
-export const MAX_VIDEO_MB = 50
+   Supabase 무료 플랜은 저장 1GB·대역폭 월 5GB 수준이라 대용량 영상은 유튜브를 권장.
+   ⚠️ 상한(MAX_VIDEO_MB)은 mediaCompress에 있다. 50MB였을 때 49.7MB짜리가 올라와
+   페이지 하나가 157MB가 된 적이 있어 20MB로 낮췄다. */
 export async function uploadVideo(file) {
   requireDB()
   const mb = file.size / (1024 * 1024)
   if (mb > MAX_VIDEO_MB) {
-    throw new Error(`영상이 ${mb.toFixed(1)}MB입니다. ${MAX_VIDEO_MB}MB 이하로 줄이거나 유튜브를 이용하세요.`)
+    throw new Error(
+      `영상이 ${mb.toFixed(1)}MB입니다(상한 ${MAX_VIDEO_MB}MB). 아래 명령으로 압축한 뒤 올리거나, ` +
+      `긴 영상은 유튜브를 이용하세요.
+${ffmpegHint(file.name)}`)
   }
   const ext = (file.name.split('.').pop() || 'mp4').toLowerCase()
   const path = `video-${slugSafeStamp()}.${ext}`

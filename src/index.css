@@ -991,6 +991,8 @@ footer{
 .adm-h2{font-size:18px;font-weight:600;margin-bottom:18px}
 .adm-muted{color:var(--muted);font-size:14px}
 .adm-err{color:#ff6b6b;font-size:13px;margin:4px 0}
+/* 오류가 아닌 안내(자동 압축 결과 등). ffmpeg 명령이 줄바꿈으로 들어와 pre-line 필요 */
+.adm-note{color:var(--accent);font-size:13px;margin:4px 0;white-space:pre-line;word-break:break-all}
 .adm-hint{display:block;color:var(--muted);font-size:12px;margin-top:5px}
 
 .adm-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}
