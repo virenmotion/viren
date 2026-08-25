@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 /* 모바일(≤760px)은 세로 화면이라 16:9 원본을 그대로 깔면 가로가 74% 잘려 구도가 사라진다.
    가운데를 9:16으로 잘라낸 별도 인코딩을 쓴다(용량도 11MB → 4.9MB로 내려간다).
@@ -6,6 +7,21 @@ import { useEffect, useRef, useState } from 'react'
    (브라우저가 <source media="…">를 신뢰성 있게 처리하지 않아 JS로 고른다) */
 const pickSrc = () =>
   matchMedia('(max-width:760px)').matches ? '/assets/hero-bg-mobile.mp4' : '/assets/hero-bg.mp4'
+
+/* 첫 상호작용으로 소리를 켤 때 감시할 이벤트 */
+const GESTURES = ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll']
+
+function SpeakerIcon({ muted }) {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+      strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 9.5v5h3.2L12 18.5v-13L7.2 9.5H4z" />
+      {muted
+        ? <><path d="M16.5 9.5l4 5" /><path d="M20.5 9.5l-4 5" /></>
+        : <><path d="M15.8 9.2a4 4 0 0 1 0 5.6" /><path d="M18.3 6.8a7.5 7.5 0 0 1 0 10.4" /></>}
+    </svg>
+  )
+}
 
 /* 홈 고정 배경 레이어.
    ABOUT 섹션이 화면 60% 지점까지 올라오면 1 → 0.2로 어두워진다.
@@ -16,7 +32,12 @@ const pickSrc = () =>
 export default function Backdrop() {
   const ref = useRef(null)
   const vidRef = useRef(null)
+  const btnRef = useRef(null)
   const [src] = useState(pickSrc)
+  const [muted, setMuted] = useState(true)
+  /* 버튼을 한 번이라도 누르면 사용자의 선택이 이긴다 —
+     그 뒤로는 첫 상호작용 자동 해제가 끼어들지 않는다. */
+  const userChose = useRef(false)
 
   useEffect(() => {
     const el = ref.current
@@ -42,6 +63,12 @@ export default function Backdrop() {
          WHAT WE DO 이후에는 op가 0이므로 자연히 무음이 된다. */
       const v = vidRef.current
       if (v) v.volume = Math.min(1, Math.max(0, op))
+      /* 소리가 없는 구간에서는 버튼도 숨긴다(있어도 할 일이 없다) */
+      const b = btnRef.current
+      if (b) {
+        b.style.opacity = op < 0.05 ? '0' : '1'
+        b.style.pointerEvents = op < 0.05 ? 'none' : 'auto'
+      }
     }
     addEventListener('scroll', onScroll, { passive: true })
     addEventListener('resize', onScroll)
@@ -56,47 +83,79 @@ export default function Backdrop() {
      무시하면 재생 자체가 안 된다). 그래서 두 단계로 간다.
        1) 소리를 켠 채로 재생을 시도한다. 재방문자처럼 이 사이트에 대한 미디어
           engagement가 쌓여 있으면 그대로 통과한다.
-       2) 막히면 음소거로 재생해두고, 방문자가 화면과 처음 상호작용하는 순간
-          (클릭·키 입력·스크롤·터치) 음소거를 푼다. 버튼 없이 켜지게 하는 방법이다. */
+       2) 막히면 음소거로 재생해두고, 첫 상호작용에 음소거를 푼다.
+     버튼을 이미 눌렀다면(userChose) 2)는 건너뛴다. */
   useEffect(() => {
     const v = vidRef.current
     if (!v) return
-    const EVENTS = ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll']
     let off = () => {}
 
     const unmute = () => {
+      if (userChose.current) { off(); return }
       v.muted = false
+      setMuted(false)
       v.play().catch(() => {})
       off()
     }
 
     v.muted = false
-    v.play().then(off /* 1)이 통과하면 대기할 필요가 없다 */).catch(() => {
-      v.muted = true
-      v.play().catch(() => {}) // 음소거 상태로는 재생돼야 한다
-      EVENTS.forEach((e) => addEventListener(e, unmute, { once: true, passive: true }))
-      off = () => EVENTS.forEach((e) => removeEventListener(e, unmute))
-    })
+    v.play()
+      .then(() => setMuted(false))
+      .catch(() => {
+        v.muted = true
+        setMuted(true)
+        v.play().catch(() => {}) // 음소거 상태로는 재생돼야 한다
+        GESTURES.forEach((e) => addEventListener(e, unmute, { once: true, passive: true }))
+        off = () => GESTURES.forEach((e) => removeEventListener(e, unmute))
+      })
 
     return () => off()
   }, [])
 
+  const toggle = () => {
+    const v = vidRef.current
+    if (!v) return
+    userChose.current = true
+    const next = !v.muted
+    v.muted = next
+    setMuted(next)
+    if (!next) v.play().catch(() => {}) // 소리를 켜는 김에 멈춰 있으면 재생
+  }
+
   return (
-    <div className="backdrop" ref={ref}>
-      {/* muted 속성은 유지 — 자동재생 허용 조건이다. 해제는 위 훅이 담당한다. */}
-      <video
-        ref={vidRef}
-        className="backdrop-video"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        aria-hidden="true"
-      >
-        <source src={src} type="video/mp4" />
-      </video>
-      <div className="backdrop-veil" aria-hidden="true" />
-    </div>
+    <>
+      <div className="backdrop" ref={ref}>
+        {/* muted 속성은 유지 — 자동재생 허용 조건이다. 해제는 위 훅이 담당한다. */}
+        <video
+          ref={vidRef}
+          className="backdrop-video"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-hidden="true"
+        >
+          <source src={src} type="video/mp4" />
+        </video>
+        <div className="backdrop-veil" aria-hidden="true" />
+      </div>
+      {/* ⚠️ body로 포털한다. .backdrop은 z-index:0이라 그 안에 두면 z-index:1인
+          섹션에 가려 눌리지 않는다(main이 z-index:2로 자체 stacking context를 만든다). */}
+      {createPortal(
+        <button
+          ref={btnRef}
+          type="button"
+          className="sound-toggle"
+          onClick={toggle}
+          aria-pressed={!muted}
+          aria-label={muted ? '배경 영상 소리 켜기' : '배경 영상 소리 끄기'}
+          title={muted ? '소리 켜기' : '소리 끄기'}
+        >
+          <SpeakerIcon muted={muted} />
+        </button>,
+        document.body,
+      )}
+    </>
   )
 }
