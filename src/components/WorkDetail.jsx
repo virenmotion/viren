@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useProjects } from '../ProjectsContext'
 import useSeo, { BRAND } from '../lib/useSeo'
-import { projectTitle, projectDescription } from '../lib/seoRoutes'
+import { projectTitle, projectDescription, pickRelated } from '../lib/seoRoutes'
 import Reveal from './Reveal'
 
 /* 라벨 — 기본 자간(.32em) 유지, 텍스트가 기준 폭을 넘을 때만 자간 자동 축소 */
@@ -238,7 +238,7 @@ function renderBlockGroups(blocks) {
 /* WORK 상세 — /work/:slug. 카테고리·제목 브레드크럼 + 영상 임베드 + 날짜·본문. */
 export default function WorkDetail() {
   const { id } = useParams() // 라우트 파라미터명은 id지만 slug로 사용
-  const { findProject, loading, catLabel } = useProjects()
+  const { projects, findProject, loading, catLabel } = useProjects()
   const p = findProject(id)
 
   /* 프로젝트별 고유 제목·설명·canonical. 훅은 조건부 호출이 불가하므로 p가 없을 때도 호출한다.
@@ -272,6 +272,8 @@ export default function WorkDetail() {
       </section>
     )
   }
+
+  const related = pickRelated(projects, p)
 
   return (
     <section id="work-detail">
@@ -312,6 +314,30 @@ export default function WorkDetail() {
 
       {/* 본문 하단 콘텐츠 블록 — 구분선 기준으로 구역 단위 스크롤 리빌 */}
       {Array.isArray(p.blocks) && renderBlockGroups(p.blocks)}
+
+      {/* 다른 프로젝트 — 상세 페이지끼리 이어주는 내부 링크.
+          없으면 각 상세가 목록에서 오는 링크 1개만 받아 검색엔진이 중요도를 낮게 본다.
+          선택 규칙은 seoRoutes의 pickRelated에 두고 프리렌더와 공유한다. */}
+      {related.length > 0 && (
+        <nav className="wd-more" aria-label="다른 프로젝트">
+          <h2 className="wd-more-title">다른 프로젝트</h2>
+          <ul className="wd-more-list">
+            {related.map((r) => (
+              <li key={r.slug}>
+                <Link className="wd-more-card" to={`/work/${r.slug}`} data-hover>
+                  <span
+                    className="wd-more-thumb"
+                    style={r.thumb ? { backgroundImage: `url(${r.thumb})` } : undefined}
+                    aria-hidden="true"
+                  />
+                  <span className="wd-more-cat">{catLabel(r.cat)}</span>
+                  <span className="wd-more-ko">{r.titleKo || r.titleEn}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       <Link className="wd-back" to="/work">← WORK 목록</Link>
     </section>

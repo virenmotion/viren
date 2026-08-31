@@ -657,6 +657,18 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   .wb-spec-label{margin-bottom:6px}
 }
 
+/* 상세 하단 '다른 프로젝트' — 상세 페이지끼리 잇는 내부 링크(WorkDetail.jsx 주석 참고) */
+.wd-more{margin:clamp(56px,9vh,96px) 0 clamp(28px,4vh,44px);border-top:1px solid var(--line);padding-top:clamp(28px,4vh,44px)}
+.wd-more-title{font-size:12px;letter-spacing:.28em;color:var(--muted);font-weight:400;margin:0 0 clamp(18px,3vh,28px)}
+.wd-more-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,2vw,26px)}
+.wd-more-card{display:block;text-decoration:none;color:inherit}
+.wd-more-thumb{display:block;aspect-ratio:16/10;border-radius:4px;background:#141414 center/cover no-repeat;
+  transition:opacity .4s var(--ease)}
+.wd-more-card:hover .wd-more-thumb{opacity:.72}
+.wd-more-cat{display:block;margin-top:12px;font-size:11px;letter-spacing:.2em;color:var(--accent)}
+.wd-more-ko{display:block;margin-top:6px;font-size:clamp(13px,1.1vw,15px);line-height:1.45;word-break:keep-all}
+@media(max-width:860px){.wd-more-list{grid-template-columns:repeat(2,1fr)}.wd-more-list li:nth-child(3){display:none}}
+@media(max-width:520px){.wd-more-list{grid-template-columns:1fr}.wd-more-list li:nth-child(3){display:block}}
 .wd-back{display:inline-block;margin-top:clamp(44px,7vh,72px);
   font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);transition:color .3s var(--ease)}
 .wd-back:hover{color:var(--accent)}

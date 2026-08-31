@@ -50,3 +50,17 @@ export function projectDescription(p, catLabel) {
   if (summary) return summary
   return `${catLabel(p.cat)} 프로젝트 — 바이렌(VIREN)이 제작한 ${p.titleKo || p.titleEn}입니다.`.slice(0, 78)
 }
+
+/* 다른 프로젝트 추천 — 화면(WorkDetail)과 프리렌더가 **같은 결과**를 내야 한다.
+   서로 다르면 크롤러가 보는 링크와 사람이 보는 링크가 어긋나 클로킹으로 간주된다.
+
+   왜 필요한가: 내부 링크 구조가 별 모양이었다. /work → 상세 9개 → 다시 /work.
+   각 상세 페이지가 받는 내부 링크가 1개뿐이라 검색엔진이 중요도를 낮게 본다.
+   같은 분야를 먼저 채우고 모자라면 나머지로 채운다(정렬 순서 유지 = 결과가 항상 같다). */
+export function pickRelated(all, current, n = 3) {
+  if (!Array.isArray(all) || !current) return []
+  const others = all.filter((p) => p.slug !== current.slug)
+  const sameCat = others.filter((p) => p.cat === current.cat)
+  const rest = others.filter((p) => p.cat !== current.cat)
+  return [...sameCat, ...rest].slice(0, n)
+}

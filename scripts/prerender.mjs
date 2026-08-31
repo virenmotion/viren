@@ -16,7 +16,7 @@
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
-import { SITE, SEO, H1, projectTitle, projectDescription } from '../src/lib/seoRoutes.js'
+import { SITE, SEO, H1, projectTitle, projectDescription, pickRelated } from '../src/lib/seoRoutes.js'
 import { SEED_PROJECTS } from '../src/workProjects.js'
 
 const DIST = path.resolve('dist')
@@ -212,6 +212,18 @@ pages.push({
       ${NAV}`,
 })
 
+/* 화면(WorkDetail)의 '다른 프로젝트'와 **같은 목록**을 크롤러에도 준다.
+   상세끼리 링크가 이어져야 검색엔진이 각 페이지를 따라올 수 있다.
+   목록이 다르면 클로킹이므로 pickRelated를 공유한다. */
+const relatedLinks = (p) => {
+  const rel = pickRelated(projects, p)
+  if (!rel.length) return ''
+  const items = rel
+    .map((r) => `<li><a href="/work/${esc(r.slug)}">${esc(r.titleKo || r.titleEn)}</a></li>`)
+    .join('\n        ')
+  return `<h2>다른 프로젝트</h2>\n      <ul>\n        ${items}\n      </ul>`
+}
+
 for (const p of projects) {
   const meta = [
     p.client && `발주처 ${p.client}`,
@@ -229,6 +241,7 @@ for (const p of projects) {
       ${p.desc ? `<p>${esc(p.desc)}</p>` : ''}
       ${(p.blocks || []).map(blockText).filter(Boolean).join('\n      ')}
       <p>제작 — 바이렌(VIREN) 콘텐츠 프로덕션 스튜디오</p>
+      ${relatedLinks(p)}
       ${NAV}`,
   })
 }
