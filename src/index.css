@@ -738,14 +738,20 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   .job-table td{padding:12px 9px;font-size:13px}
 }
 /* 지원하기(팝업 버튼) + 지원서 양식 다운로드 한 줄 */
-.job-apply-row{display:flex;align-items:center;gap:clamp(20px,3.2vw,44px);flex-wrap:wrap}
+.job-apply-row{display:flex;align-items:center;gap:clamp(16px,2.4vw,32px);flex-wrap:wrap}
+.job-apply-row .job-apply{margin-left:auto}
+/* 좁은 화면에서 줄이 바뀌면 margin-left:auto가 어색해지므로 해제 */
+@media(max-width:520px){.job-apply-row{gap:16px}.job-apply-row .job-apply{margin-left:0}}
 .job-apply{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
   color:var(--fg);background:none;border:0;border-bottom:1px solid var(--accent);padding:0 0 4px;cursor:pointer;
   font-family:inherit;transition:color .25s}
 .job-apply:hover{color:var(--accent)}
+/* 양식 다운로드 — 노란 박스에 검은 글씨(주 동선이라 강조).
+   .job-apply는 margin-left:auto로 오른쪽 끝에 붙는다. */
 .job-form-dl{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--muted);transition:color .25s var(--ease)}
-.job-form-dl:hover{color:var(--accent)}
+  color:#0a0a0a;background:var(--accent);border-radius:3px;padding:11px 18px;font-weight:600;
+  transition:opacity .25s var(--ease)}
+.job-form-dl:hover{color:#0a0a0a;opacity:.82}
 .job-empty{color:var(--muted);padding:40px 4px;font-size:15px}
 /* JOB POSITION 하단 고정 안내문구 */
 .job-notice-text{margin-top:clamp(28px,4vh,48px);font-size:clamp(13px,1.1vw,15px);line-height:1.9;color:var(--muted);

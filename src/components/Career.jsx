@@ -107,12 +107,13 @@ export default function Career() {
                     <JobTable job={j} />
                     {!isNotice && (
                       <div className="job-apply-row">
-                        <button type="button" className="job-apply" onClick={() => setApplyJob(j)}>
-                          지원하기 <span aria-hidden="true">↗</span>
-                        </button>
+                        {/* 양식 다운로드가 먼저 — 지원 전에 받아야 하는 순서이기도 하다 */}
                         <a className="job-form-dl" href={APPLY_FORM_URL} download="VIREN_입사지원서_양식.pdf" data-hover>
                           지원서 양식 DOWNLOAD <span aria-hidden="true">↓</span>
                         </a>
+                        <button type="button" className="job-apply" onClick={() => setApplyJob(j)}>
+                          지원하기 <span aria-hidden="true">↗</span>
+                        </button>
                       </div>
                     )}
                   </div>
