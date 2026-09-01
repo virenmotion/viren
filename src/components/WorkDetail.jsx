@@ -238,7 +238,7 @@ function renderBlockGroups(blocks) {
 /* WORK 상세 — /work/:slug. 카테고리·제목 브레드크럼 + 영상 임베드 + 날짜·본문. */
 export default function WorkDetail() {
   const { id } = useParams() // 라우트 파라미터명은 id지만 slug로 사용
-  const { projects, findProject, loading, catLabel } = useProjects()
+  const { projects, findProject, loading, catLabel, trusted } = useProjects()
   const p = findProject(id)
 
   /* 프로젝트별 고유 제목·설명·canonical. 훅은 조건부 호출이 불가하므로 p가 없을 때도 호출한다.
@@ -248,7 +248,10 @@ export default function WorkDetail() {
   /* 삭제된 프로젝트 주소는 SPA라 200으로 응답해 구글에 소프트 404로 잡힌다 → noindex 처리.
      ⚠️ 조건에 !loading이 반드시 필요하다. 로딩 중에도 p는 없으므로, loading을 빼면
      정상 페이지가 데이터 도착 전에 noindex로 스냅샷될 수 있다. */
-  const notFound = !loading && !p
+  /* ⚠️ trusted가 빠지면 안 된다. DB 조회 실패 시 시드로 폴백하는데 시드에는
+     현재 프로젝트가 하나도 없어서, 그 상태로 판정하면 멀쩡한 페이지 전부에
+     noindex가 붙는다(2026-09-01 실제 발생, ProjectsContext 주석 참고). */
+  const notFound = !loading && trusted && !p
   useSeo({
     title: notFound ? `페이지를 찾을 수 없습니다 | ${BRAND}` : seoTitle,
     description: seoDesc,
