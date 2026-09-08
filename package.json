@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build && node scripts/prerender.mjs",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seo:health": "node scripts/seo-health.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
