@@ -717,6 +717,65 @@ ffmpeg -i in.mp4 -c:v libx264 -crf 20 -preset slow -pix_fmt yuv420p -c:a copy -m
 - `prefers-reduced-motion: reduce` → 300ms
 - `/admin` → 프리로더 자체를 건너뜀(`App.jsx`의 `Boot`)
 
+## 11-2. 다운로드 PDF — 교체 절차와 파일명 함정 (2026-09-16)
+
+회사소개서·입사지원서 양식 두 개. **Supabase가 아니라 git 저장소 안 파일**이다.
+
+| 용도 | 경로 (이름 고정) | 링크하는 곳 |
+|---|---|---|
+| 회사소개서 | `public/assets/viren_company_profile.pdf` | `Footer.jsx` |
+| 입사지원서 양식 | `public/assets/viren_application_form.pdf` | `Career.jsx` |
+
+### 덮어쓰기만으로는 반영되지 않는다
+
+관리자에서 올리는 WORK 미디어와 달리 **커밋·푸시해야 라이브에 나간다.**
+2026-09-16에 사용자가 오전 10시에 파일을 바꿔뒀지만, 커밋 전까지 사이트에는
+직전 27페이지 판이 그대로 걸려 있었다. "덮어쓰면 자동이냐"는 질문을 받은
+지점이기도 하다 — **아니다. 사용자가 말해줘야 한다.**
+
+### ⚠️ `a[download]`로는 파일명이 안 바뀐다 — 한 번 틀렸다
+
+`<a download="한글이름.pdf">`를 넣고 번들에 문자열이 들어간 것까지 확인했는데도
+실제 다운로드는 `viren_company_profile.pdf`로 떨어졌다. 이유가 둘이다.
+
+1. **서버 `Content-Disposition`의 filename이 `download` 속성보다 우선한다.**
+   Vercel은 기본으로 `inline; filename="<실제 파일명>"`을 보낸다.
+2. **`viren.kr` → `www.viren.kr` 는 308 교차출처 리다이렉트다.** 리다이렉트가
+   출처를 넘으면 브라우저가 `download` 파일명을 통째로 버린다.
+   **사용자는 보통 `www` 없이 접속하므로 이쪽이 기본 경로다.**
+
+→ **`vercel.json`의 `headers`로 지정**해야 apex/www 양쪽에서 동작한다.
+한글은 RFC 5987(`filename*=UTF-8''<퍼센트인코딩>`), ASCII 이름을 함께 둔다.
+
+```bash
+node -e "console.log(encodeURIComponent('2026_VIREN_회사소개서.pdf'))"
+```
+
+⚠️ 해가 바뀌면 `vercel.json`의 `2026_` 접두사도 같이 갱신할 것. 파일 자체의
+이름을 바꾸면 링크와 헤더 규칙이 동시에 어긋난다 — **경로명은 고정이다.**
+
+### 검증은 번들이 아니라 응답 헤더로
+
+apex를 경유(`-L`)시켜 최종 응답을 본다. 번들에 문자열이 들어갔는지 보는 것으로는
+위 두 함정을 못 잡는다(실제로 그렇게 통과시켰다가 틀렸다).
+
+```bash
+curl -sIL "https://viren.kr/assets/viren_company_profile.pdf" \
+  | tr -d '\r' | grep -iE '^(HTTP|content-disposition|content-length)'
+```
+
+### PDF 자체 점검
+
+poppler(`pdftoppm`)가 없어 페이지를 그림으로 볼 수 없다. node로 대신한다 —
+`/Type /Page` 개수, `/MediaBox`, `/Encrypt` 유무, content stream을 inflate해서
+표지 문구까지 확인한다. 이전 판 용량은 git에서 바로 꺼낸다.
+
+```bash
+git cat-file -s $(git rev-parse HEAD:public/assets/viren_company_profile.pdf)
+```
+
+사용자용 절차 요약은 `클로드\홈페이지 관련\_작업방식.md`「다운로드 PDF 교체」.
+
 ## 12. 과거에 반영된 주요 작업 (참고)
 
 WORK 콘텐츠 블록(라벨/중앙/특징카드/텍스트, 드래그 재정렬), 특징카드 수량별 중앙정렬·균등 구분선, CONTACT 재배치, footer 소셜 가로1열·여백 축소, Philosophy 폰트 로테이션·프레임·간격, Outro 배경영상(4K→1080p 다운스케일), CAREER 공지 고정·지원 팝업·지원서 PDF 연동, WORK 분야/WHAT WE DO CMS(독립 관리+페이지 링크), 태블릿 전용 8개 수정, 모바일 footer 이메일 SplitText 글리치 수정(will-change 제거), CONTACT 모달 portal화.
