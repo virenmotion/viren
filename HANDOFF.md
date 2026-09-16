@@ -9,8 +9,10 @@
 
 - **VIREN** — 한국 콘텐츠 프로덕션 스튜디오 웹사이트 (한국어).
 - **스택**: React + Vite, framer-motion, react-router-dom v7, react-dom `createPortal`(모달), Supabase(콘텐츠 DB).
-- **로컬 경로**: `C:\Users\c\Documents\클로드\viren-react`
-  - ⚠️ OneDrive 백업(Known Folder Move)을 켜면 경로가 `C:\Users\c\OneDrive\문서\클로드`로 이동해 도구/git이 깨집니다. **OneDrive 폴더 백업은 꺼둔 상태 유지.**
+- **로컬 경로**: `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\viren-react`
+  - 2026-09-16에 `Documents\클로드`에서 회사 Dropbox 안으로 이동했다.
+  - ⚠️ **저장소가 Dropbox 동기화 폴더 안에 있다.** `.git`(987개)·`node_modules`(3,284개)까지 동기화되면 느려지고, 두 PC에서 동시에 건드리면 `.git`이 깨질 수 있다. 두 폴더는 Dropbox 제외(선택적 동기화) 권장.
+  - ⚠️ `.env.local`(Supabase 키)도 Dropbox에 올라간다. 이 폴더에 접근 권한이 있는 사람은 키를 볼 수 있다.
 - **셸**: Windows PowerShell 기본 + Bash(POSIX) 병행. 경로에 한글(`클로드`) 포함.
 
 ## 2. 배포 흐름 (중요)
@@ -398,10 +400,10 @@
 - **7-1 (7)** 로고 밴드의 로고 크기는 데스크톱에서 콘텐츠 폭의 38%. 원본 영상 좌우 검은 여백 때문인데, 더 키우려면 `aspect-ratio`를 높이면 됨(대신 밴드가 세로로 커져 아래가 밀림). 사용자 확인 후 현재 값으로 확정.
 - **SEO 설정 완료(10절)** — 네이버·구글 등록, 페이지별 title/canonical/h1까지 완료. 색인 반영 대기 중. 유튜브 채널 노출은 10-1절.
 - **git 저장소 밖 산출물** (커밋 대상 아님):
-  - `C:\Users\c\Documents\클로드\VIREN_3D로고_백업\` — 히어로 3D 로고(Scene3D) 사본 + `복원방법.md`. 7절 (3) 참고.
-  - `C:\Users\c\Documents\클로드\VIREN_영상원본\` — 히어로 영상 원본 184MB. **저장소에 넣지 말 것**(GitHub 100MB 제한).
-  - `C:\Users\c\Documents\클로드\QR\` — 홈페이지 QR 4종(SVG/PNG). 명함 인쇄는 `viren_qr.svg`, 최소 20mm, 흰 여백 유지. 정적 QR이라 만료 없음(도메인만 유지되면 영구).
-  - `C:\Users\c\Documents\클로드\VIREN_유튜브_설명문.md` — 유튜브 영상 설명문 원고(10-1절).
+  - `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\VIREN_3D로고_백업\` — 히어로 3D 로고(Scene3D) 사본 + `복원방법.md`. 7절 (3) 참고.
+  - `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\VIREN_영상원본\` — 히어로 영상 원본 184MB. **저장소에 넣지 말 것**(GitHub 100MB 제한).
+  - `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\QR\` — 홈페이지 QR 4종(SVG/PNG). 명함 인쇄는 `viren_qr.svg`, 최소 20mm, 흰 여백 유지. 정적 QR이라 만료 없음(도메인만 유지되면 영구).
+  - `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\VIREN_유튜브_설명문.md` — 유튜브 영상 설명문 원고(10-1절).
 - ⚠️ **`public/` 아래 다운로드/정적 파일이 없으면 `vercel.json` 전체 리라이트에 걸려 `index.html`이 200으로 내려간다.** 파일이 없는 게 아니라 "깨진 파일이 받아지는" 형태로 드러나므로 발견이 늦다. robots.txt·sitemap.xml·회사소개서 PDF 모두 이 문제였음. 새 다운로드 파일을 붙일 땐 라이브에서 `Content-Type`을 반드시 확인할 것.
   ```bash
   curl -sI https://www.viren.kr/assets/<파일명> | grep -i content-type
@@ -538,7 +540,7 @@
 - ⚠️ 재생목록 순서를 직접 정하려면 `세부정보 수정` → **`정렬 기준`을 `수동`으로** 바꿔야 한다.
   안 그러면 드래그해도 되돌아간다.
 
-- **영상 설명문 원고**: `C:\Users\c\Documents\클로드\VIREN_유튜브_설명문.md` (git 저장소 밖).
+- **영상 설명문 원고**: `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\VIREN_유튜브_설명문.md` (git 저장소 밖).
   프로젝트 9건 × 한/영. 구조는 `개요 → 컨셉 → 콘텐츠 제작(실제 해상도·러닝타임)`.
   - 작성 원칙 두 가지(사용자 지시): **컨셉 카피는 타사 기획물이라 인용 금지**,
     **하드웨어·장치·운영 내용 제외**(바이렌은 콘텐츠 제작 전문).
@@ -774,7 +776,7 @@ poppler(`pdftoppm`)가 없어 페이지를 그림으로 볼 수 없다. node로 
 git cat-file -s $(git rev-parse HEAD:public/assets/viren_company_profile.pdf)
 ```
 
-사용자용 절차 요약은 `클로드\홈페이지 관련\_작업방식.md`「다운로드 PDF 교체」.
+사용자용 절차 요약은 `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\00. 홈페이지\홈페이지 관련\_작업방식.md`「다운로드 PDF 교체」.
 
 ## 12. 과거에 반영된 주요 작업 (참고)
 
@@ -783,4 +785,4 @@ WORK 콘텐츠 블록(라벨/중앙/특징카드/텍스트, 드래그 재정렬)
 ---
 
 ### 새 채팅 시작 시 첫 메시지 예시
-> "VIREN 웹사이트 작업 이어서 할게. `viren-react/HANDOFF.md` 읽고 시작해줘. (경로: C:\Users\c\Documents\클로드\viren-react)"
+> "VIREN 웹사이트 작업 이어서 할게. `viren-react/HANDOFF.md` 읽고 시작해줘. (경로: C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\viren-react)"
