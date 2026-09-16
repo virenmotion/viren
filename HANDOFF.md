@@ -265,7 +265,7 @@
     -pix_fmt yuv420p -profile:v high -movflags +faststart public/assets/hero-bg-mobile.mp4
   ```
 - ⚠️ **원본(184MB)을 `public/`에 두지 말 것.** 그대로 배포에 딸려가고 GitHub 100MB 제한에도 걸린다.
-  원본은 `클로드\VIREN_영상원본\` 으로 옮겼다.
+  - 마스터는 회사 아카이브에 있다 — `C:\Users\c\VIREN Dropbox\박지은\OutCome\[20251024]APEC 레퍼런스.mp4` (6절 하단 참고).
 - **three.js가 번들에서 빠져 JS가 1,248KB → 685KB**(gzip 348 → 205KB)로 줄었다.
 - **되돌리려면**: `Scene3D.jsx`는 지우지 않았다. `Backdrop.jsx`에서 `<video>`를 `<Scene3D />`로
   바꾸면 끝. 절차는 `클로드\VIREN_3D로고_백업\복원방법.md`. 되돌리면 번들도 다시 늘어난다.
@@ -406,7 +406,7 @@
 - **SEO 설정 완료(10절)** — 네이버·구글 등록, 페이지별 title/canonical/h1까지 완료. 색인 반영 대기 중. 유튜브 채널 노출은 10-1절.
 - **git 저장소 밖 산출물** (커밋 대상 아님):
   - `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\VIREN_3D로고_백업\` — 히어로 3D 로고(Scene3D) 사본 + `복원방법.md`. 7절 (3) 참고.
-  - `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\VIREN_영상원본\` — 히어로 영상 원본 184MB. **저장소에 넣지 말 것**(GitHub 100MB 제한).
+  - 히어로 영상 원본(APEC 레퍼런스, 1920x1080 / 58초 / 184,834,811B)은 **회사 아카이브**에 있다 — `C:\Users\c\VIREN Dropbox\박지은\OutCome\[20251024]APEC 레퍼런스.mp4`. **저장소에 넣지 말 것**(GitHub 100MB 제한). 예전에 `클로드\VIREN_영상원본\`에 사본을 뒀었으나 2026-09-16 폴더 이동 때 없어졌다. 마스터가 살아 있으므로 문제없다(무결성 확인 완료).
   - `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\QR\` — 홈페이지 QR 4종(SVG/PNG). 명함 인쇄는 `viren_qr.svg`, 최소 20mm, 흰 여백 유지. 정적 QR이라 만료 없음(도메인만 유지되면 영구).
   - `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\VIREN_유튜브_설명문.md` — 유튜브 영상 설명문 원고(10-1절).
 - ⚠️ **`public/` 아래 다운로드/정적 파일이 없으면 `vercel.json` 전체 리라이트에 걸려 `index.html`이 200으로 내려간다.** 파일이 없는 게 아니라 "깨진 파일이 받아지는" 형태로 드러나므로 발견이 늦다. robots.txt·sitemap.xml·회사소개서 PDF 모두 이 문제였음. 새 다운로드 파일을 붙일 땐 라이브에서 `Content-Type`을 반드시 확인할 것.
