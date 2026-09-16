@@ -8,7 +8,7 @@ export default function Footer() {
       <div className="footer-grid">
         <div className="brand">
           <div className="wm foot-mark"><img src="/assets/viren_wordmark.png" alt="VIREN" /></div>
-          <a className="foot-download" href="/assets/viren_company_profile.pdf" download data-hover>
+          <a className="foot-download" href="/assets/viren_company_profile.pdf" download="2026_VIREN_회사소개서.pdf" data-hover>
             회사소개서 DOWNLOAD<span className="dl-ic" aria-hidden="true">↓</span>
           </a>
           <SplitText as={Link} to="/contact" className="mail" data-hover text="virenmotion@viren.kr" />
