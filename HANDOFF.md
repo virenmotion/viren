@@ -11,7 +11,12 @@
 - **스택**: React + Vite, framer-motion, react-router-dom v7, react-dom `createPortal`(모달), Supabase(콘텐츠 DB).
 - **로컬 경로**: `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\viren-react`
   - 2026-09-16에 `Documents\클로드`에서 회사 Dropbox 안으로 이동했다.
-  - ⚠️ **저장소가 Dropbox 동기화 폴더 안에 있다.** `.git`(987개)·`node_modules`(3,284개)까지 동기화되면 느려지고, 두 PC에서 동시에 건드리면 `.git`이 깨질 수 있다. 두 폴더는 Dropbox 제외(선택적 동기화) 권장.
+  - ⚠️ **저장소가 Dropbox 동기화 폴더 안에 있다.** 2026-09-16에 `.git`(987개)·`node_modules`(3,284개)·`dist`(88MB)를 **Dropbox 동기화에서 제외**했다. 로컬 파일은 그대로 두고 동기화만 멈추는 방식이라 작업에는 영향이 없다. `npm run build`로 dist를 다시 만들어도 표식은 유지된다(실측). 폴더를 통째로 지웠다 만들면 표식이 사라지므로 다시 걸어야 한다:
+
+    ```powershell
+    Set-Content -Path "<저장소>\dist" -Stream com.dropbox.ignored -Value 1
+    ```
+
   - ⚠️ `.env.local`(Supabase 키)도 Dropbox에 올라간다. 이 폴더에 접근 권한이 있는 사람은 키를 볼 수 있다.
 - **셸**: Windows PowerShell 기본 + Bash(POSIX) 병행. 경로에 한글(`클로드`) 포함.
 
