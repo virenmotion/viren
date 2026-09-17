@@ -90,7 +90,7 @@
 | `src/components/ContactModal.jsx` | 문의 모달(portal 렌더) |
 | `src/components/Career.jsx` | CAREER. 공지(pinned)/공고 아코디언, 지원 팝업, 지원서 양식 다운로드 |
 | `src/components/ApplyModal.jsx` | 지원 팝업(portal). 이름*/이메일*/전화/다중 파일 첨부/동의 |
-| `src/components/Admin.jsx` | 관리자 6탭 + 각 Manager 컴포넌트 |
+| `src/components/Admin.jsx` | 관리자 6탭 + 각 Manager 컴포넌트. 프로젝트 폼의 저장·취소는 `.adm-form-head`로 **상단 고정**(2026-09-17) |
 | `src/components/Band.jsx` | 홈 PHILOSOPHY 아래 마퀴 문구(`site_settings.band_words`, 관리자 MARQUEE 탭 연동) |
 | `src/components/WhatWeDo.jsx` | ABOUT의 WHAT WE DO (CMS 연동, 항목별 페이지 링크) |
 | `src/lib/projectStore.js` | projects/categories/whatwedo CRUD + 업로드 |
@@ -424,6 +424,18 @@
 ## 9. 검증 팁 (이 프로젝트 특성)
 
 - dev 서버는 **Browser 프리뷰 탭(localhost:5173)**으로 확인. `preview_start`/`navigate`/`javascript_tool`.
+- 🔴 **2026-09-17 현재 `preview_start`(dev 서버)가 이 경로에서 실행되지 않는다.** 저장소가
+  공백이 든 경로(`VIREN Dropbox`, `2. 디자인관련서류` …)로 옮겨간 뒤부터다.
+  ```
+  'C:\Program'은(는) 실행할 수 있는 프로그램이 아닙니다.
+  ```
+  `npm`을 `node node_modules/vite/bin/vite.js`로 바꿔도 같다 — 실행 파일이 아니라 **작업
+  디렉터리의 공백**이 원인이다. 빌드·린트·git은 정상이고 이것만 안 된다.
+  - 우회: 공백 없는 짧은 경로로 **디렉터리 정션**을 만들어 그쪽에서 세션을 여는 것(미적용).
+  - 그 전까지 화면 확인은 **배포 후 실제 사이트**에서 한다. 관리자 화면은 Claude in Chrome
+    으로 로그인된 상태를 그대로 쓸 수 있다(읽기만 하고 저장은 누르지 말 것).
+- ⚠️ Dropbox가 `dist`를 잡고 있어 `vite build`가 `EPERM`으로 죽는 일이 있다(동기화 제외를
+  걸어둔 뒤에도 발생). `rm -rf dist` 후 다시 돌리면 된다.
 - ⚠️ **여백/레이아웃 지적은 사용자 화면 크기부터 맞추고 측정할 것.** 이 사이트는 여백이 vh/vw 기반이라 창 크기가 다르면 값이 완전히 달라진다. 실제로 임의의 크기(1398×1270, 2000×1000)에서 측정해 "이미 고쳤다/캐시 문제다"라고 두 번 잘못 답한 적 있음. 사용자 실제 창은 2532×1263이었고 거기서만 재현됨.
   - 스크린샷에서 창 크기 역산: **`.svc-row` 행 간격은 실제 121px 고정** → 스크린샷의 행 간격과 비교하면 축소 배율이 나오고, 이미지 폭 ÷ 배율 = 실제 창 폭.
   - 측정은 `getBoundingClientRect`보다 **`offsetTop` 누적**이 안전(Reveal/framer-motion의 transform이 rect에 섞여 들어옴).
