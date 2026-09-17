@@ -10,6 +10,7 @@
 - **VIREN** — 한국 콘텐츠 프로덕션 스튜디오 웹사이트 (한국어).
 - **스택**: React + Vite, framer-motion, react-router-dom v7, react-dom `createPortal`(모달), Supabase(콘텐츠 DB).
 - **로컬 경로**: `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\viren-react`
+  - **세션은 `C:\viren` 에서 연다**(정션). 실제 위치는 아래 Dropbox 경로 그대로다. 9절 참고.
   - 2026-09-16에 `Documents\클로드`에서 회사 Dropbox 안으로 이동했다.
   - ⚠️ **저장소가 Dropbox 동기화 폴더 안에 있다.** 2026-09-16에 `.git`(987개)·`node_modules`(3,284개)·`dist`(88MB)를 **Dropbox 동기화에서 제외**했다. 로컬 파일은 그대로 두고 동기화만 멈추는 방식이라 작업에는 영향이 없다. `npm run build`로 dist를 다시 만들어도 표식은 유지된다(실측). 폴더를 통째로 지웠다 만들면 표식이 사라지므로 다시 걸어야 한다:
 
@@ -424,18 +425,24 @@
 ## 9. 검증 팁 (이 프로젝트 특성)
 
 - dev 서버는 **Browser 프리뷰 탭(localhost:5173)**으로 확인. `preview_start`/`navigate`/`javascript_tool`.
-- 🔴 **2026-09-17 현재 `preview_start`(dev 서버)가 이 경로에서 실행되지 않는다.** 저장소가
-  공백이 든 경로(`VIREN Dropbox`, `2. 디자인관련서류` …)로 옮겨간 뒤부터다.
+- ⚠️ **저장소를 열 때는 `C:\viren` 을 쓴다** (2026-09-17 설정). 실제 위치는 Dropbox 안이고,
+  `C:\viren`은 그곳을 가리키는 **디렉터리 정션**이다. 파일은 한 벌뿐이며 사본이 아니다.
+  - 이유: 실제 경로에 **공백**이 있어(`VIREN Dropbox`, `2. 디자인관련서류` …)
+    `preview_start`(dev 서버)가 실행되지 않는다 — `'C:\Program'은(는) 실행할 수 있는
+    프로그램이 아닙니다.` 공백 없는 정션 경로에서는 정상 실행된다(실측).
+  - `preview_start`는 **세션을 처음 연 폴더**의 `.claude/launch.json`을 본다. 세션 도중
+    작업 폴더를 옮겨도 따라오지 않는다. 그러니 처음부터 `C:\viren`에서 열 것.
+  - 정션을 지울 일이 생기면 **`rmdir C:\viren`**(또는 탐색기에서 삭제)만 쓴다. 이건 링크만
+    지운다. `rm -rf C:/viren` 처럼 재귀 삭제 도구를 쓰면 **링크를 따라 들어가 Dropbox
+    원본까지 지울 수 있다.**
+- ⚠️ **vite 캐시는 Dropbox 밖(OS 임시 폴더)에 둔다** — `vite.config.js`의 `cacheDir`.
+  기본값 `node_modules/.vite`를 쓰면 Dropbox·백신이 파일을 잡고 있는 사이 deps 교체가
+  `EBUSY`로 실패하고, 브라우저에 **504 (Outdated Optimize Dep)** 가 뜨며 흰 화면이 된다.
+- ⚠️ Dropbox 동기화 제외 표식은 **폴더를 지웠다 만들면 사라진다.** `rm -rf dist` 후 빌드하면
+  `dist`가 다시 동기화 대상이 된다. 빌드 뒤 확인·재설정할 것.
+  ```powershell
+  Set-Content -Path "C:\viren\dist" -Stream com.dropbox.ignored -Value 1
   ```
-  'C:\Program'은(는) 실행할 수 있는 프로그램이 아닙니다.
-  ```
-  `npm`을 `node node_modules/vite/bin/vite.js`로 바꿔도 같다 — 실행 파일이 아니라 **작업
-  디렉터리의 공백**이 원인이다. 빌드·린트·git은 정상이고 이것만 안 된다.
-  - 우회: 공백 없는 짧은 경로로 **디렉터리 정션**을 만들어 그쪽에서 세션을 여는 것(미적용).
-  - 그 전까지 화면 확인은 **배포 후 실제 사이트**에서 한다. 관리자 화면은 Claude in Chrome
-    으로 로그인된 상태를 그대로 쓸 수 있다(읽기만 하고 저장은 누르지 말 것).
-- ⚠️ Dropbox가 `dist`를 잡고 있어 `vite build`가 `EPERM`으로 죽는 일이 있다(동기화 제외를
-  걸어둔 뒤에도 발생). `rm -rf dist` 후 다시 돌리면 된다.
 - ⚠️ **여백/레이아웃 지적은 사용자 화면 크기부터 맞추고 측정할 것.** 이 사이트는 여백이 vh/vw 기반이라 창 크기가 다르면 값이 완전히 달라진다. 실제로 임의의 크기(1398×1270, 2000×1000)에서 측정해 "이미 고쳤다/캐시 문제다"라고 두 번 잘못 답한 적 있음. 사용자 실제 창은 2532×1263이었고 거기서만 재현됨.
   - 스크린샷에서 창 크기 역산: **`.svc-row` 행 간격은 실제 121px 고정** → 스크린샷의 행 간격과 비교하면 축소 배율이 나오고, 이미지 폭 ÷ 배율 = 실제 창 폭.
   - 측정은 `getBoundingClientRect`보다 **`offsetTop` 누적**이 안전(Reveal/framer-motion의 transform이 rect에 섞여 들어옴).
