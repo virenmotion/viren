@@ -286,7 +286,14 @@ ${ffmpegHint(file.name)}`)
   if (editing !== null) {
     return (
       <form className="adm-card adm-form" onSubmit={save}>
-        <h2 className="adm-h2">{isNew ? '새 프로젝트' : '프로젝트 수정'}</h2>
+        <div className="adm-form-head">
+          <h2 className="adm-h2">{isNew ? '새 프로젝트' : '프로젝트 수정'}</h2>
+          <div className="adm-form-actions">
+            <button className="adm-btn adm-btn-primary" disabled={busy}>{busy ? '저장 중…' : '저장'}</button>
+            <button type="button" className="adm-btn" onClick={cancel}>취소</button>
+          </div>
+          {msg && <p className={msg.includes('실패') ? 'adm-err' : 'adm-note'}>{msg}</p>}
+        </div>
 
         <div className="adm-grid2">
           <label>발주처명<input value={form.client} onChange={set('client')} /></label>
@@ -450,11 +457,6 @@ ${ffmpegHint(file.name)}`)
           </div>
         </div>
 
-        {msg && <p className={msg.includes('실패') ? 'adm-err' : 'adm-note'}>{msg}</p>}
-        <div className="adm-form-actions">
-          <button className="adm-btn adm-btn-primary" disabled={busy}>{busy ? '저장 중…' : '저장'}</button>
-          <button type="button" className="adm-btn" onClick={cancel}>취소</button>
-        </div>
       </form>
     )
   }
