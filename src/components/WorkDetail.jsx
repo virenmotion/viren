@@ -125,12 +125,21 @@ function BlockBody({ b }) {
     const items = String(b.body || '').split('\n').map((l) => l.trim()).filter(Boolean)
       .map((l) => { const [ko, en] = l.split('|').map((s) => (s || '').trim()); return { ko: brk(ko), en: brk(en) } })
     if (!items.length) return null
+    /* 한 줄에 최대 3개씩 끊어 줄 단위로 감싼다. 그리드로 두면 마지막 줄에 1~2개만
+       남았을 때 왼쪽으로 몰리는데, 줄마다 flex로 감싸면 남은 개수와 무관하게 가운데 온다. */
+    const PER_ROW = 3
+    const rows = []
+    for (let i = 0; i < items.length; i += PER_ROW) rows.push(items.slice(i, i + PER_ROW))
     return (
-      <div className="wb-features" style={{ '--cols': Math.min(items.length, 3) }}>
-        {items.map((it, i) => (
-          <div className="wb-feat" key={i}>
-            {it.ko && <p className="wb-feat-ko">{it.ko}</p>}
-            {it.en && <p className="wb-feat-en">{it.en}</p>}
+      <div className="wb-features" style={{ '--cols': Math.min(items.length, PER_ROW) }}>
+        {rows.map((row, r) => (
+          <div className="wb-feat-row" key={r}>
+            {row.map((it, i) => (
+              <div className="wb-feat" key={i}>
+                {it.ko && <p className="wb-feat-ko">{it.ko}</p>}
+                {it.en && <p className="wb-feat-en">{it.en}</p>}
+              </div>
+            ))}
           </div>
         ))}
       </div>

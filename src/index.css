@@ -627,16 +627,27 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 
 /* 특징 카드 — 다크 카드, 항목 수(1·2·3)에 맞춰 박스가 폭을 줄이고 전체 중앙정렬.
    내부 구분선은 gap(1px) + 컨테이너 배경으로 그려 여러 행에서도 균일 */
-.wb-features{display:grid;grid-template-columns:repeat(var(--cols,3),clamp(200px,28vw,360px));gap:1px;
+/* 특징 카드 — 줄 단위(.wb-feat-row)로 감싸고 줄마다 가운데 정렬한다.
+   3의 배수가 아니어서 마지막 줄에 1~2개만 남아도 왼쪽으로 몰리지 않는다.
+   구분선은 gap+배경이 아니라 카드 border로 그린다 — gap 방식이면 짧은 줄의
+   남는 자리에 바탕색이 띠처럼 드러난다. */
+.wb-features{--card:clamp(200px,28vw,360px);
   width:fit-content;max-width:100%;margin-inline:auto;
-  background:rgba(255,255,255,.08);border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.wb-feat{background:#141414;box-sizing:border-box;min-width:0;
+  background:#141414;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.wb-feat-row{display:flex;justify-content:center;align-items:stretch}
+.wb-feat-row + .wb-feat-row{border-top:1px solid var(--line)}
+.wb-feat{flex:0 0 var(--card);box-sizing:border-box;min-width:0;
   padding:clamp(28px,4vw,48px) clamp(20px,2.6vw,34px);text-align:center}
+.wb-feat + .wb-feat{border-left:1px solid var(--line)}
 .wb-feat-ko{font-size:clamp(17px,1.7vw,22px);font-weight:700;letter-spacing:-.01em;line-height:1.35;color:#fff;white-space:pre-line}
 .wb-feat-en{margin-top:12px;font-size:clamp(12px,1vw,14px);line-height:1.7;color:var(--muted);
   letter-spacing:.03em;white-space:pre-line}
 @media(max-width:720px){
-  .wb-features{grid-template-columns:1fr;width:auto;max-width:420px}
+  /* 좁은 화면에선 한 장씩 세로로. 줄 구분이 사라지므로 구분선도 가로선으로 바꾼다. */
+  .wb-features{width:auto;max-width:420px}
+  .wb-feat-row{flex-direction:column}
+  .wb-feat{flex:1 1 auto}
+  .wb-feat + .wb-feat{border-left:0;border-top:1px solid var(--line)}
 }
 
 /* 상세 항목 표 — 라벨 | 한글 | 영문 3열. 행마다 윗줄(구분선)을 두고 마지막에 아랫줄로 닫는다.
