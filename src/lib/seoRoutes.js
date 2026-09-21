@@ -9,8 +9,8 @@ export const BRAND = 'VIREN 바이렌'
 /* 설명문은 80자 이내 — 네이버 URL 검사 권장치 */
 export const SEO = {
   home: {
-    title: BRAND,
-    description: '바이렌(VIREN)은 미디어아트, 미디어파사드, LED 콘텐츠를 제작하는 서울의 콘텐츠 프로덕션 스튜디오입니다.',
+    title: `${BRAND} | 미디어아트 · 미디어파사드 스튜디오`,
+    description: 'APEC 경주, 강화역사박물관 등 미디어파사드·LED 콘텐츠를 제작한 서울의 콘텐츠 프로덕션 스튜디오, 바이렌(VIREN)입니다.',
     path: '/',
   },
   work: {
