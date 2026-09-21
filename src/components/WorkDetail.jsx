@@ -121,17 +121,33 @@ function BlockBody({ b }) {
   }
   /* 특징 카드 — 한 줄 = "한글 | 영문", / 로 줄바꿈, 다크 카드 3(+)열 */
   if (b.type === 'features') {
+    /* 줄 나누기 규칙: 한 줄 최대 3개, 단 **한 칸만 남는 줄은 만들지 않는다.**
+       4개를 3+1로 두면 마지막 줄이 외톨이가 되어 어색하므로 2+2로 쪼갠다.
+         3 → [3]      4 → [2,2]    5 → [3,2]    6 → [3,3]
+         7 → [3,2,2]  8 → [3,3,2]  9 → [3,3,3] 10 → [3,3,2,2]
+       각 줄은 CSS(.wb-feat-row)에서 가운데 정렬되고, 칸 크기는 전부 같다. */
+    const featureRows = (list) => {
+      const n = list.length
+      if (n <= 3) return [list]
+      const sizes = []
+      let left = n
+      /* 나머지가 1이 되는 순간을 피해 2+2로 끝낸다 */
+      while (left > 4) { sizes.push(3); left -= 3 }
+      if (left === 4) sizes.push(2, 2)
+      else sizes.push(left)
+      const out = []
+      let i = 0
+      for (const s of sizes) { out.push(list.slice(i, i + s)); i += s }
+      return out
+    }
     const brk = (s) => String(s || '').split('/').map((t) => t.trim()).filter(Boolean).join('\n')
     const items = String(b.body || '').split('\n').map((l) => l.trim()).filter(Boolean)
       .map((l) => { const [ko, en] = l.split('|').map((s) => (s || '').trim()); return { ko: brk(ko), en: brk(en) } })
     if (!items.length) return null
-    /* 한 줄에 최대 3개씩 끊어 줄 단위로 감싼다. 그리드로 두면 마지막 줄에 1~2개만
-       남았을 때 왼쪽으로 몰리는데, 줄마다 flex로 감싸면 남은 개수와 무관하게 가운데 온다. */
-    const PER_ROW = 3
-    const rows = []
-    for (let i = 0; i < items.length; i += PER_ROW) rows.push(items.slice(i, i + PER_ROW))
+    const rows = featureRows(items)
+    /* 블록 폭은 CSS의 width:fit-content가 가장 넓은 줄에 맞춘다(4개=2칸 폭, 5개=3칸 폭) */
     return (
-      <div className="wb-features" style={{ '--cols': Math.min(items.length, PER_ROW) }}>
+      <div className="wb-features">
         {rows.map((row, r) => (
           <div className="wb-feat-row" key={r}>
             {row.map((it, i) => (
