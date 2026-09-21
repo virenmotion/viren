@@ -29,8 +29,14 @@ export function ProjectsProvider({ children }) {
 
   useEffect(() => { refresh() }, [refresh])
 
+  const all = projects || []
   const value = {
-    projects: projects || [],
+    /* 관리자용 — 숨긴 것까지 전부 */
+    projects: all,
+    /* 방문자에게 보여줄 목록. 관리자에서 "숨김"으로 표시한 건 빠진다.
+       ⚠️ WORK 목록과 '다른 프로젝트'는 반드시 이쪽을 쓸 것. projects를 쓰면
+       아직 준비 중인 프로젝트가 사이트에 노출된다. */
+    publicProjects: all.filter((p) => !p.hidden),
     /* 지금 보고 있는 목록이 DB에서 온 진짜 데이터인가.
        false면 시드 폴백이라 "이 slug가 없다 = 삭제된 프로젝트"라고 단정할 수 없다.
        ⚠️ WorkDetail의 noindex 판정이 이 값에 의존한다 — 아래 사고 참고.
@@ -44,7 +50,8 @@ export function ProjectsProvider({ children }) {
     loading: projects === null,
     error,
     refresh,
-    findProject: (slug) => (projects || []).find((p) => p.slug === slug),
+    /* 숨김도 찾아준다 — 주소를 직접 열면 미리보기가 되도록. 대신 noindex가 붙는다. */
+    findProject: (slug) => all.find((p) => p.slug === slug),
     catLabel: (slug) => categories.find((c) => c.slug === slug)?.label || slug,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

@@ -6,19 +6,25 @@ export { MAX_VIDEO_MB }
 
 const TABLE = 'projects'
 /* DB 컬럼(snake_case) → 앱(camelCase) alias. description은 예약어 desc 회피용. */
-const SELECT_BASE = 'slug, cat, kind, client, year, titleEn:title_en, titleKo:title_ko, youtube, location, deliverables, thumb, desc:description, sort, created_at'
+const SELECT_CORE = 'slug, cat, kind, client, year, titleEn:title_en, titleKo:title_ko, youtube, location, deliverables, thumb, desc:description, sort, created_at'
+const SELECT_BASE = SELECT_CORE + ', hidden'
 const SELECT = SELECT_BASE + ', blocks'
+
+/* 컬럼이 없어도 목록이 깨지지 않도록 넓은 SELECT부터 차례로 시도한다.
+   hidden은 2026-09-21에 추가한 컬럼이라, DB 마이그레이션 전에도 사이트는 떠 있어야 한다. */
+const SELECTS = [SELECT, SELECT_CORE + ', blocks', SELECT_BASE, SELECT_CORE]
 
 /* ---------- 조회 ---------- */
 export async function listProjects() {
   if (!isConfigured) return SEED_PROJECTS
   const order = (q) => q.order('sort', { ascending: true }).order('created_at', { ascending: false })
-  const { data, error } = await order(supabase.from(TABLE).select(SELECT))
-  if (!error) return data
-  /* blocks 컬럼 미생성 등 → 축소 SELECT로 재시도(목록이 깨지지 않게) */
-  const r = await order(supabase.from(TABLE).select(SELECT_BASE))
-  if (r.error) throw r.error
-  return r.data
+  let last
+  for (const sel of SELECTS) {
+    const { data, error } = await order(supabase.from(TABLE).select(sel))
+    if (!error) return data
+    last = error
+  }
+  throw last
 }
 
 /* ---------- 쓰기(관리자 전용) ---------- */
@@ -39,21 +45,34 @@ function toRow(p) {
     description: p.desc || null,
     blocks: Array.isArray(p.blocks) ? p.blocks : [],
     sort: Number.isFinite(p.sort) ? p.sort : 0,
+    hidden: !!p.hidden,
   }
+}
+
+/* hidden 컬럼이 아직 없는 DB에서도 저장은 되어야 한다(관리자가 잠기지 않게).
+   컬럼 없음 오류면 hidden을 빼고 한 번 더 시도한다. */
+function missingHidden(error) {
+  return /hidden/i.test(`${error?.message || ''} ${error?.details || ''}`)
+}
+async function writeRow(run, p) {
+  const row = toRow(p)
+  const { data, error } = await run(row, SELECT)
+  if (!error) return data
+  if (!missingHidden(error)) throw error
+  const { hidden: _drop, ...without } = row
+  const retry = await run(without, SELECT_CORE + ', blocks')
+  if (retry.error) throw retry.error
+  return retry.data
 }
 
 export async function createProject(p) {
   requireDB()
-  const { data, error } = await supabase.from(TABLE).insert(toRow(p)).select(SELECT).single()
-  if (error) throw error
-  return data
+  return writeRow((row, sel) => supabase.from(TABLE).insert(row).select(sel).single(), p)
 }
 
 export async function updateProject(slug, p) {
   requireDB()
-  const { data, error } = await supabase.from(TABLE).update(toRow(p)).eq('slug', slug).select(SELECT).single()
-  if (error) throw error
-  return data
+  return writeRow((row, sel) => supabase.from(TABLE).update(row).eq('slug', slug).select(sel).single(), p)
 }
 
 export async function deleteProject(slug) {

@@ -29,8 +29,12 @@ create table if not exists public.projects (
   thumb       text,
   description  text,
   sort        int  not null default 0,
+  hidden      boolean not null default false, -- 사이트에 표시하지 않음(미리 준비용)
   created_at  timestamptz not null default now()
 );
+
+-- 이미 테이블을 만들어 둔 경우엔 이 한 줄만 실행하면 된다 (2026-09-21 추가)
+alter table public.projects add column if not exists hidden boolean not null default false;
 
 -- 행 수준 보안: 누구나 읽기, 로그인 사용자만 쓰기
 alter table public.projects enable row level security;

@@ -238,7 +238,7 @@ function renderBlockGroups(blocks) {
 /* WORK 상세 — /work/:slug. 카테고리·제목 브레드크럼 + 영상 임베드 + 날짜·본문. */
 export default function WorkDetail() {
   const { id } = useParams() // 라우트 파라미터명은 id지만 slug로 사용
-  const { projects, findProject, loading, catLabel, trusted } = useProjects()
+  const { publicProjects, findProject, loading, catLabel, trusted } = useProjects()
   const p = findProject(id)
 
   /* 프로젝트별 고유 제목·설명·canonical. 훅은 조건부 호출이 불가하므로 p가 없을 때도 호출한다.
@@ -252,11 +252,14 @@ export default function WorkDetail() {
      현재 프로젝트가 하나도 없어서, 그 상태로 판정하면 멀쩡한 페이지 전부에
      noindex가 붙는다(2026-09-01 실제 발생, ProjectsContext 주석 참고). */
   const notFound = !loading && trusted && !p
+  /* 숨김 프로젝트는 목록·사이트맵·프리렌더 어디에도 없지만 주소로는 열린다(관리자 미리보기용).
+     검색엔진에 잡히면 "준비 중"이 노출되므로 noindex를 붙인다. */
+  const hidden = !!p?.hidden
   useSeo({
     title: notFound ? `페이지를 찾을 수 없습니다 | ${BRAND}` : seoTitle,
     description: seoDesc,
     path: p ? `/work/${p.slug}` : undefined,
-    noindex: notFound,
+    noindex: notFound || hidden,
   })
 
   if (loading) {
@@ -276,7 +279,8 @@ export default function WorkDetail() {
     )
   }
 
-  const related = pickRelated(projects, p)
+  /* 숨김 프로젝트는 '다른 프로젝트'에도 나오면 안 된다 → publicProjects에서 고른다 */
+  const related = pickRelated(publicProjects, p)
 
   return (
     <section id="work-detail">

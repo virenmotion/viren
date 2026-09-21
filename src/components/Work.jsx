@@ -9,7 +9,8 @@ import { useProjects } from '../ProjectsContext'
 export default function Work() {
   const { hash } = useLocation()
   const [filter, setFilter] = useState('all')
-  const { projects, loading, categories, catLabel } = useProjects()
+  /* publicProjects — 관리자에서 "숨김"으로 표시한 프로젝트는 목록에 나오지 않는다 */
+  const { publicProjects: projects, loading, categories, catLabel } = useProjects()
 
   /* 필터 탭 = 전체 + 숨김 아닌 분야 */
   const filters = [{ slug: 'all', label: '전체' }, ...categories.filter((c) => !c.hidden)]

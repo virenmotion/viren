@@ -53,21 +53,31 @@ async function sb(query) {
 }
 
 async function loadProjects() {
-  const rows = await sb(
-    'projects?select=slug,cat,client,year,title_en,title_ko,location,deliverables,description,blocks&order=sort.asc',
-  )
+  const COLS = 'slug,cat,client,year,title_en,title_ko,location,deliverables,description,blocks'
+  /* hidden은 2026-09-21에 추가한 컬럼이다. 아직 없는 DB에 물어보면 PostgREST가 400을
+     주고 sb()가 null을 돌려줘 시드(6건)로 폴백해버린다 — 사이트맵이 통째로 낡는다.
+     그래서 hidden 포함으로 먼저 시도하고, 실패하면 hidden 없이 한 번 더 시도한다. */
+  let rows = await sb(`projects?select=${COLS},hidden&order=sort.asc`)
+  if (!rows) rows = await sb(`projects?select=${COLS}&order=sort.asc`)
   if (!rows) {
     /* DB에 못 닿으면 앱과 같은 시드로 폴백한다. 시드는 DB보다 오래된 목록일 수 있으므로
        빌드 로그에 반드시 남긴다 — 프로젝트 페이지가 조용히 누락되는 사고를 막기 위함. */
     console.warn('  ! DB 미연결 → 시드 프로젝트로 폴백 (최신 목록이 아닐 수 있음)')
     return SEED_PROJECTS
   }
-  return rows.map((r) => ({
+  const all = rows.map((r) => ({
     slug: r.slug, cat: r.cat, client: r.client, year: r.year,
     titleEn: r.title_en, titleKo: r.title_ko,
     location: r.location, deliverables: r.deliverables,
     desc: r.description, blocks: Array.isArray(r.blocks) ? r.blocks : [],
+    hidden: !!r.hidden,
   }))
+  /* 숨김 프로젝트는 프리렌더·사이트맵 어디에도 넣지 않는다. 화면(Work.jsx)에서도
+     빠지므로 클로킹이 아니다. 주소로 직접 열면 보이지만 그 페이지엔 noindex가 붙는다. */
+  const shown = all.filter((p) => !p.hidden)
+  const n = all.length - shown.length
+  if (n) console.log(`  · 숨김 프로젝트 ${n}건 제외`)
+  return shown
 }
 
 async function loadCatLabel() {

@@ -144,6 +144,7 @@ const EMPTY_PROJECT = {
   slug: '', cat: 'media-art',
   client: '', year: '', titleEn: '', titleKo: '',
   youtube: '', location: '', deliverables: '', thumb: '', desc: '', blocks: [], sort: 0,
+  hidden: false,
 }
 
 function ProjectManager() {
@@ -287,12 +288,30 @@ ${ffmpegHint(file.name)}`)
     return (
       <form className="adm-card adm-form" onSubmit={save}>
         <div className="adm-form-head">
-          <h2 className="adm-h2">{isNew ? '새 프로젝트' : '프로젝트 수정'}</h2>
+          <h2 className="adm-h2">
+            {isNew ? '새 프로젝트' : '프로젝트 수정'}
+            {form.hidden && <span className="adm-badge">숨김</span>}
+          </h2>
+          {/* 미리 만들어 두고 나중에 공개하는 용도. 체크하면 WORK 목록·사이트맵에서 빠진다. */}
+          <label className="adm-check adm-hide-toggle">
+            <input
+              type="checkbox"
+              checked={!!form.hidden}
+              onChange={(e) => setForm((f) => ({ ...f, hidden: e.target.checked }))}
+            />
+            사이트에 숨기기
+          </label>
           <div className="adm-form-actions">
             <button className="adm-btn adm-btn-primary" disabled={busy}>{busy ? '저장 중…' : '저장'}</button>
             <button type="button" className="adm-btn" onClick={cancel}>취소</button>
           </div>
           {msg && <p className={msg.includes('실패') ? 'adm-err' : 'adm-note'}>{msg}</p>}
+          {form.hidden && (
+            <p className="adm-hint adm-hide-note">
+              WORK 목록·검색엔진에 나오지 않습니다. 주소(<code>/work/{form.slug || slugAuto || '…'}</code>)로
+              직접 열면 미리 볼 수 있습니다. 공개할 준비가 되면 체크를 풀고 저장하세요.
+            </p>
+          )}
         </div>
 
         <div className="adm-grid2">
@@ -482,7 +501,10 @@ ${ffmpegHint(file.name)}`)
               <span className="adm-drag" aria-hidden="true">⠿</span>
               <span className="adm-thumb" style={p.thumb ? { backgroundImage: `url(${p.thumb})` } : undefined} />
               <span className="adm-row-main">
-                <span className="adm-row-title">{p.titleKo || p.titleEn}{p.titleKo && p.titleEn ? ` — ${p.titleEn}` : ''}</span>
+                <span className="adm-row-title">
+                  {p.hidden && <span className="adm-badge">숨김</span>}
+                  {p.titleKo || p.titleEn}{p.titleKo && p.titleEn ? ` — ${p.titleEn}` : ''}
+                </span>
                 <span className="adm-row-meta">{p.client || catLabel(p.cat)} · {p.year || '연도 없음'} · /{p.slug}</span>
               </span>
               <span className="adm-row-actions">
