@@ -39,16 +39,26 @@ const KEY = process.env.VITE_SUPABASE_ANON_KEY
 if (!SB || !KEY) {
   warn('Supabase 환경변수 없음 — DB 대조를 건너뛴다')
 } else {
-  const r = await fetch(`${SB}/rest/v1/projects?select=slug`, {
-    headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
-  })
-  const dbSlugs = (await r.json()).map((p) => p.slug)
+  /* hidden(숨김) 프로젝트는 사이트맵에서 일부러 뺀다 — 누락으로 세면 안 된다.
+     hidden 컬럼이 없는 DB에서는 400이 나므로 slug만 받는 조회로 한 번 더 시도한다. */
+  const q = async (sel) => {
+    const r = await fetch(`${SB}/rest/v1/projects?select=${sel}`, {
+      headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
+    })
+    return r.ok ? await r.json() : null
+  }
+  const rows = (await q('slug,hidden')) || (await q('slug')) || []
+  const shown = rows.filter((p) => !p.hidden)
+  const hiddenN = rows.length - shown.length
+  const dbSlugs = shown.map((p) => p.slug)
   const smSlugs = workUrls.map((u) => u.split('/work/')[1])
   const missing = dbSlugs.filter((s) => !smSlugs.includes(s))
   const extra = smSlugs.filter((s) => !dbSlugs.includes(s))
   if (missing.length) bad(`사이트맵에 없는 DB 프로젝트 ${missing.length}건 → 재배포 필요: ${missing.join(', ')}`)
   if (extra.length) bad(`DB에 없는 사이트맵 항목 ${extra.length}건: ${extra.join(', ')}`)
-  if (!missing.length && !extra.length) ok(`DB ${dbSlugs.length}건과 완전히 일치`)
+  if (!missing.length && !extra.length) {
+    ok(`공개 ${dbSlugs.length}건과 완전히 일치${hiddenN ? ` (숨김 ${hiddenN}건 제외)` : ''}`)
+  }
 }
 
 /* ---------- 3. 페이지별 점검 ---------- */
