@@ -9,6 +9,7 @@ import {
 } from '../lib/projectStore'
 import { inspectVideo, ffmpegHint, mbText, WARN_MBPS } from '../lib/mediaCompress'
 import { listJobs, createJob, updateJob, deleteJob, getWorkConditions, saveWorkConditions } from '../lib/careerStore'
+import { auditStorage, deleteOrphans, bytes } from '../lib/storageAudit'
 import { WORK_CONDITIONS } from '../careerJobs'
 import { slugify, DEFAULT_CATEGORIES } from '../workProjects'
 import { WWD_DEFAULT } from './WhatWeDo'
@@ -82,6 +83,7 @@ const ADMIN_TABS = [
   { key: 'project', label: 'PROJECT' },
   { key: 'career', label: 'CAREER' },
   { key: 'conditions', label: 'CONDITIONS' },
+  { key: 'storage', label: '저장공간' },
 ]
 function Dashboard({ user }) {
   const [tab, setTab] = useState('project')
@@ -104,6 +106,7 @@ function Dashboard({ user }) {
       {tab === 'project' && <ProjectManager />}
       {tab === 'career' && <JobManager />}
       {tab === 'conditions' && <ConditionsManager />}
+      {tab === 'storage' && <StorageManager />}
     </AdminShell>
   )
 }
@@ -906,6 +909,89 @@ function WhatWeDoManager() {
       <div className="adm-form-actions">
         <button type="button" className="adm-btn adm-btn-primary" onClick={save} disabled={busy}>{busy ? '저장 중…' : 'WHAT WE DO 저장'}</button>
       </div>
+    </div>
+  )
+}
+
+/* 저장공간 — 어디서도 쓰지 않는 파일(고아) 찾아 지우기.
+   파일을 교체하면 예전 파일이 저장소에 그대로 남는다. 쌓이면 무료 한도(1GB)를 먹는다.
+   ⚠️ 삭제 결과는 응답이 아니라 **다시 센 개수**로 판정한다(storageAudit.js 참고). */
+function StorageManager() {
+  const [data, setData] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  const scan = async () => {
+    setBusy(true); setMsg('')
+    try { setData(await auditStorage()) }
+    catch (e) { setMsg('검사 실패: ' + e.message) }
+    finally { setBusy(false) }
+  }
+  useEffect(() => { scan() }, [])
+
+  const purge = async () => {
+    const n = data.orphans.length
+    if (!window.confirm(`고아 파일 ${n}개(${bytes(data.orphanBytes)})를 삭제할까요?\n되돌릴 수 없습니다.`)) return
+    setBusy(true); setMsg('')
+    try {
+      const r = await deleteOrphans(data.orphans.map((o) => o.name))
+      setData(r.audit)
+      setMsg(r.removed > 0
+        ? `${r.removed}개 삭제했습니다 (${bytes(r.freedBytes)} 확보). 파일 ${r.before} → ${r.after}개.`
+        : '삭제되지 않았습니다. 권한 문제일 수 있습니다 — 개수가 그대로입니다.')
+    } catch (e) { setMsg('삭제 실패: ' + e.message) }
+    finally { setBusy(false) }
+  }
+
+  const vids = data?.orphans.filter((o) => o.isVideo) ?? []
+  return (
+    <div className="adm-card">
+      <div className="adm-form-head">
+        <h2 className="adm-h2">저장공간</h2>
+        <div className="adm-form-actions">
+          <button type="button" className="adm-btn" onClick={scan} disabled={busy}>
+            {busy ? '검사 중…' : '다시 검사'}
+          </button>
+          {data?.orphans.length > 0 && (
+            <button type="button" className="adm-btn adm-btn-danger" onClick={purge} disabled={busy}>
+              고아 파일 {data.orphans.length}개 삭제
+            </button>
+          )}
+        </div>
+        {msg && <p className={msg.includes('실패') || msg.includes('않았') ? 'adm-err' : 'adm-note'}>{msg}</p>}
+      </div>
+
+      {!data ? <p className="adm-muted">불러오는 중…</p> : (
+        <>
+          <ul className="adm-stat">
+            <li><b>{bytes(data.totalBytes)}</b><span>전체 · 파일 {data.files.length}개</span></li>
+            <li><b>{bytes(data.totalBytes - data.orphanBytes)}</b><span>사용 중 · {data.used}개</span></li>
+            <li className={data.orphans.length ? 'on' : undefined}>
+              <b>{bytes(data.orphanBytes)}</b><span>고아 · {data.orphans.length}개</span>
+            </li>
+          </ul>
+          <p className="adm-hint">
+            무료 플랜 저장 한도는 1GB입니다. 「고아」는 프로젝트·공고·설정 어디에서도
+            참조하지 않는 파일이라 지워도 화면에 영향이 없습니다.
+            {vids.length > 0 && ` 이 중 영상 ${vids.length}개가 ${bytes(vids.reduce((n, o) => n + o.size, 0))}로 대부분을 차지합니다.`}
+          </p>
+
+          {data.orphans.length === 0 ? (
+            <p className="adm-note">정리할 파일이 없습니다. 👍</p>
+          ) : (
+            <ul className="adm-list adm-orphans">
+              {data.orphans.map((o) => (
+                <li key={o.name} className="adm-row">
+                  <span className="adm-row-main">
+                    <span className="adm-row-title">{o.isVideo && <span className="adm-badge">영상</span>}{o.name}</span>
+                    <span className="adm-row-meta">{o.sizeText} · {o.created}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
     </div>
   )
 }
