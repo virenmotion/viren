@@ -130,6 +130,7 @@ function blockText(b) {
       return paras(String(b.body || '').replace(/\//g, '\n'))
     case 'image':
     case 'video':
+    case 'duo':
       return b.caption ? `<p>${esc(b.caption)}</p>` : ''
     default:
       return ''

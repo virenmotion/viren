@@ -230,6 +230,41 @@ function ProjectManager() {
     catch (e2) { setMsg('이미지 업로드 실패: ' + e2.message) }
     finally { e.target.value = '' }
   }
+  /* 좌우 미디어 블록 — 한쪽 칸에 이미지/영상을 올린다.
+     ⚠️ 가로세로비(ar)를 같이 저장한다. 화면에서 두 쪽 폭을 이 값 비율로 나눠야
+     높이가 맞는다. 올릴 때 재두지 않으면 나중에 로드 후에야 알 수 있어
+     레이아웃이 한 번 튄다. */
+  async function uploadDuo(i, side, e, kind) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setMsg(''); if (kind === 'video') setVideoUploading(`${i}:${side}`)
+    try {
+      let url, ar
+      if (kind === 'video') {
+        const info = await inspectVideo(file)
+        if (info?.width && info?.height) ar = info.width / info.height
+        url = await uploadVideo(file)
+        if (info && info.mbps > WARN_MBPS) {
+          setMsg(`올렸습니다. 다만 ${info.width}×${info.height} 영상이 ${Math.round(info.mbps)}Mbps로 과합니다.
+${ffmpegHint(file.name)}`)
+        }
+      } else {
+        try {
+          const bm = await createImageBitmap(file)
+          if (bm.width && bm.height) ar = bm.width / bm.height
+          bm.close?.()
+        } catch { /* 비율을 못 읽으면 기본값(16:9)으로 표시된다 */ }
+        url = await uploadThumb(file, (r) =>
+          setMsg(`이미지를 자동 압축했습니다 — ${mbText(r.before)} → ${mbText(r.after)}`))
+      }
+      updateBlock(i, { [side]: { ...(form.blocks?.[i]?.[side] || {}), media: url, ar } })
+    }
+    catch (e2) { setMsg('업로드 실패: ' + e2.message) }
+    finally { setVideoUploading(-1); e.target.value = '' }
+  }
+  const setDuo = (i, side, patch) =>
+    updateBlock(i, { [side]: { ...(form.blocks?.[i]?.[side] || {}), ...patch } })
+
   const [videoUploading, setVideoUploading] = useState(-1) // 업로드 중인 블록 인덱스
   async function uploadBlockVideo(i, e) {
     const file = e.target.files?.[0]
@@ -390,6 +425,7 @@ ${ffmpegHint(file.name)}`)
                   <option value="specs">상세 항목(라벨/한/영)</option>
                   <option value="image">이미지</option>
                   <option value="video">영상</option>
+                  <option value="duo">좌우 미디어(2개 나란히)</option>
                   <option value="divider">구분선</option>
                 </select>
                 </span>
@@ -437,6 +473,51 @@ ${ffmpegHint(file.name)}`)
                   </span>
                 </>
               )}
+              {b.type === 'duo' && (
+                <>
+                  <div className="adm-duo">
+                    {['left', 'right'].map((side) => {
+                      const s = b[side] || {}
+                      const isVid = /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(s.media || '')
+                      return (
+                        <div className="adm-duo-col" key={side}>
+                          <span className="adm-duo-label">{side === 'left' ? '왼쪽' : '오른쪽'}</span>
+                          {s.media && (isVid
+                            ? <video className="adm-block-preview" src={s.media} controls muted playsInline preload="metadata" />
+                            : <img className="adm-block-preview" src={s.media} alt="" />)}
+                          <label className="adm-hint" style={{ display: 'block' }}>
+                            이미지
+                            <input type="file" accept="image/*" onChange={(e) => uploadDuo(i, side, e, 'image')} />
+                          </label>
+                          <label className="adm-hint" style={{ display: 'block' }}>
+                            또는 영상 (mp4 · 최대 {MAX_VIDEO_MB}MB)
+                            <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => uploadDuo(i, side, e, 'video')} />
+                          </label>
+                          {videoUploading === `${i}:${side}` && <span className="adm-hint">업로드 중…</span>}
+                          {isVid && (
+                            <label className="adm-check">
+                              <input type="checkbox" checked={!!s.loop} onChange={(e) => setDuo(i, side, { loop: e.target.checked })} />
+                              <span>소리 없이 자동 반복</span>
+                            </label>
+                          )}
+                          {s.media && (
+                            <span className="adm-hint">
+                              비율 {s.ar ? `${s.ar.toFixed(2)} : 1` : '알 수 없음(16:9로 표시)'}
+                              {' · '}<button type="button" className="adm-linkbtn" onClick={() => setDuo(i, side, { media: '', ar: undefined })}>비우기</button>
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <input placeholder="캡션 (선택)" value={b.caption || ''} onChange={(e) => updateBlock(i, { caption: e.target.value })} />
+                  <span className="adm-hint">
+                    두 칸의 폭은 <strong>각 소재의 가로세로비대로 자동</strong>으로 나뉘어, 아래쪽 높이가 딱 맞습니다.
+                    잘리거나 여백이 생기지 않습니다. 한쪽이 너무 좁아지는 조합(세로 영상 + 초광폭 등)과
+                    모바일에서는 위아래로 쌓입니다.
+                  </span>
+                </>
+              )}
               {b.type === 'center' && (
                 <>
                   <input placeholder="제목 (가운데 표시)" value={b.heading || ''} onChange={(e) => updateBlock(i, { heading: e.target.value })} />
@@ -475,6 +556,7 @@ ${ffmpegHint(file.name)}`)
             <button type="button" className="adm-btn" onClick={() => addBlock('specs')}>+ 상세항목</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('image')}>+ 이미지</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('video')}>+ 영상</button>
+            <button type="button" className="adm-btn" onClick={() => addBlock('duo')}>+ 좌우미디어</button>
             <button type="button" className="adm-btn" onClick={() => addBlock('divider')}>+ 구분선</button>
           </div>
         </div>

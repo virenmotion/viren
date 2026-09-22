@@ -186,6 +186,43 @@ function BlockBody({ b }) {
       </dl>
     )
   }
+  /* 좌우 미디어 — 왼쪽/오른쪽에 영상이나 이미지를 하나씩. 정사각·세로 소재를 위한 블록.
+
+     ⚠️ 폭은 비율을 정해두지 않고 **각 소재의 가로세로비에 비례해서** 나눈다.
+     그래야 두 쪽 높이가 저절로 같아진다 — 잘라내기(cover)도 여백(contain)도 없다.
+     flex-basis:0 + flex-grow:비율 이면 남는 폭이 비율대로 나뉜다(간격 제외 후).
+     한쪽이 너무 좁아지는 조합(세로 영상 + 초광폭 등)은 위아래로 쌓는다. */
+  if (b.type === 'duo') {
+    const L = b.left || {}, R = b.right || {}
+    if (!L.media && !R.media) return null
+    const ar = (s) => (Number(s?.ar) > 0 ? Number(s.ar) : 16 / 9)
+    const al = ar(L), arr = ar(R)
+    const share = al / (al + arr)
+    /* 한쪽이 15% 아래로 내려가면 띠처럼 얇아져 보기 어렵다 → 위아래로.
+       세로(9:16) + 와이드(16:9)는 24%라 좌우로 둔다(1400px 기준 336px, 충분히 보인다).
+       세로 + 초광폭(14.4:1)은 4%까지 떨어져 이때만 쌓인다. */
+    const stack = !L.media || !R.media || share < 0.15 || share > 0.85
+    const cell = (s, key) => {
+      if (!s.media) return null
+      const isVid = /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(s.media)
+      return (
+        <div className="wb-duo-cell" key={key} style={stack ? undefined : { flexGrow: ar(s) }}>
+          {isVid
+            ? (s.loop
+              ? <LazyClip src={s.media} label={b.caption || '프로젝트 영상'} />
+              : <video src={s.media} controls playsInline preload="metadata" onContextMenu={(e) => e.preventDefault()} />)
+            : <img src={s.media} alt={b.caption || ''} loading="lazy" draggable="false" onContextMenu={(e) => e.preventDefault()} />}
+        </div>
+      )
+    }
+    return (
+      <figure className={stack ? 'wb-duo is-stacked' : 'wb-duo'}>
+        {cell(L, 'l')}
+        {cell(R, 'r')}
+        {b.caption && <figcaption className="wb-caption">{b.caption}</figcaption>}
+      </figure>
+    )
+  }
   if (b.type === 'image' && b.media) {
     return (
       <figure className="wb-figure">
