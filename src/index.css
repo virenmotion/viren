@@ -566,7 +566,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .wd-spec dt{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 .wd-spec dd{font-size:15px;line-height:1.6;color:var(--fg);font-family:'Pretendard Variable',Pretendard,sans-serif}
 @media(max-width:560px){.wd-spec>div{grid-template-columns:1fr;gap:5px;padding:13px 2px}}
-.wd-desc{font-size:clamp(15px,1.35vw,18px);line-height:1.95;color:var(--muted);max-width:820px;
+.wd-desc{font-size:clamp(14px,1.2vw,16px);line-height:1.95;color:var(--fg);max-width:820px;
   font-family:'Pretendard Variable',Pretendard,sans-serif;white-space:pre-line}
 /* 본문 하단 콘텐츠 블록 */
 .wd-block-rule{height:1px;background:var(--line);margin-top:clamp(28px,4.5vh,48px)}
