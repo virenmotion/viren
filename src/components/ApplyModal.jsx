@@ -3,6 +3,10 @@ import { createPortal } from 'react-dom'
 
 const APPLY_EMAIL = 'viren@viren.kr'
 const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || ''
+/* Formspree 무료 플랜은 파일 첨부를 받지 못한다(유료 Personal부터 가능).
+   ⚠️ 지원서는 이력서·포트폴리오가 핵심이라, 업로드 안 되는 플랜에서 억지로 보내면
+   지원이 통째로 실패한다. 그런 경우엔 메일 앱으로 보내 직접 첨부하게 한다. */
+const FORMSPREE_FILES = import.meta.env.VITE_FORMSPREE_FILES === '1'
 
 const EMPTY = { name: '', email: '', phone: '', agree: false }
 
@@ -45,35 +49,40 @@ export default function ApplyModal({ open, job, onClose }) {
       setStatus('error'); setErrMsg('개인정보 수집·이용에 동의해 주세요.'); return
     }
 
-    if (FORMSPREE_ENDPOINT) {
-      setStatus('sending')
-      try {
-        let res
-        if (files.length) {
-          const fd = new FormData()
-          fd.append('지원포지션', position)
-          Object.entries(form).forEach(([k, v]) => { if (k !== 'agree') fd.append(k, v) })
-          files.forEach((f) => fd.append('attachment', f))
-          res = await fetch(FORMSPREE_ENDPOINT, { method: 'POST', headers: { Accept: 'application/json' }, body: fd })
-        } else {
-          res = await fetch(FORMSPREE_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify({ 지원포지션: position, ...form }),
-          })
-        }
-        if (!res.ok) throw new Error()
-        setStatus('success')
-      } catch {
-        setStatus('error'); setErrMsg('전송에 실패했습니다. 잠시 후 다시 시도해 주세요.')
-      }
-    } else {
+    /* 메일 앱으로 보내기 — 파일은 붙일 수 없어 파일명만 알려준다 */
+    const sendByMail = () => {
       const fileNote = files.length ? `\n첨부파일: ${files.map((f) => f.name).join(', ')} (메일에 직접 첨부해 주세요)` : ''
       const body =
         `[지원 포지션] ${position}\n\n이름: ${form.name}\n이메일: ${form.email}\n연락처: ${form.phone}${fileNote}`
       window.location.href =
         `mailto:${APPLY_EMAIL}?subject=${encodeURIComponent(`[VIREN 지원] ${position} - ${form.name}`)}&body=${encodeURIComponent(body)}`
       setStatus('mailto')
+    }
+
+    /* 첨부가 있는데 플랜이 업로드를 못 받으면 보내봐야 실패한다 → 바로 메일 앱으로 */
+    if (!FORMSPREE_ENDPOINT || (files.length && !FORMSPREE_FILES)) { sendByMail(); return }
+
+    setStatus('sending')
+    try {
+      let res
+      if (files.length) {
+        const fd = new FormData()
+        fd.append('지원포지션', position)
+        Object.entries(form).forEach(([k, v]) => { if (k !== 'agree') fd.append(k, v) })
+        files.forEach((f) => fd.append('attachment', f))
+        res = await fetch(FORMSPREE_ENDPOINT, { method: 'POST', headers: { Accept: 'application/json' }, body: fd })
+      } else {
+        res = await fetch(FORMSPREE_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ 지원포지션: position, ...form }),
+        })
+      }
+      if (!res.ok) throw new Error()
+      setStatus('success')
+    } catch {
+      /* 월 한도 초과·네트워크 오류 등 — 지원이 그냥 사라지지 않게 메일 앱으로 넘긴다 */
+      sendByMail()
     }
   }
 
