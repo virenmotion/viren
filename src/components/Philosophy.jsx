@@ -5,12 +5,15 @@ import ghostPaths from '../ghostPaths.json'
 
 const EASE = [0.16, 1, 0.3, 1]
 
-/* VIREN 의미 — 강조 글자가 VI·R·EN = VIREN, VIctory는 헤드라인과 연결되는 마무리 */
+/* VIREN 의미 — 강조 글자를 순서대로 이으면 V·I·R·E·N.
+   ⚠️ ghost 값은 src/ghostPaths.json 의 키다. 글자를 바꾸면 scripts/genOutlines.cjs 의
+   GHOSTS 배열도 함께 고치고 `node scripts/genOutlines.cjs` 를 다시 실행해야 한다. */
 const MEANING = [
-  { n: '01', em: 'VI', rest: 'sion', ghost: 'VI', l1: '아이디어의 발견', l2: '공간이 지닌 스토리로 가능성을 찾다.' },
-  { n: '02', em: 'R', rest: 'ender', ghost: 'R', l1: '정교한 구현', l2: '기술로 비전을 형상화 하다.' },
-  { n: '03', em: 'EN', rest: 'vision', ghost: 'EN', l1: '새로운 가능성', l2: '기억될 장면을 구현한다.' },
-  { n: '04', em: 'VI', rest: 'ctory', ghost: 'VI', l1: '공간의 가치 증명', l2: '결과로 신뢰를 남긴다.' },
+  { n: '01', em: 'V', rest: 'ision', ghost: 'V', l1: '아이디어의 발견', l2: '공간이 지닌 스토리로 가능성을 찾다.' },
+  { n: '02', em: 'I', rest: 'magination', ghost: 'I', l1: '상상의 확장', l2: '가능성을 새로운 장면으로 그려내다.' },
+  { n: '03', em: 'R', rest: 'ender', ghost: 'R', l1: '정교한 구현', l2: '기술로 비전을 형상화하다.' },
+  { n: '04', em: 'E', rest: 'xperience', ghost: 'E', l1: '몰입의 경험', l2: '보는 것을 넘어 경험하다.' },
+  { n: '05', em: 'N', rest: 'arrative', ghost: 'N', l1: '공간의 이야기', l2: '공간의 이야기를 기억에 남기다.' },
 ]
 
 /* 컨테이너: 컬럼을 순차(stagger)로 등장시킨다 */

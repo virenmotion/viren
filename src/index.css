@@ -334,15 +334,17 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 
 /* ---------- PHILOSOPHY: VIREN 의미 4분할 ---------- */
 .meaning{
-  display:grid;grid-template-columns:repeat(4,1fr);
-  gap:clamp(20px,3vw,44px);
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:clamp(14px,2vw,30px);
   margin-top:clamp(72px,11vh,150px);
 }
-@media(max-width:900px){.meaning{grid-template-columns:repeat(2,1fr);gap:64px 32px}}
+/* 5칸이라 좁아지는 구간이 빨리 온다 — 3칸(3+2) → 2칸 → 1칸으로 단계적으로 줄인다 */
+@media(max-width:1180px){.meaning{grid-template-columns:repeat(3,minmax(0,1fr));gap:56px 28px}}
+@media(max-width:760px){.meaning{grid-template-columns:repeat(2,minmax(0,1fr));gap:56px 28px}}
 @media(max-width:520px){.meaning{grid-template-columns:1fr;gap:56px}}
 
 .meaning-col{position:relative;isolation:isolate;min-height:230px;text-align:center}
-/* 컬럼 우측 상단 빈 공간의 고스트 글자 (VI · R · EN · VI) — SVG 외곽선.
+/* 컬럼 뒤 고스트 글자 (V · I · R · E · N) — SVG 외곽선.
    좌측 정렬 텍스트와 겹치지 않도록 오른쪽 빈 영역에 배치. */
 .meaning-col .ghost{
   position:absolute;left:50%;top:34px;transform:translateX(-50%);z-index:-1;
@@ -362,9 +364,12 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   filter:drop-shadow(0 0 3px rgba(248,198,42,.4));
   animation:ghostDraw 7.5s ease-in-out infinite;
 }
+/* V→I→R→E→N 순서대로 그려지도록 0.9초씩 밀어둔다.
+   ⚠️ 칸을 늘리면 여기에도 한 줄을 추가해야 한다 — 빠뜨리면 마지막 칸이 첫 칸과 동시에 그려진다. */
 .meaning-col:nth-child(2) .ghost .g-trace{animation-delay:.9s}
 .meaning-col:nth-child(3) .ghost .g-trace{animation-delay:1.8s}
 .meaning-col:nth-child(4) .ghost .g-trace{animation-delay:2.7s}
+.meaning-col:nth-child(5) .ghost .g-trace{animation-delay:3.6s}
 @keyframes ghostDraw{
   0%{stroke-dashoffset:100;opacity:0}
   6%{opacity:1}
@@ -429,7 +434,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 /* 모바일/태블릿: 고스트 글자와 제목이 겹치지 않게 숫자 하단 여백 확대 */
 @media(max-width:900px){.meaning-col .mn{margin-bottom:clamp(100px,14vw,132px)}}
 .meaning-col .mw{
-  font-size:clamp(28px,3.4vw,46px);font-weight:500;letter-spacing:-.02em;line-height:1;margin-bottom:20px;
+  font-size:clamp(24px,2.6vw,46px);font-weight:500;letter-spacing:-.02em;line-height:1;margin-bottom:20px;
 }
 .meaning-col .mw em{font-style:normal;color:var(--accent)}
 .meaning-col .mt1{font-size:clamp(16px,1.5vw,20px);font-weight:700;color:var(--fg);margin-bottom:12px;letter-spacing:-.01em}

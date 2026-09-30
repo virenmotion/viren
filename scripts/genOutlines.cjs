@@ -57,10 +57,10 @@ MARQUEE.forEach((w) => { marquee[w] = build(medium, w, { fs: 100, baseline: 80, 
 fs.writeFileSync(path.join(__dirname, '..', 'src', 'outlinePaths.json'), JSON.stringify(marquee, null, 0))
 
 /* 고스트 글자 (Bold 700, 기존 ghost SVG와 동일: viewBox 380x180, fontSize 150, x0 4, y 150, track -6) */
-const GHOSTS = ['VI', 'R', 'EN']
+const GHOSTS = ['V', 'I', 'R', 'E', 'N']
 const ghost = {}
 GHOSTS.forEach((w) => { ghost[w] = build(bold, w, { fs: 150, baseline: 150, track: -6, x0: 4 }) })
 fs.writeFileSync(path.join(__dirname, '..', 'src', 'ghostPaths.json'), JSON.stringify(ghost, null, 0))
 
 console.log('marquee words:', Object.keys(marquee).length, '| ghost:', Object.keys(ghost).join(','))
-console.log('DIGITAL EXPERIENCE w=', marquee['DIGITAL EXPERIENCE'].w, '| EN dLen=', ghost['EN'].d.length)
+console.log('DIGITAL EXPERIENCE w=', marquee['DIGITAL EXPERIENCE'].w, '| N dLen=', ghost['N'].d.length)
