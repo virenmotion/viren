@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { sendMail, fitsUpload } from '../lib/sendForm'
 
 const APPLY_EMAIL = 'viren@viren.kr'
-const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || ''
-/* Formspree 무료 플랜은 파일 첨부를 받지 못한다(유료 Personal부터 가능).
-   ⚠️ 지원서는 이력서·포트폴리오가 핵심이라, 업로드 안 되는 플랜에서 억지로 보내면
-   지원이 통째로 실패한다. 그런 경우엔 메일 앱으로 보내 직접 첨부하게 한다. */
-const FORMSPREE_FILES = import.meta.env.VITE_FORMSPREE_FILES === '1'
 
 const EMPTY = { name: '', email: '', phone: '', agree: false }
 
@@ -59,31 +55,23 @@ export default function ApplyModal({ open, job, onClose }) {
       setStatus('mailto')
     }
 
-    /* 첨부가 있는데 플랜이 업로드를 못 받으면 보내봐야 실패한다 → 바로 메일 앱으로 */
-    if (!FORMSPREE_ENDPOINT || (files.length && !FORMSPREE_FILES)) { sendByMail(); return }
+    /* 첨부 합계가 서버 한도(4.5MB)를 넘으면 보내봐야 실패한다 → 바로 메일 앱으로 */
+    if (files.length && !fitsUpload(files)) { sendByMail(); return }
 
     setStatus('sending')
-    try {
-      let res
-      if (files.length) {
-        const fd = new FormData()
-        fd.append('지원포지션', position)
-        Object.entries(form).forEach(([k, v]) => { if (k !== 'agree') fd.append(k, v) })
-        files.forEach((f) => fd.append('attachment', f))
-        res = await fetch(FORMSPREE_ENDPOINT, { method: 'POST', headers: { Accept: 'application/json' }, body: fd })
-      } else {
-        res = await fetch(FORMSPREE_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ 지원포지션: position, ...form }),
-        })
-      }
-      if (!res.ok) throw new Error()
-      setStatus('success')
-    } catch {
-      /* 월 한도 초과·네트워크 오류 등 — 지원이 그냥 사라지지 않게 메일 앱으로 넘긴다 */
-      sendByMail()
-    }
+    const ok = await sendMail({
+      subject: `[VIREN 지원] ${position} - ${form.name}`,
+      title: `${position} 지원`,
+      replyTo: form.email,
+      fields: {
+        '지원 포지션': position,
+        이름: form.name, 이메일: form.email, 연락처: form.phone,
+        첨부: files.map((f) => f.name).join(', '),
+      },
+      files,
+    })
+    /* 발송 실패(설정 전·네트워크 오류 등) — 지원이 사라지지 않게 메일 앱으로 넘긴다 */
+    if (ok) setStatus('success'); else sendByMail()
   }
 
   return createPortal(

@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { sendMail, fitsUpload } from '../lib/sendForm'
 
 const EMAIL = 'viren@viren.kr'
-const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || ''
-/* Formspree 무료 플랜은 파일 첨부를 받지 못한다(유료 Personal부터 가능).
-   업로드 되는 플랜으로 올렸을 때만 VITE_FORMSPREE_FILES=1 로 켠다. */
-const FORMSPREE_FILES = import.meta.env.VITE_FORMSPREE_FILES === '1'
 
 /* 문의 유형 — 세부선택 단계 없이 선택 즉시 내용 작성으로 */
 const TYPES = [
@@ -58,32 +55,24 @@ export default function ContactModal({ open, onClose }) {
       setStatus('mailto')
     }
 
-    /* 파일이 있는데 플랜이 업로드를 못 받으면 보내봐야 실패한다 → 바로 메일 앱으로 */
-    if (!FORMSPREE_ENDPOINT || (hasFile && !FORMSPREE_FILES)) { sendByMail(); return }
+    /* 첨부가 서버 한도(4.5MB)를 넘으면 보내봐야 실패한다 → 바로 메일 앱으로 */
+    if (hasFile && !fitsUpload([file])) { sendByMail(); return }
 
     setStatus('sending')
-    try {
-      let res
-      if (hasFile) {
-        // 파일 포함 — multipart/form-data (Content-Type 자동 설정)
-        const fd = new FormData()
-        fd.append('문의유형', type.title)
-        Object.entries(form).forEach(([k, v]) => { if (k !== 'agree') fd.append(k, v) })
-        fd.append('attachment', file)
-        res = await fetch(FORMSPREE_ENDPOINT, { method: 'POST', headers: { Accept: 'application/json' }, body: fd })
-      } else {
-        res = await fetch(FORMSPREE_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ 문의유형: type.title, ...form }),
-        })
-      }
-      if (!res.ok) throw new Error()
-      setStatus('success')
-    } catch {
-      /* 월 한도 초과·네트워크 오류 등 — 문의가 그냥 사라지지 않게 메일 앱으로 넘긴다 */
-      sendByMail()
-    }
+    const ok = await sendMail({
+      subject: `[VIREN 문의] ${type.title} - ${form.name}`,
+      title: `${type.title} 문의`,
+      replyTo: form.email,
+      fields: {
+        '문의 유형': type.title,
+        이름: form.name, 이메일: form.email,
+        연락처: form.phone, '회사/단체': form.company,
+        '문의 내용': form.message,
+      },
+      files: hasFile ? [file] : [],
+    })
+    /* 발송 실패(설정 전·네트워크 오류 등) — 문의가 사라지지 않게 메일 앱으로 넘긴다 */
+    if (ok) setStatus('success'); else sendByMail()
   }
 
   return createPortal(
