@@ -4,7 +4,7 @@ import SecStatement from './SecStatement'
 import ContactModal from './ContactModal'
 import { SOCIAL, SocialLink } from '../socials'
 
-const EMAIL = 'virenmotion@viren.kr'
+const EMAIL = 'viren@viren.kr'
 const PHONE = '02-3144-1222'
 const ADDRESS = '서울특별시 마포구 양화로8길 32-17'
 /* MAP 링크 — 카카오맵. 네이버지도로 바꾸려면 아래 NAVER 줄로 교체:

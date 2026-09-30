@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-const EMAIL = 'virenmotion@viren.kr'
+const EMAIL = 'viren@viren.kr'
 const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || ''
 
 /* 문의 유형 — 세부선택 단계 없이 선택 즉시 내용 작성으로 */

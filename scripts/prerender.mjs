@@ -141,7 +141,7 @@ const CONTACT_BLOCK = `<h2>문의</h2>
       <address>
         서울특별시 마포구 양화로8길 32-17, 3층 04044<br />
         T. 02-3144-1222<br />
-        <a href="mailto:virenmotion@viren.kr">virenmotion@viren.kr</a>
+        <a href="mailto:viren@viren.kr">viren@viren.kr</a>
       </address>`
 
 const NAV = '<p><a href="/">HOME</a> · <a href="/work">WORK</a> · <a href="/career">CAREER</a> · <a href="/contact">CONTACT</a></p>'

@@ -11,7 +11,7 @@ export default function Footer() {
           <a className="foot-download" href="/assets/viren_company_profile.pdf" download="2026_VIREN_회사소개서.pdf" data-hover>
             회사소개서 DOWNLOAD<span className="dl-ic" aria-hidden="true">↓</span>
           </a>
-          <SplitText as={Link} to="/contact" className="mail" data-hover text="virenmotion@viren.kr" />
+          <SplitText as={Link} to="/contact" className="mail" data-hover text="viren@viren.kr" />
           <p>
             서울특별시 마포구 양화로8길 32-17, 3층 04044<br />
             3F, 32-17, Yanghwa-ro 8-gil, Mapo-gu, Seoul
