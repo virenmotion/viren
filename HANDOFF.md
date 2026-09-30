@@ -860,6 +860,68 @@ git cat-file -s $(git rev-parse HEAD:public/assets/viren_company_profile.pdf)
 
 사용자용 절차 요약은 `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\00. 홈페이지\홈페이지 관련\_작업방식.md`「다운로드 PDF 교체」.
 
+## 11-3. 문의·지원 폼 메일 발송 (2026-09-30 신설)
+
+CONTACT 문의와 CAREER 지원서가 **회사 메일함으로 바로 들어온다.** 외부 폼 서비스를
+쓰지 않고 회사 메일 계정(카카오워크)의 SMTP로 직접 보낸다 — 가입할 서비스도, 월 건수
+제한도 없다.
+
+```
+방문자 폼 제출 → /api/send (Vercel 서버리스) → 카카오워크 SMTP → viren@viren.kr
+```
+
+| 파일 | 역할 |
+|---|---|
+| `api/send.js` | 서버리스 함수. nodemailer로 발송 |
+| `src/lib/sendForm.js` | 두 모달이 함께 쓰는 전송 로직 |
+| `ContactModal.jsx` · `ApplyModal.jsx` | 폼 화면 |
+
+### 환경변수 (Vercel → Settings → Environments → Production)
+
+| 이름 | 값 |
+|---|---|
+| `SMTP_HOST` | `smtp.kakaowork.com` |
+| `SMTP_PORT` | `465` (SSL) |
+| `SMTP_USER` | `virenmotion@viren.kr` — **인증·발신 계정** |
+| `SMTP_PASS` | 그 계정의 **POP3/IMAP 비밀번호**(로그인 비밀번호와 다름) |
+| `MAIL_TO` | `viren@viren.kr` — 받는 곳 |
+
+⚠️ **비밀번호를 저장소에 넣지 말 것.** `.env.local`에는 주석으로만 적어 두었다.
+⚠️ 카카오워크에서 **POP3/IMAP 사용을 켜고 저장**해야 SMTP가 열린다.
+⚠️ 발신자는 인증 계정으로 고정된다 — 메일함에는
+`VIREN 홈페이지 <virenmotion@viren.kr>`로 보인다. 그룹메일(`viren@`)로는 SMTP 인증이 안 된다.
+⚠️ **환경변수를 바꾸면 반드시 재배포**해야 적용된다(빈 커밋 푸시면 충분).
+
+### 설계에서 신경 쓴 것 — 문의가 사라지는 길을 없앤다
+
+문의 하나가 곧 일감이라, 어떤 경우에도 방문자가 막히지 않게 했다.
+
+| 상황 | 동작 |
+|---|---|
+| SMTP 설정 없음(503) · 발송 실패 · 네트워크 오류 | 메일 앱이 열린다(예전 방식) |
+| 첨부 합계 3.5MB 초과 | 시도하지 않고 바로 메일 앱으로 |
+| 봇의 자동 제출 | 허니팟(`_hp`)으로 걸러 조용히 200 |
+| 외부 사이트에서 몰래 호출 | Origin 검사로 차단(우리 도메인 + localhost만) |
+
+⚠️ **3.5MB 한도의 근거**: Vercel 서버리스는 요청 본문이 4.5MB를 넘으면 거부한다.
+첨부는 base64로 약 1.37배 커진다(실측 1.09MB → 요청 1.45MB). 그 여유까지 계산한 값이라
+임의로 올리면 큰 첨부에서 조용히 실패한다.
+
+⚠️ `vercel.json`의 전체 리라이트가 `/api`를 삼키지 않도록 `/((?!api/).*)`로 제외해 두었다.
+이걸 되돌리면 폼이 전부 메일 앱 방식으로 돌아간다(오류는 안 나서 알아채기 어렵다).
+
+### 점검하는 법
+
+설정이 살아 있는지는 허니팟 프로브로 메일을 보내지 않고 확인할 수 있다.
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" -X POST https://www.viren.kr/api/send \
+  -H "Content-Type: application/json" -H "Origin: https://www.viren.kr" -d '{"_hp":"probe"}'
+# 200 = 정상 · 503 = 환경변수 없음 · 403 = Origin 차단 · 404 = 리라이트가 /api를 삼킴
+```
+
+실적(2026-09-30): 본문만·첨부 1.09MB PDF 둘 다 실제 수신 확인. 한글 제목·본문·파일명 정상.
+
 ## 12. 과거에 반영된 주요 작업 (참고)
 
 WORK 콘텐츠 블록(라벨/중앙/특징카드/텍스트, 드래그 재정렬), 특징카드 수량별 중앙정렬·균등 구분선, CONTACT 재배치, footer 소셜 가로1열·여백 축소, Philosophy 폰트 로테이션·프레임·간격, Outro 배경영상(4K→1080p 다운스케일), CAREER 공지 고정·지원 팝업·지원서 PDF 연동, WORK 분야/WHAT WE DO CMS(독립 관리+페이지 링크), 태블릿 전용 8개 수정, 모바일 footer 이메일 SplitText 글리치 수정(will-change 제거), CONTACT 모달 portal화.
