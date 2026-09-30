@@ -82,11 +82,12 @@ export default function Philosophy() {
     <section id="philosophy">
       <p className="sec-label">PHILOSOPHY</p>
 
+      {/* 강조 글자 V·N = VIREN의 처음과 끝. 아래 다섯 칸(V·I·R·E·N)을 감싸는 문장이다. */}
       <SecStatement>
-        From <em>VI</em>SION to <em>VI</em>CTORY
+        From <em>V</em>ISION to <em>N</em>ARRATIVE
       </SecStatement>
 
-      {/* VIREN 의미 4분할 — Colonnade 호버 컨베이어 */}
+      {/* VIREN 의미 5분할 — Colonnade 호버 컨베이어 */}
       <motion.div
         className="meaning"
         variants={grid}
