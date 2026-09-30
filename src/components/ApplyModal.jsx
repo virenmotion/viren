@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-const APPLY_EMAIL = 'virenmotion@viren.kr'
+const APPLY_EMAIL = 'viren@viren.kr'
 const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || ''
 
 const EMPTY = { name: '', email: '', phone: '', agree: false }
