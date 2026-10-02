@@ -51,6 +51,10 @@
   - `jobs` — 채용 공고. 컬럼: `pinned`(상단 고정/공지), `cat`(**NOT NULL** → 저장 시 `cat: j.cat || 'general'` 처리됨).
   - `site_settings` — jsonb key/value. 키: `work_conditions`, `work_categories`, `what_we_do`, `band_words`(홈 하단 마퀴 문구, 문자열 배열).
 - **RLS**: public read / authenticated write.
+- ⚠️ **공고·프로젝트를 크게 바꾸면 시드도 같이 맞출 것.** 시드는 DB의 사본이라, 어긋나 있으면
+  DB 장애 때 옛 글이나 없는 글이 노출된다. 채용 시드는 `src/careerJobs.js`의 `SEED_JOBS`,
+  WORK 시드는 `src/workProjects.js`의 `SEED_PROJECTS`. 폴백 화면은 `.env`와 `.env.local`을
+  **둘 다** 치우고 빌드해야 재현된다(둘 중 하나만 치우면 나머지 파일의 키로 DB에 붙는다).
 - **관리자 페이지**: `/admin` — 6탭 `MARQUEE / WHAT WE DO / WORK / PROJECT / CAREER / CONDITIONS`.
   - `/admin`은 인트로 프리로더를 건너뜀(`App.jsx`의 `Boot`에서 처리).
   - `MARQUEE` = 홈 PHILOSOPHY 아래 흐르는 문구(`Band.jsx`). 짝수번째 항목은 자동으로 외곽선(SVG path) 스타일 — 기존 8개 문구가 아닌 새 문구는 외곽선 그래픽이 없어 일반 글자로 폴백(필요 시 `node scripts/genOutlines.cjs` 재실행, 5절 참고).
