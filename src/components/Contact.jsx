@@ -57,7 +57,8 @@ export default function Contact() {
 
       <div className="ct-rule" />
 
-      {/* 3. 로고 모션 (VIsion→Render→ENvision→VIctory→VIREN) */}
+      {/* 3. 로고 모션 — ⚠️ 영상 안 단어는 옛 4단어(VIsion→Render→ENvision→VIctory→VIREN) 그대로.
+             새 키워드(Vision·Imagination·Render·Experience·Narrative)로 다시 뽑으면 이 주석도 고칠 것 */}
       <div className="ct-logo">
         <video autoPlay muted loop playsInline preload="metadata" aria-hidden="true">
           <source src="/assets/viren-logo-motion.mp4" type="video/mp4" />
