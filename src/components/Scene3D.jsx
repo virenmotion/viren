@@ -41,12 +41,12 @@ export default function Scene3D({ explode = true, cycleMaterials = false }) {
       g.save(); g.translate(250, 150); g.rotate(-.2); g.scale(1, .22)
       let w = g.createRadialGradient(0, 0, 0, 0, 0, 300)
       w.addColorStop(0, 'rgba(255,236,168,.95)'); w.addColorStop(.4, 'rgba(250,206,70,.7)')
-      w.addColorStop(1, 'rgba(248,198,42,0)')
+      w.addColorStop(1, 'rgba(251,200,37,0)')
       g.fillStyle = w; g.beginPath(); g.arc(0, 0, 300, 0, 7); g.fill(); g.restore()
       g.save(); g.translate(680, 270); g.rotate(.16); g.scale(1, .17)
       let y = g.createRadialGradient(0, 0, 0, 0, 0, 360)
-      y.addColorStop(0, 'rgba(255,224,120,1)'); y.addColorStop(.35, 'rgba(248,198,42,.85)')
-      y.addColorStop(1, 'rgba(248,198,42,0)')
+      y.addColorStop(0, 'rgba(255,224,120,1)'); y.addColorStop(.35, 'rgba(251,200,37,.85)')
+      y.addColorStop(1, 'rgba(251,200,37,0)')
       g.fillStyle = y; g.beginPath(); g.arc(0, 0, 360, 0, 7); g.fill(); g.restore()
 
       const tex = new THREE.CanvasTexture(cv)
@@ -100,7 +100,7 @@ export default function Scene3D({ explode = true, cycleMaterials = false }) {
     solidMat.onBeforeCompile = injectExplode
 
     /* 분할돼도 중앙에 유지되는 원본 CI 와이어프레임 (폭발 안 함) */
-    const outlineMat = new THREE.LineBasicMaterial({ color: 0xf8c62a, transparent: true, opacity: 0 })
+    const outlineMat = new THREE.LineBasicMaterial({ color: 0xfbc825, transparent: true, opacity: 0 })
 
     /* 재질 순환(푸터, svz.io ref) — 절차적 범프(다공성) 텍스처 + 실제로 다른 finish들을
        단일 MeshPhysicalMaterial 속성으로 부드럽게 lerp. bump=표면 요철 세기. */
@@ -127,7 +127,7 @@ export default function Scene3D({ explode = true, cycleMaterials = false }) {
       { c: 0xcf3a2a, m: 0, r: 0.88, tr: 0, ir: 0, cc: 0, bump: 1.3, env: 0.35 }, // 매트 코랄(다공성)
       { c: 0xeaf2ff, m: 0, r: 0.05, tr: 1, ir: 0, cc: 0, bump: 0.06, env: 1.3 }, // 글래스
       { c: 0x0e0e0e, m: 1, r: 0.28, tr: 0, ir: 1, cc: 0, bump: 0.25, env: 1.5 }, // 이리데센트
-      { c: 0xf8c62a, m: 0, r: 0.3, tr: 0, ir: 0, cc: 1, bump: 0.05, env: 1.2 },  // 클리어코트 옐로우(카페인트)
+      { c: 0xfbc825, m: 0, r: 0.3, tr: 0, ir: 0, cc: 1, bump: 0.05, env: 1.2 },  // 클리어코트 옐로우(카페인트)
     ] : null
     const cycleMat = cycleMaterials ? new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(presets[0].c), metalness: presets[0].m, roughness: presets[0].r,
@@ -184,9 +184,9 @@ export default function Scene3D({ explode = true, cycleMaterials = false }) {
     group.children.forEach((m) => m.position.sub(ctr))
     scene.add(group)
 
-    scene.add(new THREE.AmbientLight(0xf8c62a, .1))
+    scene.add(new THREE.AmbientLight(0xfbc825, .1))
     const key = new THREE.DirectionalLight(0xffeaa6, 1.2); key.position.set(-4, 5, 6); scene.add(key)
-    const warm = new THREE.PointLight(0xf8c62a, 26, 22); warm.position.set(2.6, .6, 2.6); scene.add(warm)
+    const warm = new THREE.PointLight(0xfbc825, 26, 22); warm.position.set(2.6, .6, 2.6); scene.add(warm)
     const rim = new THREE.DirectionalLight(0xf0a81c, .45); rim.position.set(5, -3, -4); scene.add(rim)
 
     const resize = () => {

@@ -85,7 +85,7 @@
 | `src/components/Preloader.jsx` | 인트로 로더 — `/viren-draw-animation.html` iframe + 종료 줌 전환. **공개 최대 2.6초**(11-1절) |
 | `public/viren-draw-animation.html` | 로더용 VIREN 로고 드로잉 애니메이션(자체 완결 번들, ~113KB) |
 | `src/index.css` | 전역 스타일. 로더/줌 전환은 `#loader`~`#loader.done` 규칙(약 24–52행) |
-| `src/components/Contact.jsx` | CONTACT. 전화 02-3144-1222, 이메일 virenmotion@viren.kr, SEOUL+MAP, 문의하기 모달, 소셜 위 로고 모션 밴드 |
+| `src/components/Contact.jsx` | CONTACT. 전화 02-3144-1222, 이메일 viren@viren.kr, SEOUL+MAP, 문의하기 모달, 소셜 위 로고 모션 밴드 |
 | `src/socials.jsx` | 소셜 링크 4개 + 아이콘 **단일 소스**(Contact·Footer 공용). 배열 순서 = 표시 순서 |
 | `public/assets/viren-logo-motion.mp4` | CONTACT 로고 모션 배포본(1920×400, 0.19MB). 마스터는 `public/VIREN_motion_wide.mp4`(gitignore) |
 | `src/components/ContactModal.jsx` | 문의 모달(portal 렌더) |
@@ -921,6 +921,29 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST https://www.viren.kr/api/send \
 ```
 
 실적(2026-09-30): 본문만·첨부 1.09MB PDF 둘 다 실제 수신 확인. 한글 제목·본문·파일명 정상.
+
+---
+
+## 11-4. 브랜드 색 — CI 공식값으로 통일 (2026-10-02)
+
+홈페이지 노란색이 CI 공식값과 미세하게 달랐다(`#f8c62a` vs CI `#fbc825`). 눈으로는 구분이
+안 되지만 값이 두 갈래로 갈려 있어 CI 쪽으로 통일했다.
+
+| 형태 | 바뀐 값 | 위치 |
+|---|---|---|
+| HEX | `#f8c62a` → `#fbc825` | `src/index.css` `--accent` 1곳 |
+| HEX(3D) | `0xf8c62a` → `0xfbc825` | `src/components/Scene3D.jsx` 4곳 — 재질·조명 |
+| RGBA | `rgba(248,198,42,…)` → `rgba(251,200,37,…)` | `src/index.css` 11곳, `Scene3D.jsx` 3곳 |
+
+⚠️ **토큰만 바꾸면 안 된다.** `--accent` 를 참조하지 않고 값이 직접 박힌 곳이 19곳 더
+있다(로더 글로우, 그라디언트, 배지 배경, 3D 재질). 색을 또 바꿀 일이 있으면
+`grep -rnE "fbc825|251,200,37" src/` 로 전부 찾아서 함께 고칠 것.
+
+회색 `--muted:#8a8a85` 와 배경 `#0a0a0a`/`#121212` 는 CI에 없는 값이고, CI의 Solid Navy는
+홈페이지에서 쓰지 않는다 — 웹 전용 값으로 그대로 둔다.
+
+---
+
 
 ## 12. 과거에 반영된 주요 작업 (참고)
 

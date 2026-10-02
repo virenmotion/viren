@@ -4,7 +4,7 @@
   --fg:#f4f2ee;
   --muted:#8a8a85;
   --line:rgba(244,242,238,.13);
-  --accent:#f8c62a;
+  --accent:#fbc825;
   --ease:cubic-bezier(.16,1,.3,1);
   --pad:clamp(20px,5vw,80px);
   --baseline:clamp(76px,11vh,130px);
@@ -35,7 +35,7 @@ img{max-width:100%;display:block}
 /* 로고 드로잉 애니메이션(iframe) — 전체 화면 */
 .loader-anim{width:100%;height:100%;border:0;display:block;background:var(--bg);pointer-events:none}
 /* 글로우는 래퍼에 — clip-path에 잘려 네모로 보이지 않게 분리 */
-#loader .mark-wrap{filter:drop-shadow(0 0 30px rgba(248,198,42,.28));line-height:0}
+#loader .mark-wrap{filter:drop-shadow(0 0 30px rgba(251,200,37,.28));line-height:0}
 #loader .mark{
   width:clamp(96px,15vw,170px);height:auto;
   clip-path:inset(100% 0 0 0);
@@ -361,7 +361,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .meaning-col .ghost .g-trace{
   fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:butt;stroke-linejoin:bevel;
   stroke-dasharray:100;stroke-dashoffset:100;opacity:0;
-  filter:drop-shadow(0 0 3px rgba(248,198,42,.4));
+  filter:drop-shadow(0 0 3px rgba(251,200,37,.4));
   animation:ghostDraw 7.5s ease-in-out infinite;
 }
 /* V→I→R→E→N 순서대로 그려지도록 0.9초씩 밀어둔다.
@@ -409,13 +409,13 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   background:radial-gradient(340px circle at var(--mx,50%) var(--my,-60px),
     rgba(255,250,232,.98) 0%,
     var(--accent) 15%,
-    rgba(248,198,42,.55) 40%,
+    rgba(251,200,37,.55) 40%,
     transparent 72%);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;
   opacity:0;transition:opacity .4s var(--ease);
   pointer-events:none;z-index:1;
-  filter:drop-shadow(0 0 8px rgba(248,198,42,.5));
+  filter:drop-shadow(0 0 8px rgba(251,200,37,.5));
 }
 .meaning-col:hover .glow{opacity:1}
 
@@ -425,7 +425,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   opacity:0;transition:opacity .5s var(--ease);
   pointer-events:none;z-index:-3;
   background:radial-gradient(250px circle at var(--mx,50%) var(--my,-60px),
-    rgba(248,198,42,.18), rgba(248,198,42,.055) 42%, transparent 70%);
+    rgba(251,200,37,.18), rgba(251,200,37,.055) 42%, transparent 70%);
   filter:blur(18px);
 }
 .meaning-col:hover .aura{opacity:1}
@@ -711,7 +711,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 /* 공고 목록 — 왼쪽 정렬 (제목 좌 · +아이콘 우) */
 .job-list{border-top:1px solid var(--line)}
 .job{border-bottom:1px solid var(--line)}
-.job.pinned{background:rgba(248,198,42,.035)}
+.job.pinned{background:rgba(251,200,37,.035)}
 .job-head{
   position:relative;width:100%;display:flex;align-items:center;justify-content:space-between;gap:20px;
   background:none;border:0;cursor:pointer;padding:clamp(20px,2.6vh,28px) 4px;text-align:left;
@@ -859,7 +859,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .type-card{position:relative;display:flex;flex-direction:column;gap:6px;text-align:left;
   background:transparent;border:1px solid var(--line);border-radius:8px;
   padding:22px 52px 22px 24px;cursor:pointer;transition:.25s var(--ease)}
-.type-card:hover{border-color:var(--accent);background:rgba(248,198,42,.05)}
+.type-card:hover{border-color:var(--accent);background:rgba(251,200,37,.05)}
 .type-title{font-size:17px;font-weight:600;color:var(--fg)}
 .type-desc{font-size:13px;color:var(--muted);font-family:'Pretendard Variable',Pretendard,sans-serif}
 .type-arrow{position:absolute;top:50%;right:24px;transform:translateY(-50%);color:var(--muted);
@@ -871,7 +871,7 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
   margin-bottom:16px;transition:color .2s}
 .modal-back:hover{color:var(--fg)}
 .modal-badge{display:inline-block;font-size:12px;letter-spacing:.05em;color:var(--accent);
-  border:1px solid rgba(248,198,42,.4);border-radius:100px;padding:6px 15px;margin-bottom:24px}
+  border:1px solid rgba(251,200,37,.4);border-radius:100px;padding:6px 15px;margin-bottom:24px}
 .modal-form{display:flex;flex-direction:column;gap:18px}
 .mf-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .mf-field{display:flex;flex-direction:column;gap:8px}
@@ -1063,7 +1063,7 @@ footer{
 .adm-card{--adm-pad:clamp(18px,3vw,28px);background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:var(--adm-pad)}
 .adm-card-gap{margin-top:clamp(28px,4vh,44px)}
 .adm-newrow{display:flex;gap:12px;flex-wrap:wrap}
-.adm-warn{border-color:rgba(248,198,42,.4)}
+.adm-warn{border-color:rgba(251,200,37,.4)}
 .adm-warn code{color:var(--accent);font-size:.92em}
 
 /* 버튼 */
@@ -1132,7 +1132,7 @@ footer{
 .adm-orphans{margin-top:14px;max-height:420px;overflow-y:auto}
 .adm-orphans .adm-row-title{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
 .adm-badge{display:inline-block;vertical-align:middle;margin-right:8px;padding:2px 7px;border-radius:3px;
-  background:rgba(248,198,42,.16);border:1px solid rgba(248,198,42,.45);color:var(--accent);
+  background:rgba(251,200,37,.16);border:1px solid rgba(251,200,37,.45);color:var(--accent);
   font-size:11px;font-weight:600;letter-spacing:.06em;line-height:1.5}
 .adm-form-head .adm-hide-toggle{flex:0 0 auto;font-size:13px}
 .adm-form-head .adm-hide-note{flex:1 0 100%;margin:0}

@@ -8,7 +8,7 @@ import nodemailer from 'nodemailer'
    필요한 환경변수 (Vercel → Settings → Environment Variables):
      SMTP_HOST  카카오워크 메일의 SMTP 서버 주소
      SMTP_PORT  465(SSL) 또는 587(STARTTLS)
-     SMTP_USER  viren@viren.kr
+     SMTP_USER  virenmotion@viren.kr (인증·발신 계정. 그룹메일 viren@ 로는 SMTP 인증 불가)
      SMTP_PASS  메일 계정 비밀번호(또는 앱 비밀번호)
      MAIL_TO    받는 주소. 없으면 SMTP_USER 로 보낸다.
 
