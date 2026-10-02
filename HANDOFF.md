@@ -53,7 +53,9 @@
 - **RLS**: public read / authenticated write.
 - ⚠️ **공고·프로젝트를 크게 바꾸면 시드도 같이 맞출 것.** 시드는 DB의 사본이라, 어긋나 있으면
   DB 장애 때 옛 글이나 없는 글이 노출된다. 채용 시드는 `src/careerJobs.js`의 `SEED_JOBS`,
-  WORK 시드는 `src/workProjects.js`의 `SEED_PROJECTS`. 폴백 화면은 `.env`와 `.env.local`을
+  WORK 시드는 `src/workProjects.js`의 `SEED_PROJECTS`(목록 수준 — `blocks`는 일부러 뺀다).
+  **프로젝트를 추가하거나 숨김→공개로 바꾸면 WORK 시드도 갱신할 것.** 숨김 프로젝트는 넣지 않는다.
+  폴백 화면은 `.env`와 `.env.local`을
   **둘 다** 치우고 빌드해야 재현된다(둘 중 하나만 치우면 나머지 파일의 키로 DB에 붙는다).
 - **관리자 페이지**: `/admin` — 6탭 `MARQUEE / WHAT WE DO / WORK / PROJECT / CAREER / CONDITIONS`.
   - `/admin`은 인트로 프리로더를 건너뜀(`App.jsx`의 `Boot`에서 처리).
@@ -234,7 +236,8 @@
 
 **남은 일**
 
-- **안동소수력발전소 공개 보류** — 숨김 상태. 공개 지시가 오면 숨김 해제 → 재배포 → 색인 요청.
+- **안동소수력발전소 공개 보류** — 숨김 상태. 공개 지시가 오면 숨김 해제 → **WORK 시드(`src/workProjects.js`)에도 추가** → 재배포 → 색인 요청.
+  시드는 공개 프로젝트만 담으므로, 숨김을 푸는 순간 시드에도 한 건 늘어야 한다.
 - **로고 모션 영상 교체 대기 — ⚠️ 폴더에 있는 파일을 그냥 올리지 말 것**
   새 5단어 버전 1차 시안은 2026-10-02 지은님이 반려했다("기존 모션을 살리고 단어만 수정").
   모션 담당이 다시 만드는 중이다. `박지은\OutCome\#_VIREN 영상\VIREN_logo_motion\`에
