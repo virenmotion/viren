@@ -93,7 +93,7 @@
 | `src/index.css` | 전역 스타일. 로더/줌 전환은 `#loader`~`#loader.done` 규칙(약 24–52행) |
 | `src/components/Contact.jsx` | CONTACT. 전화 02-3144-1222, 이메일 viren@viren.kr, SEOUL+MAP, 문의하기 모달, 소셜 위 로고 모션 밴드 |
 | `src/socials.jsx` | 소셜 링크 4개 + 아이콘 **단일 소스**(Contact·Footer 공용). 배열 순서 = 표시 순서 |
-| `public/assets/viren-logo-motion.mp4` | CONTACT 로고 모션 배포본(1920×400, 0.19MB). 마스터는 `public/VIREN_motion_wide.mp4`(gitignore) |
+| `public/assets/viren-logo-motion.mp4` | CONTACT 로고 모션 배포본(1920×400·30fps·11.6초, 0.59MB, 2026-10-06 5단어 버전). 마스터는 `public/VIREN_motion_wide.mp4`(gitignore) |
 | `src/components/ContactModal.jsx` | 문의 모달(portal 렌더) |
 | `src/components/Career.jsx` | CAREER. 공지(pinned)/공고 아코디언, 지원 팝업, 지원서 양식 다운로드 |
 | `src/components/ApplyModal.jsx` | 지원 팝업(portal). 이름*/이메일*/전화/다중 파일 첨부/동의 |
@@ -210,6 +210,42 @@
 > 큰 작업이 끝날 때, 그리고 "오늘 작업 정리해줘" 할 때 여기에 덧붙인다.
 > 지난 날짜는 지우지 않는다. 더 오래된 기록은 7-1·7-2절.
 
+### 2026-10-06 ✅ 배포·라이브 검증됨
+
+**한 일**
+
+1. **WORK 프로젝트 설명 11건 교체 반영** (`b06b3c9`) — SNS콘텐츠 마스터 담당이 쓰고
+   지은님이 승인한 문구. 반영 전에 검사해서 슬러그 11건 DB 일치·전부 78자 이내
+   (`projectDescription`이 78자에서 자른다)를 확인했다. DB 저장은 지은님이 `/admin`에서,
+   나는 검사·시드 갱신·재배포·검증을 맡았다.
+   ⚠️ **설명은 프리렌더 HTML의 meta description에도 들어간다** — DB만 고치면 화면은
+   바뀌어도 검색 결과는 옛 문구가 남는다. 반드시 재배포할 것.
+   라이브 meta description 10건을 한 건씩 받아 대조했고, 화면 본문도 확인했다.
+2. **CONTACT 로고 모션 새 영상 교체** (`d509a19`) — 로고 → Vision → Imagination →
+   Render → Experience → Narrative → 로고. PHILOSOPHY 다섯 글자와 같은 키워드다.
+   1920×400 · 30fps · H.264(yuv420p) · 무음 · **11.6초** · 586KB(이전 10초 · 191KB).
+   해상도가 같아 코드 수정은 없었다. `Contact.jsx` 주석도 새 내용으로 교체.
+   라이브에서 한 바퀴 돌려 0.9→10.89초 진행 후 0으로 되돌아가는 것까지 확인했다.
+   ⚠️ 1차 시안은 지은님이 반려했었다("기존 모션을 살리고 단어만 수정"). 모션 담당이
+   다시 만든 것이 이 영상이다. **폴더에 파일이 있다고 그냥 올리지 말 것** — 담당이
+   지은님 확인을 받아 넘겨줄 때만 교체한다.
+
+**영상 재생 검증 요령 (브라우저 창에서 확인할 때)**
+
+내장 브라우저 창은 뒤에 있으면 전력 절약으로 영상을 자동으로 멈춘다
+(`document.hidden === true`). 재생이 안 되는 것처럼 보여도 사이트 문제가 아니다.
+`if (v.paused) await v.play()` 를 넣고 반복 샘플링하면 실제 진행과 반복을 볼 수 있다.
+
+**남은 일**
+
+- 안동소수력발전소 공개 대기(아래 공통 항목 참고).
+
+**관련 파일**
+
+- `src/workProjects.js`(시드 설명), `public/assets/viren-logo-motion.mp4`,
+  `src/components/Contact.jsx`
+- 로고 모션 원본: `박지은\OutCome\#_VIREN 영상\VIREN_logo_motion\viren-logo-motion.mp4`
+
 ### 2026-10-02 ✅ 배포·라이브 검증됨
 
 **한 일**
@@ -238,12 +274,6 @@
 
 - **안동소수력발전소 공개 보류** — 숨김 상태. 공개 지시가 오면 숨김 해제 → **WORK 시드(`src/workProjects.js`)에도 추가** → 재배포 → 색인 요청.
   시드는 공개 프로젝트만 담으므로, 숨김을 푸는 순간 시드에도 한 건 늘어야 한다.
-- **로고 모션 영상 교체 대기 — ⚠️ 폴더에 있는 파일을 그냥 올리지 말 것**
-  새 5단어 버전 1차 시안은 2026-10-02 지은님이 반려했다("기존 모션을 살리고 단어만 수정").
-  모션 담당이 다시 만드는 중이다. `박지은\OutCome\#_VIREN 영상\VIREN_logo_motion\`에
-  파일이 있어도 그건 반려본일 수 있다. **모션 담당이 지은님 OK를 받고 직접 넘겨줄 때만**
-  교체한다. 그때 `public/assets/viren-logo-motion.mp4` 덮어쓰기 + 배포 +
-  `Contact.jsx` 60~61줄 경고 주석 삭제. 규격은 1920×400·30fps·10초(현재 배포본과 동일).
 
 **확인 필요 (지은님 손이 필요한 것)**
 
