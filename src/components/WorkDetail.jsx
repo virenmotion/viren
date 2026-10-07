@@ -223,17 +223,43 @@ function BlockBody({ b }) {
       </figure>
     )
   }
-  if (b.type === 'image' && b.media) {
+  /* 이미지 — 한 장이면 그대로, 여러 장이면 격자(기본 2열 = 4장이면 2×2).
+
+     옛 블록은 media 한 장만 있고 items가 없다 → 그대로 한 장으로 렌더된다(데이터 호환).
+     ⚠️ 칸에 맞춰 잘라낸다(object-fit:cover). 비율이 제각각이어도 격자가 반듯하게
+     보이도록 지은님이 고른 방식이다. 칸 비율은 각 장의 가로세로비 중 **가운데 값**을
+     쓴다 — 한 장이 유난히 길쭉해도 격자 전체가 끌려가지 않는다.
+     휴대폰(760px 이하)에서는 CSS가 1열로 바꿔 한 장씩 크게 보여준다. */
+  if (b.type === 'image') {
+    const items = Array.isArray(b.items) ? b.items.filter((it) => it?.media) : []
+    if (!items.length && !b.media) return null
+    /* 우클릭 저장·드래그 반출 차단 (완전 차단은 불가 — 개발자도구·스크린샷은 못 막는다) */
+    const pic = (src, key) => (
+      <img
+        key={key}
+        src={src}
+        alt={b.caption || ''}
+        loading="lazy"
+        draggable="false"
+        onContextMenu={(e) => e.preventDefault()}
+      />
+    )
+    if (!items.length) {
+      return (
+        <figure className="wb-figure">
+          {pic(b.media, 'one')}
+          {b.caption && <figcaption className="wb-caption">{b.caption}</figcaption>}
+        </figure>
+      )
+    }
+    const ars = items.map((it) => Number(it.ar)).filter((n) => n > 0).sort((x, y) => x - y)
+    const ratio = ars.length ? ars[Math.floor((ars.length - 1) / 2)] : 16 / 9
+    const cols = items.length === 1 ? 1 : (Number(b.cols) === 1 ? 1 : 2)
     return (
-      <figure className="wb-figure">
-        {/* 우클릭 저장·드래그 반출 차단 (완전 차단은 불가 — 개발자도구·스크린샷은 못 막는다) */}
-        <img
-          src={b.media}
-          alt={b.caption || ''}
-          loading="lazy"
-          draggable="false"
-          onContextMenu={(e) => e.preventDefault()}
-        />
+      <figure className="wb-grid" style={{ '--cols': cols, '--cell': ratio }}>
+        <div className="wb-grid-cells">
+          {items.map((it, i) => <div className="wb-grid-cell" key={i}>{pic(it.media, i)}</div>)}
+        </div>
         {b.caption && <figcaption className="wb-caption">{b.caption}</figcaption>}
       </figure>
     )

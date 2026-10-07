@@ -218,17 +218,48 @@ function ProjectManager() {
     blockDragFrom.current = i; setBlockDrag(i)
   }
   const onBlockDragEnd = () => { blockDragFrom.current = null; setBlockDrag(null) }
-  async function uploadBlockImage(i, e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setMsg('')
+  /* 이미지 블록 — 한 번에 여러 장. items 배열에 쌓이고 화면에서는 격자로 보인다.
+     ⚠️ 가로세로비(ar)를 같이 저장한다. 화면에서 칸 비율을 이 값들의 가운데 값으로
+     잡기 때문이다. 올릴 때 재두지 않으면 로드 후에야 알 수 있어 레이아웃이 한 번 튄다.
+     ⚠️ 옛 블록(media 한 장, items 없음)에 장을 더하면 media를 items[0]으로 옮기고
+     media는 비운다. 두 곳에 같은 사진이 남지 않게 하기 위함이다. */
+  const blockItems = (b) =>
+    Array.isArray(b?.items) ? b.items : (b?.media ? [{ media: b.media }] : [])
+
+  async function uploadBlockImages(i, e) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setMsg(''); setImgUploading(i)
     try {
-      const url = await uploadThumb(file, (r) =>
-        setMsg(`이미지를 자동 압축했습니다 — ${mbText(r.before)} → ${mbText(r.after)}`))
-      updateBlock(i, { media: url })
+      const added = []
+      for (const file of files) {
+        let ar
+        try {
+          const bm = await createImageBitmap(file)
+          if (bm.width && bm.height) ar = bm.width / bm.height
+          bm.close?.()
+        } catch { /* 비율을 못 읽으면 나머지 장의 값으로 칸 비율이 정해진다 */ }
+        const url = await uploadThumb(file, (r) =>
+          setMsg(`이미지를 자동 압축했습니다 — ${mbText(r.before)} → ${mbText(r.after)}`))
+        added.push({ media: url, ar })
+      }
+      const prev = blockItems(form.blocks?.[i])
+      updateBlock(i, { items: [...prev, ...added], media: '' })
+      if (files.length > 1) setMsg(`${files.length}장을 올렸습니다.`)
     }
     catch (e2) { setMsg('이미지 업로드 실패: ' + e2.message) }
-    finally { e.target.value = '' }
+    finally { setImgUploading(-1); e.target.value = '' }
+  }
+  const moveImg = (i, k, d) => {
+    const items = [...blockItems(form.blocks?.[i])]
+    const j = k + d
+    if (j < 0 || j >= items.length) return
+    ;[items[k], items[j]] = [items[j], items[k]]
+    updateBlock(i, { items, media: '' })
+  }
+  const removeImg = (i, k) => {
+    const items = blockItems(form.blocks?.[i]).filter((_, x) => x !== k)
+    updateBlock(i, { items, media: '' })
   }
   /* 좌우 미디어 블록 — 한쪽 칸에 이미지/영상을 올린다.
      ⚠️ 가로세로비(ar)를 같이 저장한다. 화면에서 두 쪽 폭을 이 값 비율로 나눠야
@@ -265,6 +296,7 @@ ${ffmpegHint(file.name)}`)
   const setDuo = (i, side, patch) =>
     updateBlock(i, { [side]: { ...(form.blocks?.[i]?.[side] || {}), ...patch } })
 
+  const [imgUploading, setImgUploading] = useState(-1)    // 이미지 업로드 중인 블록 인덱스
   const [videoUploading, setVideoUploading] = useState(-1) // 업로드 중인 블록 인덱스
   async function uploadBlockVideo(i, e) {
     const file = e.target.files?.[0]
@@ -444,9 +476,39 @@ ${ffmpegHint(file.name)}`)
               )}
               {b.type === 'image' && (
                 <>
-                  <input type="file" accept="image/*" onChange={(e) => uploadBlockImage(i, e)} />
-                  {b.media && <img className="adm-block-preview" src={b.media} alt="블록 이미지" />}
+                  <input type="file" accept="image/*" multiple onChange={(e) => uploadBlockImages(i, e)} />
+                  {imgUploading === i && <span className="adm-hint">업로드 중…</span>}
+                  {blockItems(b).length > 1 && (
+                    <label className="adm-hint" style={{ display: 'block' }}>
+                      배열{' '}
+                      <select
+                        value={Number(b.cols) === 1 ? 1 : 2}
+                        onChange={(e) => updateBlock(i, { cols: Number(e.target.value) })}
+                      >
+                        <option value={2}>2열 — 2장이면 나란히, 4장이면 2×2 (기본)</option>
+                        <option value={1}>1열 — 세로로 쌓기</option>
+                      </select>
+                    </label>
+                  )}
+                  {blockItems(b).length > 0 && (
+                    <div className="adm-imgs">
+                      {blockItems(b).map((it, k) => (
+                        <div className="adm-img" key={k}>
+                          <img src={it.media} alt="" />
+                          <span className="adm-img-tools">
+                            <button type="button" className="adm-btn" onClick={() => moveImg(i, k, -1)} disabled={k === 0}>←</button>
+                            <button type="button" className="adm-btn" onClick={() => moveImg(i, k, 1)} disabled={k === blockItems(b).length - 1}>→</button>
+                            <button type="button" className="adm-btn adm-btn-danger" onClick={() => removeImg(i, k)}>삭제</button>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <input placeholder="캡션 (선택)" value={b.caption || ''} onChange={(e) => updateBlock(i, { caption: e.target.value })} />
+                  <span className="adm-hint">
+                    여러 장을 한 번에 고르면 격자로 보입니다(4장이면 2×2). 캡션은 블록 전체에 하나입니다.<br />
+                    비율이 서로 다르면 칸 크기에 맞춰 잘립니다. 휴대폰에서는 세로로 한 장씩 크게 보입니다.
+                  </span>
                 </>
               )}
               {b.type === 'video' && (

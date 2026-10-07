@@ -1185,3 +1185,21 @@ footer{
   .adm-grid2{grid-template-columns:1fr}
   .adm-row{flex-wrap:wrap}
 }
+
+/* 이미지 격자 — 한 블록에 여러 장(기본 2열, 4장이면 2×2).
+   --cols = 열 수, --cell = 칸의 가로세로비(각 장 비율의 가운데 값, WorkDetail에서 계산).
+   ⚠️ 칸에 맞춰 잘라낸다(cover). 비율이 제각각이어도 격자가 반듯하게 보이도록 한 선택이다.
+   휴대폰에서는 1열로 바꿔 한 장씩 크게 보여준다. */
+.wb-grid{margin:0}
+.wb-grid-cells{display:grid;grid-template-columns:repeat(var(--cols,2),minmax(0,1fr));gap:2px}
+.wb-grid-cell{aspect-ratio:var(--cell,1.7778);overflow:hidden;min-width:0}
+.wb-grid-cell img{width:100%;height:100%;object-fit:cover;display:block}
+@media(max-width:760px){
+  .wb-grid-cells{grid-template-columns:minmax(0,1fr)}
+}
+/* 관리자 — 이미지 블록의 여러 장 미리보기 */
+.adm-imgs{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}
+.adm-img{width:150px}
+.adm-img img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;border:1px solid var(--line)}
+.adm-img-tools{display:flex;gap:4px;margin-top:4px}
+.adm-img-tools .adm-btn{flex:1;padding:3px 0;font-size:11px}
