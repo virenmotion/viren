@@ -55,6 +55,9 @@
   DB 장애 때 옛 글이나 없는 글이 노출된다. 채용 시드는 `src/careerJobs.js`의 `SEED_JOBS`,
   WORK 시드는 `src/workProjects.js`의 `SEED_PROJECTS`(목록 수준 — `blocks`는 일부러 뺀다).
   **프로젝트를 추가하거나 숨김→공개로 바꾸면 WORK 시드도 갱신할 것.** 숨김 프로젝트는 넣지 않는다.
+  **2026-10-07 지은님 결정: `SEED_JOBS`는 지우지 않고 유지한다.** 관리자에서 채용공고를
+  바꾸면 WORK 시드와 **같은 방식으로** — 손으로 타이핑하지 말고 DB `jobs`에서 뽑아 다시
+  만들고, 넣은 뒤 전 필드를 대조한다. 주석의 "마지막 동기화" 날짜·건수도 갱신한다.
   폴백 화면은 `.env`와 `.env.local`을
   **둘 다** 치우고 빌드해야 재현된다(둘 중 하나만 치우면 나머지 파일의 키로 DB에 붙는다).
 - **관리자 페이지**: `/admin` — 6탭 `MARQUEE / WHAT WE DO / WORK / PROJECT / CAREER / CONDITIONS`.
