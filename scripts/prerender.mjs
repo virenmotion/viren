@@ -76,12 +76,13 @@ async function loadProjects() {
     desc: r.description, blocks: Array.isArray(r.blocks) ? r.blocks : [],
     hidden: !!r.hidden,
   }))
-  /* 숨김 프로젝트는 프리렌더·사이트맵 어디에도 넣지 않는다. 화면(Work.jsx)에서도
-     빠지므로 클로킹이 아니다. 주소로 직접 열면 보이지만 그 페이지엔 noindex가 붙는다. */
+  /* 숨김 프로젝트는 목록·사이트맵에 넣지 않는다. 화면(Work.jsx)에서도 빠지므로 클로킹이 아니다.
+     다만 주소로 직접 열면 보이므로, **그 페이지도 noindex를 박아서 구워 둔다**(아래 참고).
+     그래서 여기서는 버리지 않고 따로 돌려준다. */
   const shown = all.filter((p) => !p.hidden)
-  const n = all.length - shown.length
-  if (n) console.log(`  · 숨김 프로젝트 ${n}건 제외`)
-  return shown
+  const hiddenOnes = all.filter((p) => p.hidden)
+  if (hiddenOnes.length) console.log(`  · 숨김 프로젝트 ${hiddenOnes.length}건 — 목록·사이트맵 제외, noindex로 굽기`)
+  return { shown, hidden: hiddenOnes }
 }
 
 async function loadCatLabel() {
@@ -152,7 +153,7 @@ const NAV = '<p><a href="/">HOME</a> · <a href="/work">WORK</a> · <a href="/ca
 
 /* index.html의 기존 태그를 '덮어쓴다'. 새로 추가하면 head에 title·canonical이 둘씩 생기고
    크롤러는 보통 앞의 것(=홈 값)을 채택해 수정이 무의미해진다. */
-function buildPage(tpl, { title, description, url, noscript }) {
+function buildPage(tpl, { title, description, url, noscript, noindex }) {
   const sub = (re, replacement, label) => {
     if (!re.test(tpl)) throw new Error(`템플릿에서 ${label}를 찾지 못했습니다 — index.html 구조가 바뀌었는지 확인하세요.`)
     tpl = tpl.replace(re, replacement)
@@ -164,13 +165,15 @@ function buildPage(tpl, { title, description, url, noscript }) {
   sub(/(<link rel="canonical" href=")[^"]*(")/, `$1${esc(url)}$2`, 'canonical')
   sub(/(<meta property="og:url" content=")[^"]*(")/, `$1${esc(url)}$2`, 'og:url')
   sub(/<noscript>[\s\S]*?<\/noscript>/, `<noscript>\n${noscript}\n    </noscript>`, '<noscript>')
+  /* 숨김 프로젝트만 해당. 화면에서도 WorkDetail이 같은 noindex를 붙이므로 어긋나지 않는다. */
+  if (noindex) sub(/(<meta name="robots" content=")[^"]*(")/, '$1noindex, nofollow$2', 'robots')
   return tpl
 }
 
 /* ---------- 실행 ---------- */
 
 const tpl = await readFile(path.join(DIST, 'index.html'), 'utf8')
-const [projects, catLabel, jobs, whatWeDo] = await Promise.all([
+const [{ shown: projects, hidden: hiddenProjects }, catLabel, jobs, whatWeDo] = await Promise.all([
   loadProjects(), loadCatLabel(), loadJobs(), loadWhatWeDo(),
 ])
 
@@ -239,14 +242,14 @@ const relatedLinks = (p) => {
   return `<h2>다른 프로젝트</h2>\n      <ul>\n        ${items}\n      </ul>`
 }
 
-for (const p of projects) {
+const detailPage = (p, noindex = false) => {
   const meta = [
     p.client && `발주처 ${p.client}`,
     p.year && `${p.year}`,
     p.location,
     p.deliverables && `산출물 ${p.deliverables}`,
   ].filter(Boolean)
-  pages.push({
+  const page = {
     title: projectTitle(p),
     description: projectDescription(p, catLabel),
     path: `/work/${p.slug}`,
@@ -258,8 +261,20 @@ for (const p of projects) {
       <p>제작 — 바이렌(VIREN) 콘텐츠 프로덕션 스튜디오</p>
       ${relatedLinks(p)}
       ${NAV}`,
-  })
+  }
+  return { ...page, noindex }
 }
+
+for (const p of projects) pages.push(detailPage(p))
+
+/* 숨김 프로젝트 — **noindex를 박아서** 굽는다.
+   왜 굽나: 프리렌더에 없으면 SPA 기본 index.html이 그대로 응답되는데, 거기엔
+   `robots: index, follow`가 들어 있다. noindex는 React가 화면을 그린 뒤에야 붙으므로,
+   구글이 JS 실행 전에 수집하면 공개 전 프로젝트가 색인될 수 있다.
+   내용은 어차피 주소로 열면 보이므로 노출 범위는 그대로고, **색인만 확실히 막힌다.**
+   목록·사이트맵에는 넣지 않으므로 크롤러가 스스로 이 주소를 찾을 일은 없다.
+   ⚠️ 공개로 바꾸면 이 페이지는 자동으로 noindex가 빠지고 사이트맵에 들어간다. */
+for (const p of hiddenProjects) pages.push(detailPage(p, true))
 
 for (const page of pages) {
   const html = buildPage(tpl, {
@@ -267,6 +282,7 @@ for (const page of pages) {
     description: page.description,
     url: SITE + page.path,
     noscript: page.noscript,
+    noindex: page.noindex,
   })
   const dir = path.join(DIST, page.path)
   await mkdir(dir, { recursive: true })
@@ -274,7 +290,7 @@ for (const page of pages) {
 }
 
 /* 사이트맵도 여기서 만든다. 손으로 관리하면 프로젝트를 추가/삭제할 때마다 어긋난다. */
-const urls = pages.map((p) => {
+const urls = pages.filter((p) => !p.noindex).map((p) => {
   const priority = p.path === '/' ? '1.0' : p.path === '/work' ? '0.9' : p.path.startsWith('/work/') ? '0.8' : '0.7'
   return `  <url>\n    <loc>${SITE}${p.path}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>${priority}</priority>\n  </url>`
 })
@@ -283,4 +299,4 @@ await writeFile(
   `<?xml version="1.0" encoding="UTF-8"?>\n<!-- 빌드 시 자동 생성 (scripts/prerender.mjs) — 직접 수정하지 말 것 -->\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`,
 )
 
-console.log(`  ✓ 프리렌더 ${pages.length}쪽 + 사이트맵 ${urls.length}건 (프로젝트 ${projects.length})`)
+console.log(`  ✓ 프리렌더 ${pages.length}쪽(숨김 ${hiddenProjects.length}쪽 noindex 포함) + 사이트맵 ${urls.length}건 (공개 프로젝트 ${projects.length})`)
