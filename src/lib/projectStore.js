@@ -11,8 +11,19 @@ const SELECT_BASE = SELECT_CORE + ', hidden'
 const SELECT = SELECT_BASE + ', blocks'
 
 /* 컬럼이 없어도 목록이 깨지지 않도록 넓은 SELECT부터 차례로 시도한다.
-   hidden은 2026-09-21에 추가한 컬럼이라, DB 마이그레이션 전에도 사이트는 떠 있어야 한다. */
-const SELECTS = [SELECT, SELECT_CORE + ', blocks', SELECT_BASE, SELECT_CORE]
+   hidden은 2026-09-21에 추가한 컬럼이라, DB 마이그레이션 전에도 사이트는 떠 있어야 한다.
+
+   ⚠️ 순서가 중요하다. blocks가 없을 때 **hidden까지 같이 버리면 안 된다** —
+   그래서 2순위를 SELECT_BASE(hidden 유지, blocks만 뺌)로 둔다. */
+const SELECTS = [SELECT, SELECT_BASE, SELECT_CORE + ', blocks', SELECT_CORE]
+
+/* 컬럼이 없다는 오류인가. PostgREST는 42703(undefined_column)을 준다. */
+function missingColumn(error) {
+  if (error?.code === '42703') return true
+  return /does not exist|could not find the .* column/i.test(
+    `${error?.message || ''} ${error?.details || ''}`,
+  )
+}
 
 /* ---------- 조회 ---------- */
 export async function listProjects() {
@@ -23,6 +34,13 @@ export async function listProjects() {
     const { data, error } = await order(supabase.from(TABLE).select(sel))
     if (!error) return data
     last = error
+    /* ⚠️ **컬럼이 없다는 오류일 때만** 더 좁은 SELECT로 내려간다.
+       2026-10-08 사고: 어떤 오류든 무조건 다음 단계로 내려가게 돼 있었다.
+       네트워크 끊김 같은 일시 오류 한 번이면 hidden 없는 결과를 받고,
+       `!p.hidden` 이 전부 참이 되어 **숨긴 프로젝트가 사이트에 노출된다.**
+       그런 오류는 그냥 던진다 → ProjectsContext가 시드로 폴백한다(시드에는
+       숨김 프로젝트가 없으므로 노출 사고가 나지 않는다). */
+    if (!missingColumn(error)) throw error
   }
   throw last
 }

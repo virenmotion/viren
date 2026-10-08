@@ -54,11 +54,15 @@ async function sb(query) {
 
 async function loadProjects() {
   const COLS = 'slug,cat,client,year,title_en,title_ko,location,deliverables,description,blocks'
-  /* hidden은 2026-09-21에 추가한 컬럼이다. 아직 없는 DB에 물어보면 PostgREST가 400을
-     주고 sb()가 null을 돌려줘 시드(6건)로 폴백해버린다 — 사이트맵이 통째로 낡는다.
-     그래서 hidden 포함으로 먼저 시도하고, 실패하면 hidden 없이 한 번 더 시도한다. */
-  let rows = await sb(`projects?select=${COLS},hidden&order=sort.asc`)
-  if (!rows) rows = await sb(`projects?select=${COLS}&order=sort.asc`)
+  /* ⚠️ **hidden 없이 다시 묻지 않는다.** 예전에는 실패하면 hidden 빼고 한 번 더
+     물었는데, 일시 오류 한 번이면 `hidden`이 전부 undefined가 되어 **숨긴 프로젝트가
+     사이트맵과 크롤러 HTML에 그대로 실린다.** 공개 전 프로젝트가 검색에 노출되는
+     사고다(2026-10-08에 같은 구조의 버그를 앱 쪽에서 발견해 함께 고쳤다).
+     대신 같은 질의를 한 번 더 시도하고, 그래도 안 되면 아래 시드 폴백으로 간다 —
+     시드에는 숨김 프로젝트가 없으므로 노출 사고가 나지 않는다. */
+  const q = `projects?select=${COLS},hidden&order=sort.asc`
+  let rows = await sb(q)
+  if (!rows) rows = await sb(q)
   if (!rows) {
     /* DB에 못 닿으면 앱과 같은 시드로 폴백한다. 시드는 DB보다 오래된 목록일 수 있으므로
        빌드 로그에 반드시 남긴다 — 프로젝트 페이지가 조용히 누락되는 사고를 막기 위함. */
