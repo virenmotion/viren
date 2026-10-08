@@ -16,7 +16,7 @@
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
-import { SITE, SEO, H1, projectTitle, projectDescription, pickRelated } from '../src/lib/seoRoutes.js'
+import { SITE, BRAND, SEO, H1, projectTitle, projectDescription, pickRelated } from '../src/lib/seoRoutes.js'
 import { SEED_PROJECTS } from '../src/workProjects.js'
 
 const DIST = path.resolve('dist')
@@ -288,6 +288,30 @@ for (const page of pages) {
   await mkdir(dir, { recursive: true })
   await writeFile(path.join(dir, 'index.html'), html)
 }
+
+/* SPA 폴백 전용 404 껍데기 — `dist/404.html`.
+
+   왜 필요한가: vercel.json 의 catch-all rewrite 가 **없는 주소**를 전부 이 파일로 보낸다.
+   예전에는 `/index.html`(=홈)로 보냈는데, 홈은 당연히 `index, follow` 라서
+   `/work/오타` 같은 소프트 404 가 "색인해도 되는 페이지"로 응답됐다.
+   React 가 화면을 그린 뒤에야 noindex 를 붙이므로, 구글이 JS 실행 전에 수집하면
+   엉뚱한 주소가 색인된다(2026-09-01에 실제로 2페이지가 잡혔다).
+   이제 없는 주소는 처음부터 noindex 로 응답한다. SPA 는 그대로 떠서 라우터가
+   알맞은 화면(없는 페이지 / `/admin`)을 그린다.
+   ⚠️ 진짜 페이지 14쪽은 각자 폴더에 구워져 있어 **파일시스템이 먼저 응답**하므로
+   이 파일로 오지 않는다(Vercel 순서: redirects → filesystem → rewrites). */
+await writeFile(
+  path.join(DIST, '404.html'),
+  buildPage(tpl, {
+    title: `페이지를 찾을 수 없습니다 | ${BRAND}`,
+    description: '요청하신 주소를 찾을 수 없습니다. 바이렌(VIREN) 홈페이지에서 다른 페이지를 둘러보세요.',
+    url: SITE + '/404',
+    noindex: true,
+    noscript: `      <h1>페이지를 찾을 수 없습니다</h1>
+      <p>요청하신 주소가 없거나 옮겨졌습니다.</p>
+      ${NAV}`,
+  }),
+)
 
 /* 사이트맵도 여기서 만든다. 손으로 관리하면 프로젝트를 추가/삭제할 때마다 어긋난다. */
 const urls = pages.filter((p) => !p.noindex).map((p) => {
