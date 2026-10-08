@@ -18,10 +18,24 @@ const {
   SMTP_HOST, SMTP_PORT = '465', SMTP_USER, SMTP_PASS, MAIL_TO,
 } = process.env
 
-/* 우리 사이트에서 온 요청만 받는다 — 열린 발송 endpoint 로 악용되는 것을 막는다 */
+/* 우리 사이트에서 온 요청만 받는다 — 열린 발송 endpoint 로 악용되는 것을 막는다.
+
+   ⚠️ 2026-10-08 점검에서 구멍을 찾았다. 예전에는 `!origin` 이면 통과시켰는데,
+   Origin 헤더는 **브라우저만 자동으로 붙인다.** curl·스크립트는 그냥 안 붙이면 되므로
+   사실상 아무나 회사 메일함으로 메일을 보낼 수 있었다(점검 중 빈 메일 1통이 실제 발송됨).
+   이제 Origin 이 없으면 Referer 로 한 번 더 본다. 둘 다 우리 주소가 아니면 거부한다.
+   브라우저는 POST 에 Origin 을 항상 붙이므로 정상 문의는 영향받지 않는다.
+   Referer 확인은 혹시 모를 경우를 위한 2중 안전장치다. */
 const ALLOWED = ['https://www.viren.kr', 'https://viren.kr']
-const isAllowed = (origin) =>
-  !origin || ALLOWED.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin)
+const isLocal = (u) => u.startsWith('http://localhost:')
+const fromUs = (origin, referer) => {
+  if (origin) return ALLOWED.includes(origin) || isLocal(origin)
+  if (!referer) return false
+  try {
+    const o = new URL(referer).origin
+    return ALLOWED.includes(o) || isLocal(o)
+  } catch { return false }
+}
 
 const esc = (s) =>
   String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -43,7 +57,7 @@ function buildHtml(title, fields) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' })
-  if (!isAllowed(req.headers.origin)) return res.status(403).json({ error: 'forbidden' })
+  if (!fromUs(req.headers.origin, req.headers.referer)) return res.status(403).json({ error: 'forbidden' })
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
     /* 아직 설정 전 — 화면은 메일 앱으로 넘어가도록 실패를 알린다 */
     return res.status(503).json({ error: 'mail not configured' })
@@ -54,6 +68,11 @@ export default async function handler(req, res) {
 
     /* 허니팟 — 사람은 비워 두는 칸. 채워져 있으면 봇이므로 조용히 성공 처리. */
     if (_hp) return res.status(200).json({ ok: true })
+
+    /* 알맹이가 없으면 보내지 않는다. 빈 메일이 메일함에 쌓이는 것을 막는다.
+       (점검 중 빈 본문으로 요청했더니 제목만 있는 메일이 실제로 발송됐다) */
+    const hasContent = Object.values(fields || {}).some((v) => String(v ?? '').trim() !== '')
+    if (!hasContent) return res.status(400).json({ error: 'empty' })
 
     const files = (Array.isArray(attachments) ? attachments : [])
       .filter((a) => a?.name && a?.content)
