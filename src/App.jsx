@@ -116,6 +116,9 @@ function ContactPage() {
 }
 
 function AdminPage() {
+  /* SPA 폴백(404 껍데기)이 응답되므로 제목·robots 를 여기서 바로잡는다.
+     안 하면 브라우저 탭에 '페이지를 찾을 수 없습니다'가 뜬다. */
+  useSeo({ title: `관리자 | ${BRAND}`, noindex: true })
   return (
     <main>
       <Suspense fallback={<p className="wd-empty">불러오는 중…</p>}>
