@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
 import Preloader from './components/Preloader'
 import Cursor from './components/Cursor'
@@ -12,12 +12,16 @@ import WhatWeDo from './components/WhatWeDo'
 import Outro from './components/Outro'
 import Work from './components/Work'
 import WorkDetail from './components/WorkDetail'
-import Admin from './components/Admin'
+
 import Career from './components/Career'
 import Contact from './components/Contact'
 import Footer from './components/Footer'
 import { ProjectsProvider } from './ProjectsContext'
 import useFullpage from './lib/useFullpage'
+
+/* 관리자 화면은 방문자에게 필요 없는데도 한 덩어리에 같이 들어가
+   모든 방문자가 내려받고 있었다(2026-10-08 점검). /admin 에 들어갈 때만 불러온다. */
+const Admin = lazy(() => import('./components/Admin'))
 import useSeo from './lib/useSeo'
 import { SEO, H1, BRAND } from './lib/seoRoutes'
 
@@ -114,7 +118,9 @@ function ContactPage() {
 function AdminPage() {
   return (
     <main>
-      <Admin />
+      <Suspense fallback={<p className="wd-empty">불러오는 중…</p>}>
+        <Admin />
+      </Suspense>
     </main>
   )
 }

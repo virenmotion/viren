@@ -1,4 +1,4 @@
-/* SEO 건강검진 — 라이브 사이트를 밖에서 점검한다.
+/* SEO 검사 — 라이브 사이트를 밖에서 점검한다.
    실행: node scripts/seo-health.mjs
 
    왜 필요한가:
@@ -8,6 +8,21 @@
      · DB 조회 실패 → 시드 폴백 → 프로젝트 페이지 전부 noindex (2026-09-01)
      · 프리렌더가 깨져 canonical이 전부 홈을 가리킴 (2026-08-18)
    전부 밖에서 감지 가능하다. 하나라도 어긋나면 색인이 조용히 빠진다. */
+
+import { readFileSync } from 'node:fs'
+
+/* ⚠️ 이 스크립트는 process.env 만 읽어서, 로컬에서 돌리면 [2] DB 대조가 **항상**
+   건너뛰어졌다(2026-10-08 점검에서 발견). 하필 "숨김 프로젝트가 사이트맵에 샜는지",
+   "프로젝트를 추가하고 재배포를 안 했는지"를 잡아내는 검사라 가장 중요한 항목이다.
+   prerender.mjs 와 같은 방식으로 .env 파일을 먼저 읽는다. */
+for (const f of ['.env.local', '.env']) {
+  try {
+    for (const line of readFileSync(f, 'utf8').split('\n')) {
+      const m = line.match(/^\s*([\w.-]+)\s*=\s*(.*)\s*$/)
+      if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '')
+    }
+  } catch { /* 파일이 없으면 무시 — CI·Vercel 에서는 정상 */ }
+}
 
 const SITE = 'https://www.viren.kr'
 const YETI = 'Mozilla/5.0 (compatible; Yeti/1.1; +https://naver.me/spd)'
