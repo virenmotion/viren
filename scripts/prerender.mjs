@@ -67,7 +67,10 @@ async function loadProjects() {
     /* DB에 못 닿으면 앱과 같은 시드로 폴백한다. 시드는 DB보다 오래된 목록일 수 있으므로
        빌드 로그에 반드시 남긴다 — 프로젝트 페이지가 조용히 누락되는 사고를 막기 위함. */
     console.warn('  ! DB 미연결 → 시드 프로젝트로 폴백 (최신 목록이 아닐 수 있음)')
-    return SEED_PROJECTS
+    /* ⚠️ 반환 모양을 { shown, hidden } 으로 맞춘다. 배열만 돌려주면 호출부의
+       구조분해가 undefined 가 되어 빌드가 통째로 깨진다(2026-10-12에 실제로 겪음).
+       시드에는 숨김 프로젝트가 없으므로 hidden 은 항상 빈 배열이다. */
+    return { shown: SEED_PROJECTS, hidden: [] }
   }
   const all = rows.map((r) => ({
     slug: r.slug, cat: r.cat, client: r.client, year: r.year,
