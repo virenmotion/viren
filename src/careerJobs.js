@@ -56,14 +56,14 @@ export const JOB_FORM_CATEGORIES = Object.entries(JOB_CAT_LABELS).map(([slug, la
 
 /* DB 미연결 시 폴백 시드. id = 식별자.
    ⚠️ 이 배열은 Supabase jobs 테이블의 사본이다. 관리자(/admin → CAREER)에서 공고를
-   크게 바꾸면 여기도 같이 맞출 것 — 안 맞추면 DB 장애 때 옛 공고가 노출된다.
-   마지막 동기화: 2026-10-02 (DB 2건). */
+   크게 바꾸면 여기도 같이 맞출 것 — 손으로 타이핑하지 말고 DB에서 뽑아 다시 만든다.
+   마지막 동기화: 2026-10-12 (DB 2건, 채용공고 이미지 기준 문구 반영). */
 export const SEED_JOBS = [
   {
     id: "talent-pool-인재풀", cat: "general", pinned: true, sort: 0,
     titleEn: "TALENT POOL / 인재풀", titleKo: null,
     type: null,
-    desc: "**Create the Next Scene with VIREN**\n바이렌은 브랜드의 이야기를 새로운 경험으로 만드는 콘텐츠 스튜디오 입니다.\n\n우리는 늘 다음 프로젝트를 준비하고,\n그 프로젝트를 함께 완성할 새로운 크리에이터를 찾고 있습니다.\n\n현재 채용 중인 포지션이 아니더라도 괜찮습니다.\n당신만의 시선과 감각, 그리고 가능성을 인재풀에 남겨주세요.\n\n당신의 가능성이 필요한 순간 가장 먼저 연락드리겠습니다.\n\n**We Create Memorable Scenes.**\n**그 장면을 함께 만들어갈 당신을 기다립니다.**",
+    desc: "**Create the Next Scene with VIREN**\nVIREN은 공간과 기술, 콘텐츠를 하나의 흐름으로 연결하는 미디어아트 스튜디오입니다.\n\n우리는 늘 다음 프로젝트를 준비하고,\n그 프로젝트를 함께 완성할 새로운 크리에이터를 찾고 있습니다.\n\n현재 채용 중인 포지션이 아니더라도 괜찮습니다.\n당신만의 시선과 감각, 그리고 가능성을 인재풀에 남겨주세요.\n\n당신의 가능성이 필요한 순간 가장 먼저 연락드리겠습니다.\n\n**We Create Memorable Scenes.**\n**그 장면을 함께 만들어갈 당신을 기다립니다.**",
     headcount: null,
     responsibilities: null,
     qualifications: null,
@@ -75,8 +75,8 @@ export const SEED_JOBS = [
     type: "정규직 · 0년 이상 (수습기간 신입-3개월, 경력-협의)",
     desc: "미디어아트 콘텐츠 제작을 위한 2D, 3D 기반 영상제작 작업",
     headcount: null,
-    responsibilities: "콘텐츠 및 뉴미디어 프로젝트를 위한 모션그래픽 디자인\n미디어아트 콘텐츠 기획 및 비주얼 제작\n인터랙티브 콘텐츠 제작",
-    qualifications: "2D, 3D 영상 제작 파이프라인에 대한 이해도가 높으신 분\nAdobe 계열 프로그램 활용 가능하신 분\n팀워크의 가치를 이해하고 일할 수 있는 분",
-    preferred: "MAYA, C4D, Blender 등 활용 가능하신 분\n영상 촬영 및 편집 가능하신 분\n미디어아트 · 전시 · 영상 제작 관련 프로젝트 경험이 있으신 분",
+    responsibilities: "콘텐츠 및 뉴미디어 프로젝트를 위한 모션그래픽 제작\n미디어아트 & 인터랙티브 콘텐츠 기획 및 비주얼 제작",
+    qualifications: "2D, 3D 영상 제작 파이프라인에 대한 이해도가 높으신 분\nAdobe 계열 프로그램 활용 가능한 분\n원활한 커뮤니케이션에 적극적이고, 팀워크의 가치를 이해하고 일할 수 있는 분",
+    preferred: "MAYA, C4D, Blender 등 3D 툴 활용 가능하신 분\n영상 촬영 및 편집이 가능하신 분\n미디어아트 · 전시 · 영상 제작 관련 프로젝트 경험이 있으신 분\n유관부서와 원활한 의사소통을 할 수 있는 스킬을 가지신 분",
   },
 ]
