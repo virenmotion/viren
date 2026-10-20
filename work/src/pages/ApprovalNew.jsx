@@ -4,7 +4,7 @@ import { errText, FILE_BUCKET, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { dot, today, weekdays } from '../lib/dates'
 import { leaveSummary } from '../lib/leave'
-import { FORMS, LEAVE_KINDS, won } from '../lib/labels'
+import { FORMS, LEAVE_KINDS, LEAVE_PICK, won } from '../lib/labels'
 import { ErrorBox } from '../components/ui'
 
 const MAX_FILE_MB = 20
@@ -130,9 +130,16 @@ export default function ApprovalNew() {
           {summary && <p className="hint">남은 연차 <strong className="tnum">{summary.remaining}일</strong>{summary.pending > 0 && ` (결재 중 ${summary.pending}일 별도)`}</p>}
           <div className="form-row">
             <label className="field"><span>종류</span>
-              <select id="leave-kind" value={leave.kind} onChange={(e) => setLeave({ ...leave, kind: e.target.value, days: '' })}>
-                {Object.entries(LEAVE_KINDS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              <select id="leave-kind" value={half ? 'half' : leave.kind}
+                onChange={(e) => setLeave({ ...leave, kind: e.target.value === 'half' ? 'half_am' : e.target.value, days: '' })}>
+                {Object.entries(LEAVE_PICK).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select></label>
+            {half && (
+              <label className="field"><span>오전 · 오후</span>
+                <select id="leave-half" value={leave.kind} onChange={(e) => setLeave({ ...leave, kind: e.target.value })}>
+                  <option value="half_am">오전</option><option value="half_pm">오후</option>
+                </select></label>
+            )}
             <label className="field"><span>{half ? '날짜' : '시작일'}</span>
               <input id="leave-start" type="date" required value={leave.start} onChange={(e) => setLeave({ ...leave, start: e.target.value, end: e.target.value > leave.end ? e.target.value : leave.end, days: '' })} /></label>
             {!half && (
@@ -145,7 +152,7 @@ export default function ApprovalNew() {
             )}
           </div>
           {!half && <p className="hint">주말을 뺀 {maxDays}일로 계산했습니다. 기간에 공휴일이 있으면 일수를 줄여 주세요.</p>}
-          {['sick', 'family', 'other'].includes(leave.kind) && <p className="hint">{LEAVE_KINDS[leave.kind]}는 연차에서 빠지지 않습니다.</p>}
+          {['public', 'comp'].includes(leave.kind) && <p className="hint">{LEAVE_KINDS[leave.kind]}는 연차에서 빠지지 않습니다.</p>}
         </section>
       )}
 

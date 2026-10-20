@@ -236,7 +236,8 @@ declare
   d   numeric;
   wd  int;
 begin
-  if k is null or k not in ('annual', 'half_am', 'half_pm', 'sick', 'family', 'other') then
+  -- 연차 · 월차 · 반차(오전/오후) · 공가 · 대휴
+  if k is null or k not in ('annual', 'monthly', 'half_am', 'half_pm', 'public', 'comp') then
     raise exception '휴가 종류를 골라 주세요.';
   end if;
   begin
@@ -529,6 +530,27 @@ create policy "결재 첨부 올리기" on storage.objects
 --     볼 수 있어서 그대로는 남의 휴가를 띄울 수 없기 때문이다.
 --   · 휴가 종류(병가·경조사)는 일부러 내주지 않는다. 달력에는 '휴가'/'반차' 로만 뜬다.
 -- ---------------------------------------------------------------------
+create table public.event_categories (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null check (length(trim(name)) > 0),
+  color      text not null check (color ~ '^#[0-9a-fA-F]{6}$'),
+  sort       int  not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table public.event_categories enable row level security;
+
+create policy "분류는 재직자 누구나 본다" on public.event_categories
+  for select to authenticated using (public.is_active_employee());
+create policy "분류는 관리자만 만든다" on public.event_categories
+  for insert to authenticated with check (public.is_admin());
+create policy "분류는 관리자만 고친다" on public.event_categories
+  for update to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "분류는 관리자만 지운다" on public.event_categories
+  for delete to authenticated using (public.is_admin());
+
+revoke all on public.event_categories from anon;
+
 create table public.events (
   id         uuid primary key default gen_random_uuid(),
   title      text not null check (length(trim(title)) > 0),
@@ -540,6 +562,8 @@ create table public.events (
   end_time   time,
   place      text not null default '',
   memo       text not null default '',
+  -- 분류를 지워도 일정은 남기고 색만 빠지게 한다
+  category_id uuid references public.event_categories(id) on delete set null,
   created_by uuid not null references public.employees(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -575,21 +599,24 @@ create policy "일정은 올린 사람이나 관리자가 지운다" on public.e
 
 -- 달력에 띄울 '승인된 휴가'. 이름·기간·반차 여부만 내준다(휴가 종류는 내주지 않는다).
 create function public.leave_days(p_from date, p_to date)
-returns table (user_id uuid, name text, start_date date, end_date date, half boolean)
-language sql stable security definer set search_path = public as $
+returns table (user_id uuid, name text, job_title text, kind text, start_date date, end_date date)
+language sql stable security definer set search_path = public as $$
   select d.drafter_id,
          e.name,
+         e.position,  -- 바깥 이름은 job_title (position 은 SQL 예약어라 피했다)
+         -- 옛 문서(병가·경조사·기타)는 종류를 밝히지 않고 '휴가'로 뭉뚱그린다.
+         case when d.data->>'kind' in ('annual','monthly','half_am','half_pm','public','comp')
+              then d.data->>'kind' else 'other' end,
          (d.data->>'start')::date,
-         (d.data->>'end')::date,
-         (d.data->>'kind') in ('half_am', 'half_pm')
+         coalesce(nullif(d.data->>'end', ''), d.data->>'start')::date
   from approval_docs d
   join employees e on e.id = d.drafter_id
   where public.is_active_employee()
     and d.form_type = 'leave'
     and d.status = 'approved'
     and (d.data->>'start')::date <= p_to
-    and (d.data->>'end')::date >= p_from
-$;
+    and coalesce(nullif(d.data->>'end', ''), d.data->>'start')::date >= p_from
+$$;
 
 revoke all on public.events from anon;  -- 새 테이블은 schema.sql 끝의 일괄 revoke 에 안 걸린다
 revoke execute on function public.leave_days(date, date) from anon, public;

@@ -2,11 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, errText } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { holidayName } from '../lib/holidays'
+import { LEAVE_SHORT } from '../lib/labels'
 import { WEEK, addDays, addMonths, dot, parse, today } from '../lib/dates'
 
 /* 회사 공용 달력.
    · 일정은 재직자 누구나 올린다. 고치고 지우는 건 올린 사람과 관리자만(DB 정책이 막는다).
-   · 승인된 휴가는 leave_days() 로 따로 받아 같이 띄운다. 휴가 종류는 내려오지 않는다. */
+   · 분류(이름 + 색)는 관리자가 관리 → 일정 분류에서 만든다. 일정은 그 분류를 고른다.
+   · 승인된 휴가는 leave_days() 로 따로 받아 '[연차] 박지은팀장' 처럼 같이 띄운다. */
 
 const ym = (d) => d.slice(0, 7)
 const firstOf = (m) => `${m}-01`
@@ -18,7 +20,12 @@ const lastOf = (m) => {
 const gridStart = (m) => addDays(firstOf(m), -parse(firstOf(m)).getUTCDay())
 const gridEnd = (m) => addDays(lastOf(m), 6 - parse(lastOf(m)).getUTCDay())
 
-const EMPTY = { title: '', start_date: '', end_date: '', all_day: true, start_time: '', end_time: '', place: '', memo: '' }
+const LEAVE_COLOR = '#24507d'
+const NO_CAT_COLOR = '#fbc825'
+const EMPTY = { title: '', start_date: '', end_date: '', all_day: true, start_time: '', end_time: '', place: '', memo: '', category_id: '' }
+
+/* 색 막대·칩에 쓸 모양. 글자는 어두운 색 그대로 두고 배경만 옅게 깐다. */
+const chipStyle = (color) => ({ borderLeftColor: color, background: `${color}22` })
 
 export default function Calendar() {
   const { userId, isAdmin, nameOf } = useSession()
@@ -26,6 +33,7 @@ export default function Calendar() {
   const [picked, setPicked] = useState(today())
   const [events, setEvents] = useState([])
   const [leaves, setLeaves] = useState([])
+  const [cats, setCats] = useState([])
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState(null) // null | {…일정} (id 가 있으면 고치기)
@@ -35,42 +43,49 @@ export default function Calendar() {
 
   const load = useCallback(async () => {
     setLoading(true); setErr('')
-    const [ev, lv] = await Promise.all([
+    const [ev, lv, ct] = await Promise.all([
       supabase.from('events').select('*').lte('start_date', to).gte('end_date', from)
         .order('start_date').order('start_time', { nullsFirst: true }),
       supabase.rpc('leave_days', { p_from: from, p_to: to }),
+      supabase.from('event_categories').select('*').order('sort').order('name'),
     ])
     /* 일정 테이블·함수가 아직 없으면(= DB 설정 전) 빨간 오류 대신 할 일을 알려 준다 */
-    const notReady = (e) => e && /events|leave_days|schema cache|does not exist/i.test(`${e.message || ''} ${e.details || ''}`)
-    if (notReady(ev.error) || notReady(lv.error)) {
-      setErr('캘린더를 쓰려면 데이터베이스 설정을 한 번 해야 합니다. 관리자에게 알려 주세요. (work/supabase/migrations 의 일정 추가 SQL)')
-      setEvents([]); setLeaves([]); setLoading(false)
+    const notReady = (e) => e && /events|event_categories|leave_days|schema cache|does not exist/i.test(`${e.message || ''} ${e.details || ''}`)
+    if (notReady(ev.error) || notReady(lv.error) || notReady(ct.error)) {
+      setErr('캘린더를 쓰려면 데이터베이스 설정을 한 번 해야 합니다. 관리자에게 알려 주세요. (work/supabase/migrations 의 SQL)')
+      setEvents([]); setLeaves([]); setCats([]); setLoading(false)
       return
     }
     if (ev.error) setErr(errText(ev.error)); else setEvents(ev.data)
     if (lv.error) setErr(errText(lv.error)); else setLeaves(lv.data || [])
+    if (ct.error) setErr(errText(ct.error)); else setCats(ct.data || [])
     setLoading(false)
   }, [from, to])
 
   useEffect(() => { load() }, [load])
+
+  const catOf = useCallback((id) => cats.find((c) => c.id === id), [cats])
 
   /* 날짜별로 미리 묶어 둔다. 칸마다 전체를 훑지 않도록. */
   const byDay = useMemo(() => {
     const map = {}
     const put = (d, item) => { (map[d] ||= []).push(item) }
     for (const e of events) {
+      const c = cats.find((x) => x.id === e.category_id)
       for (let d = e.start_date < from ? from : e.start_date; d <= e.end_date && d <= to; d = addDays(d, 1)) {
-        put(d, { kind: 'event', label: e.title, row: e })
+        put(d, { kind: 'event', label: e.title, color: c?.color || NO_CAT_COLOR, cat: c, row: e })
       }
     }
     for (const l of leaves) {
+      const tag = LEAVE_SHORT[l.kind] || '휴가'
+      const who = `${l.name}${l.job_title || ''}`
       for (let d = l.start_date < from ? from : l.start_date; d <= l.end_date && d <= to; d = addDays(d, 1)) {
         if ([0, 6].includes(parse(d).getUTCDay())) continue // 주말은 휴가로 세지 않는다
-        put(d, { kind: 'leave', label: `${l.name} ${l.half ? '반차' : '휴가'}` })
+        put(d, { kind: 'leave', label: `[${tag}] ${who}`, color: LEAVE_COLOR })
       }
     }
     return map
-  }, [events, leaves, from, to])
+  }, [events, leaves, cats, from, to])
 
   const days = useMemo(() => {
     const out = []
@@ -127,7 +142,7 @@ export default function Calendar() {
                 {hol && <span className="cal-hol">{hol}</span>}
                 <span className="cal-chips">
                   {items.slice(0, 3).map((it, i) => (
-                    <span key={i} className={`cal-chip ${it.kind}`}>{it.label}</span>
+                    <span key={i} className="cal-chip" style={chipStyle(it.color)}>{it.label}</span>
                   ))}
                   {items.length > 3 && <span className="cal-more">+{items.length - 3}</span>}
                 </span>
@@ -136,6 +151,15 @@ export default function Calendar() {
           })}
         </div>
       </div>
+
+      {(cats.length > 0 || leaves.length > 0) && (
+        <div className="cal-legend">
+          {cats.map((c) => (
+            <span key={c.id} className="cal-leg"><i style={{ background: c.color }} />{c.name}</span>
+          ))}
+          {leaves.length > 0 && <span className="cal-leg"><i style={{ background: LEAVE_COLOR }} />휴가</span>}
+        </div>
+      )}
 
       <section className="card stack-sm">
         <div className="row-between">
@@ -148,13 +172,14 @@ export default function Calendar() {
         {!pickedItems.length && <p className="muted">일정이 없습니다.</p>}
         <ul className="cal-list">
           {pickedItems.map((it, i) => it.kind === 'leave' ? (
-            <li key={i} className="cal-item leave"><span className="cal-dot" />{it.label}</li>
+            <li key={i} className="cal-item"><span className="cal-dot" style={{ background: it.color }} />{it.label}</li>
           ) : (
             <li key={i} className="cal-item">
-              <span className="cal-dot" />
+              <span className="cal-dot" style={{ background: it.color }} />
               <div className="cal-item-body">
                 <strong>{it.row.title}</strong>
                 <span className="small muted">
+                  {it.cat && `${it.cat.name} · `}
                   {it.row.all_day ? '종일' : `${it.row.start_time?.slice(0, 5)}${it.row.end_time ? ` ~ ${it.row.end_time.slice(0, 5)}` : ''}`}
                   {it.row.start_date !== it.row.end_date && ` · ${dot(it.row.start_date)} ~ ${dot(it.row.end_date)}`}
                   {it.row.place && ` · ${it.row.place}`}
@@ -164,7 +189,7 @@ export default function Calendar() {
               </div>
               {canEdit(it.row) && (
                 <span className="cal-item-act">
-                  <button className="linkbtn" onClick={() => setForm({ ...it.row, start_time: it.row.start_time || '', end_time: it.row.end_time || '' })}>고치기</button>
+                  <button className="linkbtn" onClick={() => setForm({ ...it.row, start_time: it.row.start_time || '', end_time: it.row.end_time || '', category_id: it.row.category_id || '' })}>고치기</button>
                   <button className="linkbtn danger" onClick={() => remove(it.row)}>지우기</button>
                 </span>
               )}
@@ -173,12 +198,12 @@ export default function Calendar() {
         </ul>
       </section>
 
-      {form && <EventForm form={form} setForm={setForm} userId={userId} onDone={() => { setForm(null); load() }} />}
+      {form && <EventForm form={form} setForm={setForm} cats={cats} userId={userId} onDone={() => { setForm(null); load() }} />}
     </div>
   )
 }
 
-function EventForm({ form, setForm, userId, onDone }) {
+function EventForm({ form, setForm, cats, userId, onDone }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const set = (p) => setForm({ ...form, ...p })
@@ -199,6 +224,7 @@ function EventForm({ form, setForm, userId, onDone }) {
       end_time: form.all_day || !form.end_time ? null : form.end_time,
       place: form.place.trim(),
       memo: form.memo.trim(),
+      category_id: form.category_id || null,
     }
     setBusy(true)
     const { error } = form.id
@@ -215,6 +241,13 @@ function EventForm({ form, setForm, userId, onDone }) {
         <h2>{form.id ? '일정 고치기' : '새 일정'}</h2>
         <label className="field"><span>제목</span>
           <input id="ev-title" value={form.title} onChange={(e) => set({ title: e.target.value })} placeholder="예: 충주댐 현장 답사" autoFocus /></label>
+        <label className="field"><span>분류</span>
+          <select id="ev-cat" value={form.category_id} onChange={(e) => set({ category_id: e.target.value })}>
+            <option value="">분류 없음</option>
+            {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          {!cats.length && <span className="hint">분류는 관리 → 일정 분류에서 만듭니다.</span>}
+        </label>
         <div className="form-row">
           <label className="field"><span>시작일</span>
             <input id="ev-start" type="date" required value={form.start_date}

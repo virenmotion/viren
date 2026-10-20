@@ -7,7 +7,9 @@ import { addMonths, addYears, today } from './dates'
    ⚠️ 상시 5인 미만 사업장은 법 적용 대상이 아니다. 회사 규정이 따로 있으면
    관리자 화면에서 직원별 '연차 직접 지정'에 일수를 넣으면 그 값이 우선한다. */
 
-export const COUNTED_KINDS = ['annual', 'half_am', 'half_pm']
+/* 연차에서 깎이는 종류. **공가·대휴는 깎이지 않는다**(공가는 예비군·건강검진 같은 것,
+   대휴는 초과근무 보상이라 연차와 별개다). 회사 규정이 다르면 여기만 고치면 된다. */
+export const COUNTED_KINDS = ['annual', 'monthly', 'half_am', 'half_pm']
 
 export function leavePeriod(hireDate, on = today()) {
   if (!hireDate || hireDate > on) return null

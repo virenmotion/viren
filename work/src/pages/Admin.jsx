@@ -6,7 +6,7 @@ import { ymd } from '../lib/dates'
 import { downloadBlob } from '../lib/csv'
 import { ErrorBox } from '../components/ui'
 
-const TABS = [['staff', '직원'], ['settings', '출근 설정'], ['backup', '백업']]
+const TABS = [['staff', '직원'], ['settings', '출근 설정'], ['cats', '일정 분류'], ['backup', '백업']]
 
 export default function Admin() {
   const [tab, setTab] = useState('staff')
@@ -18,8 +18,91 @@ export default function Admin() {
       </div>
       {tab === 'staff' && <Staff />}
       {tab === 'settings' && <Settings />}
+      {tab === 'cats' && <Categories />}
       {tab === 'backup' && <Backup />}
     </div>
+  )
+}
+
+/* 일정 분류 — 이름과 색을 관리자가 직접 만든다. 달력(캘린더)의 색 구분이 이걸 따른다.
+   색은 '#rrggbb' 만 받는다(DB check 와 같은 규칙). */
+const NEW_CAT = { name: '', color: '#fbc825' }
+
+function Categories() {
+  const [rows, setRows] = useState(null)
+  const [add, setAdd] = useState(NEW_CAT)
+  const [msg, setMsg] = useState('')
+  const [err, setErr] = useState('')
+
+  async function load() {
+    const { data, error } = await supabase.from('event_categories').select('*').order('sort').order('name')
+    if (error) return setErr(/event_categories|schema cache/i.test(error.message)
+      ? '아직 데이터베이스 설정 전입니다. work/supabase/migrations 의 분류 추가 SQL 을 한 번 실행해 주세요.'
+      : errText(error))
+    setErr(''); setRows(data)
+  }
+  useEffect(() => { load() }, [])
+
+  const set = (id, patch) => setRows(rows.map((r) => (r.id === id ? { ...r, ...patch, _dirty: true } : r)))
+
+  async function save(r) {
+    setErr(''); setMsg('')
+    const { error } = await supabase.from('event_categories')
+      .update({ name: r.name.trim(), color: r.color, sort: Number(r.sort) || 0 }).eq('id', r.id)
+    if (error) return setErr(errText(error))
+    setMsg(`'${r.name}' 분류를 저장했습니다.`)
+    load()
+  }
+
+  async function create(e) {
+    e.preventDefault()
+    setErr(''); setMsg('')
+    if (!add.name.trim()) return setErr('분류 이름을 넣어 주세요.')
+    const { error } = await supabase.from('event_categories')
+      .insert({ name: add.name.trim(), color: add.color, sort: (rows?.length || 0) + 1 })
+    if (error) return setErr(errText(error))
+    setAdd(NEW_CAT); setMsg('분류를 만들었습니다.')
+    load()
+  }
+
+  async function remove(r) {
+    if (!window.confirm(`'${r.name}' 분류를 지울까요? 이 분류를 쓰던 일정은 남고 색만 빠집니다.`)) return
+    setErr(''); setMsg('')
+    const { error } = await supabase.from('event_categories').delete().eq('id', r.id)
+    if (error) return setErr(errText(error))
+    load()
+  }
+
+  if (!rows) return <section className="card"><ErrorBox>{err}</ErrorBox>{!err && <p className="muted">불러오는 중…</p>}</section>
+
+  return (
+    <section className="card stack-sm narrow-form">
+      <h2>일정 분류</h2>
+      <p className="hint">달력의 색 구분입니다. 여기서 만든 분류를 일정마다 고르면 그 색으로 표시됩니다.
+        순서 숫자가 작을수록 목록 위에 옵니다.</p>
+
+      {!rows.length && <p className="muted">아직 분류가 없습니다. 아래에서 만들어 주세요.</p>}
+      <ul className="cat-list">
+        {rows.map((r) => (
+          <li key={r.id} className="cat-row">
+            <input type="color" aria-label={`${r.name} 색`} value={r.color} onChange={(e) => set(r.id, { color: e.target.value })} />
+            <input aria-label="분류 이름" value={r.name} onChange={(e) => set(r.id, { name: e.target.value })} />
+            <input className="tnum cat-sort" type="number" aria-label="순서" value={r.sort} onChange={(e) => set(r.id, { sort: e.target.value })} />
+            <button className="btn small-btn primary" disabled={!r._dirty} onClick={() => save(r)}>저장</button>
+            <button className="btn small-btn danger" onClick={() => remove(r)}>삭제</button>
+          </li>
+        ))}
+      </ul>
+
+      <form className="cat-row cat-add" onSubmit={create}>
+        <input type="color" aria-label="새 분류 색" value={add.color} onChange={(e) => setAdd({ ...add, color: e.target.value })} />
+        <input aria-label="새 분류 이름" placeholder="예: 촬영" value={add.name} onChange={(e) => setAdd({ ...add, name: e.target.value })} />
+        <button className="btn small-btn primary">추가</button>
+      </form>
+
+      <ErrorBox>{err}</ErrorBox>
+      {msg && <p className="ok">{msg}</p>}
+    </section>
   )
 }
 
