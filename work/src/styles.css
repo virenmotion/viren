@@ -527,16 +527,18 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 }
 
 /* ── 날짜 여러 개 고르기 ──────────────────────────────────────────── */
-.dp { border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: #fff; padding: 10px; max-width: 360px; }
+/* 카드 너비를 꽉 채운다(지은님 2026-10-20). 화면이 넓으면 칸이 가로로 길어지는데,
+   높이를 따로 잡아 줘서 너무 납작하거나 너무 커지지 않게 한다. */
+.dp { border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: #fff; padding: 14px; }
 .dp-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-.dp-head strong { flex: 1; text-align: center; font-family: var(--display); }
-.dp-week { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: .75rem; color: var(--muted); font-weight: 600; }
+.dp-head strong { flex: 1; text-align: center; font-family: var(--display); font-size: 1.05rem; }
+.dp-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); text-align: center; font-size: .8rem; color: var(--muted); font-weight: 600; padding-bottom: 4px; }
 .dp-week .sun { color: var(--bad); }
 .dp-week .sat { color: var(--info-ink); }
-.dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: 4px; }
+.dp-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; margin-top: 4px; }
 .dp-day {
-  aspect-ratio: 1; border: 1px solid transparent; background: none; border-radius: 6px;
-  font: inherit; font-size: .85rem; cursor: pointer; font-variant-numeric: tabular-nums;
+  min-height: 52px; border: 1px solid transparent; background: none; border-radius: 6px;
+  font: inherit; font-size: .95rem; cursor: pointer; font-variant-numeric: tabular-nums;
 }
 .dp-day:hover { background: var(--accent-soft); }
 .dp-day.out { opacity: .35; }
@@ -560,4 +562,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 @media (max-width: 760px) {
   .pick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pick { min-height: 64px; padding: 12px; }
+}
+
+/* 휴대폰에서는 칸이 좁으니 정사각에 가깝게 */
+@media (max-width: 760px) {
+  .dp { padding: 10px; }
+  .dp-day { min-height: 40px; font-size: .88rem; }
 }
