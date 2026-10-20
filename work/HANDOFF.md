@@ -48,7 +48,7 @@ GitHub virenmotion/viren (public!) ── main ──┬─> Vercel      : 홈�
 | Cloudflare | 계정 viren@viren.kr (처음에 잘못 만든 virenmotion@... 계정은 비어 있음, 무시) |
 | Pages 프로젝트 | `viren-work`, 브랜치 main, Root `work`, build `npm run build`, output `dist` |
 | 환경변수 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`(= publishable 키 `sb_publishable_...`), `NODE_VERSION=22` |
-| 주소 | https://viren-work.pages.dev (정상) · https://work.viren.kr (**서버는 준비 끝, DNS 한 대 지연 — 2절**) |
+| 주소 | **https://work.viren.kr** (2026-10-20 정상 확인) · https://viren-work.pages.dev |
 | DNS | cafe24 → viren.kr → 별칭(CNAME) `work → viren-work.pages.dev` 추가함. 기존 `*`, `www → cname.vercel-dns.com` 그대로 |
 
 **배포:** main에 push하면 Cloudflare가 자동 빌드(1~3분). 홈페이지(Vercel)도 같이 다시 빌드되지만 루트만 빌드하므로 영향 없음.
@@ -57,7 +57,7 @@ GitHub virenmotion/viren (public!) ── main ──┬─> Vercel      : 홈�
 **지은님 PC의 데스크톱 세션(홈페이지 담당 창)에서는 접속된다** — 2026-10-20 확인. 실서버 확인이
 필요하면 그쪽에서 하는 편이 빠르다(브라우저·curl·DNS 조회 모두 됨). work/ 빌드도 그 PC에서 통과.
 
-### work.viren.kr 이 안 열릴 때 (2026-10-20 진단 완료)
+### work.viren.kr 이 안 열릴 때 (2026-10-20 겪고 해결)
 
 **결론: 서버 설정은 다 끝났다. 남은 건 cafe24 네임서버 한 대의 갱신 지연뿐이다.**
 
@@ -134,15 +134,18 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 
 ## 5. 남은 일 (우선순위 순)
 
-1. **work.viren.kr 기다리기** — 서버 설정은 끝났고 cafe24 네임서버 ns1 한 대만 옛 값을 준다(2절).
-   하루 지나도 그대로면 cafe24 고객센터 문의. 그동안은 https://viren-work.pages.dev 로 쓴다.
-2. **남은 직원 등록** — 절차는 2026-10-20 에 한 명으로 검증 끝났다("끝난 일" 참고). 같은 방법으로 나머지만.
-3. **사무실 IP 등록** — 사무실 와이파이에서 관리 → 출근 설정 → 목록에 추가 → 저장.
-4. **실서버에서 첨부 업로드 한 번 확인**(로컬에서 검증 못 함).
-5. 매달 백업 안내(관리 → 백업 → JSON을 회사 Dropbox에 보관). 무료 플랜은 자동 백업 없음.
-6. 2단계 후보: 결재 알림(카카오워크 병행 중이므로 카카오워크 봇/웹훅 알림이 자연스러움, 또는 메일), 메일 이전(Zoho/네이버웍스/Google 중 선택), 공휴일 반영, 양식 추가.
+1. **남은 직원 등록** — 절차는 2026-10-20 에 한 명으로 검증 끝났다("끝난 일" 참고). 같은 방법으로 나머지만.
+2. **사무실 IP 등록** — 사무실 와이파이에서 관리 → 출근 설정 → 목록에 추가 → 저장.
+3. **실서버에서 첨부 업로드 한 번 확인**(로컬에서 검증 못 함).
+4. 매달 백업 안내(관리 → 백업 → JSON을 회사 Dropbox에 보관). 무료 플랜은 자동 백업 없음.
+5. 2단계 후보: 결재 알림(카카오워크 병행 중이므로 카카오워크 봇/웹훅 알림이 자연스러움, 또는 메일), 메일 이전(Zoho/네이버웍스/Google 중 선택), 공휴일 반영, 양식 추가.
 
 ### 끝난 일
+
+- **2026-10-20 work.viren.kr 열림 — 끝.** 오전에는 cafe24 네임서버 4대 중 ns1.cafe24.com
+  한 대만 옛 값을 줘서 사람마다 갈렸는데, 오후에 4대 모두 맞춰졌다. 캐시를 비우며 10번
+  연속 접속해 10번 모두 정상(HTTP 200), 공개 DNS 3곳도 정상, 로그인 화면·브라우저 오류 0건.
+  **반나절이면 맞춰진다**는 게 이번 사례다(아래 2절 진단법은 다음에도 쓸 것).
 
 - **2026-10-20 직원 등록 절차 검증 완료.** 지은님이 한 명을 끝까지 등록하고 **로그인까지 확인**했다.
   순서: Supabase → Authentication → Users → Add user → Create new user

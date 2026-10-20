@@ -33,8 +33,7 @@
     schema.sql 실행 완료, 회원가입 꺼짐, 첫 관리자 = jieunp711@viren.kr.
   - Cloudflare 계정 `viren@viren.kr` → Pages 프로젝트 `viren-work` (main, 루트 `work`).
     환경변수 `VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY`(publishable 키) · `NODE_VERSION=22`.
-  - 주소: https://viren-work.pages.dev (정상) , https://work.viren.kr
-    (서버는 준비 끝. cafe24 네임서버 4대 중 1대 갱신 지연 — `work/HANDOFF.md` 2절)
+  - 주소: **https://work.viren.kr** (2026-10-20 정상) , https://viren-work.pages.dev
   - ⚠️ 그날 Supabase 대시보드 상단에 "Grace period is over" 경고가 떠 있었다(조직 사용량 초과 경고로 보임). 확인 필요.
 
 ## 2. 배포 흐름 (중요)
@@ -259,13 +258,14 @@
 
 1. **사내 플랫폼 VIREN WORK 이어받음** — 다른 창(클라우드 세션)이 만든 `work/` 폴더를 내려받아
    이 PC에서 빌드까지 확인했다(`npm install` → `npm run build` 통과). 상세는 `work/HANDOFF.md`.
-2. **work.viren.kr 진단 — 서버는 끝, DNS 한 대만 남음.** 그 창은 프록시 때문에
+2. **work.viren.kr 열림 — 끝.** 그 창은 프록시 때문에
    `*.pages.dev` 에 접속을 못 해 확인이 막혀 있었다. 이 PC에서는 되므로 대신 확인했다.
    · **Cloudflare 쪽은 완료.** 인증서 10-20 12:52 발급, 주소로 직접 붙으면 HTTP 200,
      로그인 화면 정상, 브라우저 오류 0건, 번들에 Supabase 주소·키 제대로 들어감.
    · **원인은 cafe24 네임서버 4대 중 ns1.cafe24.com 1대의 갱신 지연.** 나머지 3대와
      공개 DNS(구글·Cloudflare·KT)는 전부 정상 → 사람마다 열리고 안 열리고가 갈린다.
-     설정 잘못이 아니라 기다릴 일. 하루 지나도 그대로면 cafe24 문의.
+     설정 잘못이 아니라 기다릴 일이었고, **반나절 뒤 4대 모두 맞춰졌다.** 캐시를 비우며
+     10번 연속 접속해 10번 모두 정상인 것까지 확인했다(한 번 성공으로 판단하지 말 것).
    · ⚠️ **"설정은 맞는데 내 PC 만 안 열린다"가 실제로 일어난다.** 틀린 답을 한 번 받은
      공유기가 30분(TTL) 동안 쥐고 있어서다. 지은님 PC 가 그 상태였고, 같은 PC 안에서도
      브라우저는 열리는데 `nslookup` 은 옛 주소를 주는 식으로 계층마다 값이 달랐다.
@@ -280,12 +280,12 @@
    · **DB 가 멈춰도 홈페이지는 버틴다**는 것도 확인했다. `ProjectsContext` 가 조회 실패 시
      `SEED_PROJECTS` 로 폴백하고, 지금 시드가 공개 10건과 정확히 일치한다(4절 시드 규칙).
      반대로 **VIREN WORK 는 DB 가 멈추면 전부 멈춘다** — 로그인부터 안 된다.
+4. **직원 등록 절차 검증 완료** — 지은님이 한 명을 끝까지 등록하고 로그인까지 확인했다.
+   순서와 주의점은 `work/HANDOFF.md` "끝난 일". 나머지 직원도 같은 방법.
 
 **남은 일**
 
-- **work.viren.kr — ns1.cafe24.com 갱신 기다리는 중.** 하루 지나도 그대로면 cafe24 문의.
-  그동안은 https://viren-work.pages.dev 로 쓰면 된다.
-- VIREN WORK: 직원 등록 / 사무실 IP 등록 / 첨부 업로드 실서버 확인 / Supabase 사용량 경고 확인
+- VIREN WORK: 나머지 직원 등록 / 사무실 IP 등록 / 첨부 업로드 실서버 확인
   (`work/HANDOFF.md` 5절).
 - 안동소수력발전소 공개(2027년 4~5월 예상, 계약 후).
 
