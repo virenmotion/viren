@@ -4,7 +4,12 @@ import { createClient } from '@supabase/supabase-js'
 const url = import.meta.env.VITE_SUPABASE_URL
 const anon = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export const supabase = url && anon ? createClient(url, anon) : null
+/* 로그인 유지는 기본값이지만 **일부러 적어 둔다.** 이걸 끄면 휴대폰에서 들어올 때마다
+   다시 로그인해야 한다. persistSession = 로그인 정보를 기기에 저장, autoRefreshToken = 만료 전
+   자동 갱신. storageKey 는 건드리지 말 것 — 바꾸면 모두 로그아웃된다. */
+export const supabase = url && anon
+  ? createClient(url, anon, { auth: { persistSession: true, autoRefreshToken: true } })
+  : null
 
 export const FILE_BUCKET = 'approval-files'
 
