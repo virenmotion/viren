@@ -144,6 +144,18 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 
 ### 끝난 일
 
+- **2026-10-20 ⚠️ 새 테이블은 anon 권한 회수가 자동으로 안 된다.** events 를 만들고 나서
+  확인해 보니 다른 테이블은 전부 anon 에게 '권한 없음'으로 끊기는데 **events 만 통과해서
+  빈 목록을 돌려주고 있었다.** schema.sql 끝의 `revoke all on all tables ... from anon` 은
+  **그 시점에 있던 테이블만** 처리하기 때문이다. RLS 가 막고 있어 샌 데이터는 없었지만
+  방어선이 한 겹 모자란 상태였다. `2026-10-20b-events-anon-revoke.sql` 로 맞췄다.
+  ➡️ **앞으로 테이블을 새로 만들면 마이그레이션에 `revoke all on <표> from anon;` 을 꼭 넣을 것.**
+  확인법(공개 키는 배포된 .js 안에 있다 — 공개용이라 괜찮다):
+  ```bash
+  curl -s -H "apikey: <publishable 키>" "https://<프로젝트>.supabase.co/rest/v1/<표>?select=*&limit=1"
+  ```
+  `permission denied for table` 이 정상. `[]` 가 오면 anon 에게 테이블 권한이 열려 있는 것이다.
+
 - **2026-10-20 캘린더 만듦(= 카카오워크 달력 대체).** 지은님 요청. 정한 것:
   **회사 공용 하나만**(개인 일정 없음) · **재직자 누구나 등록**(고치고 지우는 건 올린 사람과
   관리자) · **승인된 휴가와 공휴일 자동 표시**.

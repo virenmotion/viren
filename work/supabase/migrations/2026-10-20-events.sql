@@ -75,5 +75,6 @@ language sql stable security definer set search_path = public as $$
     and (d.data->>'end')::date >= p_from
 $$;
 
+revoke all on public.events from anon;  -- 새 테이블은 schema.sql 끝의 일괄 revoke 에 안 걸린다
 revoke execute on function public.leave_days(date, date) from anon, public;
 grant execute on function public.leave_days(date, date) to authenticated;
