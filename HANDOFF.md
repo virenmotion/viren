@@ -28,6 +28,13 @@
   홈페이지의 Vercel·Supabase 설정은 건드리지 않는다.
 - 홈페이지 빌드(`npm run build`)는 루트만 빌드하므로 `work/`의 영향을 받지 않는다.
 - 카카오워크는 적응 기간 동안 그대로 함께 쓴다(지은님 결정). 메일 이전은 2단계.
+- **실제 설치 현황 (2026-10-20 지은님과 함께 완료)**
+  - Supabase 프로젝트 `viren-work` (조직 "비렌", 서울) — `https://mappjgurhsvymamkohoo.supabase.co`.
+    schema.sql 실행 완료, 회원가입 꺼짐, 첫 관리자 = jieunp711@viren.kr.
+  - Cloudflare 계정 `viren@viren.kr` → Pages 프로젝트 `viren-work` (main, 루트 `work`).
+    환경변수 `VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY`(publishable 키) · `NODE_VERSION=22`.
+  - 주소: https://viren-work.pages.dev , https://work.viren.kr (cafe24 DNS에 CNAME `work → viren-work.pages.dev`).
+  - ⚠️ 그날 Supabase 대시보드 상단에 "Grace period is over" 경고가 떠 있었다(조직 사용량 초과 경고로 보임). 확인 필요.
 
 ## 2. 배포 흐름 (중요)
 
