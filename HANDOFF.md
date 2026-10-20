@@ -33,7 +33,8 @@
     schema.sql 실행 완료, 회원가입 꺼짐, 첫 관리자 = jieunp711@viren.kr.
   - Cloudflare 계정 `viren@viren.kr` → Pages 프로젝트 `viren-work` (main, 루트 `work`).
     환경변수 `VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY`(publishable 키) · `NODE_VERSION=22`.
-  - 주소: https://viren-work.pages.dev , https://work.viren.kr (cafe24 DNS에 CNAME `work → viren-work.pages.dev`).
+  - 주소: https://viren-work.pages.dev , **https://work.viren.kr — 2026-10-20 열림 확인**
+    (cafe24 DNS에 CNAME `work → viren-work.pages.dev`).
   - ⚠️ 그날 Supabase 대시보드 상단에 "Grace period is over" 경고가 떠 있었다(조직 사용량 초과 경고로 보임). 확인 필요.
 
 ## 2. 배포 흐름 (중요)
@@ -251,6 +252,37 @@
 
 > 큰 작업이 끝날 때, 그리고 "오늘 작업 정리해줘" 할 때 여기에 덧붙인다.
 > 지난 날짜는 지우지 않는다. 더 오래된 기록은 7-1·7-2절.
+
+### 2026-10-20
+
+**한 일**
+
+1. **사내 플랫폼 VIREN WORK 이어받음** — 다른 창(클라우드 세션)이 만든 `work/` 폴더를 내려받아
+   이 PC에서 빌드까지 확인했다(`npm install` → `npm run build` 통과). 상세는 `work/HANDOFF.md`.
+2. **work.viren.kr 열림 확인 — 남은 일 1번 해결.** 그 창은 프록시 때문에 `*.pages.dev` 에
+   접속을 못 해서 확인을 못 하고 있었다. 이 PC에서는 되므로 직접 확인했다.
+   · 처음엔 안 열렸는데 설정 문제가 아니라 **cafe24 네임서버 4대 중 1대만 늦게 갱신된 것**이었다.
+     ns1.cafe24.com 만 옛 응답(와일드카드 `*`)을 주고 나머지 3대는 정상 → 사람마다 갈림.
+     ➡️ **cafe24에서 DNS를 바꾸면 4대를 다 따로 조회해 볼 것.** 방법은 `work/HANDOFF.md` 2절.
+   · Cloudflare 인증서 10-20 12:52 발급 완료, 로그인 화면 정상, 브라우저 오류 0건,
+     번들에 Supabase 주소·키 제대로 들어감(Cloudflare 환경변수 적용 확인).
+3. **홈페이지 Supabase 도 같이 확인** — VIREN WORK 쪽 "Grace period is over" 경고가
+   같은 조직이라 홈페이지에도 번질 수 있다고 적혀 있어 확인했다. **현재는 정상**
+   (프로젝트 11건 · 공개 10건, 응답 정상). 다만 경고 자체는 Billing 화면을 봐야 해서 지은님 몫.
+
+**남은 일**
+
+- VIREN WORK: 직원 등록 / 사무실 IP 등록 / 첨부 업로드 실서버 확인 / Supabase 사용량 경고 확인
+  (`work/HANDOFF.md` 5절).
+- 안동소수력발전소 공개(2027년 4~5월 예상, 계약 후).
+
+**확인 필요**
+
+- Supabase 조직 "비렌"의 "Grace period is over" 경고 — 대시보드 Billing/Usage는 지은님만 볼 수 있다.
+
+**관련 파일**
+
+- `work/HANDOFF.md`
 
 ### 2026-10-14
 

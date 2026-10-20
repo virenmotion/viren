@@ -1,6 +1,6 @@
 # VIREN WORK 인수인계 (AI 에이전트용)
 
-> 이 파일을 먼저 읽으면 바로 이어서 작업할 수 있다. 마지막 업데이트: 2026-10-20
+> 이 파일을 먼저 읽으면 바로 이어서 작업할 수 있다. 마지막 업데이트: 2026-10-20 (주소 활성화 확인분 반영)
 > 홈페이지 전체 인수인계는 저장소 루트의 `HANDOFF.md`. 설치·운영 안내(사람용)는 `work/README.md`.
 
 ---
@@ -48,12 +48,27 @@ GitHub virenmotion/viren (public!) ── main ──┬─> Vercel      : 홈�
 | Cloudflare | 계정 viren@viren.kr (처음에 잘못 만든 virenmotion@... 계정은 비어 있음, 무시) |
 | Pages 프로젝트 | `viren-work`, 브랜치 main, Root `work`, build `npm run build`, output `dist` |
 | 환경변수 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`(= publishable 키 `sb_publishable_...`), `NODE_VERSION=22` |
-| 주소 | https://viren-work.pages.dev (작동 확인), https://work.viren.kr (DNS 반영 대기 중) |
+| 주소 | https://viren-work.pages.dev · **https://work.viren.kr — 2026-10-20 작동 확인** |
 | DNS | cafe24 → viren.kr → 별칭(CNAME) `work → viren-work.pages.dev` 추가함. 기존 `*`, `www → cname.vercel-dns.com` 그대로 |
 
 **배포:** main에 push하면 Cloudflare가 자동 빌드(1~3분). 홈페이지(Vercel)도 같이 다시 빌드되지만 루트만 빌드하므로 영향 없음.
 
-⚠️ 이 개발 환경(클라우드 세션)에서는 프록시 때문에 `*.supabase.co`, `*.pages.dev`에 **접속이 안 된다.** 실제 사이트 확인은 지은님 캡처로 했다.
+⚠️ **클라우드 세션**에서는 프록시 때문에 `*.supabase.co`, `*.pages.dev`에 접속이 안 된다.
+**지은님 PC의 데스크톱 세션(홈페이지 담당 창)에서는 접속된다** — 2026-10-20 확인. 실서버 확인이
+필요하면 그쪽에서 하는 편이 빠르다(브라우저·curl·DNS 조회 모두 됨). work/ 빌드도 그 PC에서 통과.
+
+### work.viren.kr 이 안 열릴 때 (2026-10-20에 겪은 것)
+cafe24는 네임서버가 4대인데 **4대가 동시에 갱신되지 않는다.** 10-20 확인 시점에 ns1.cafe24.com
+한 대만 옛 응답(와일드카드 `*` → viren.kr)을 주고 있었고 나머지 3대는 정상이었다. 그래서
+**사람마다 열리고 안 열리고가 갈린다.** 설정이 틀린 게 아니니 기다리면 된다. 확인하는 법:
+
+```powershell
+foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe24.co.kr")) {
+  "{0} -> {1}" -f $ns, ((Resolve-DnsName work.viren.kr -Server $ns -Type CNAME).NameHost -join ',')
+}
+```
+
+4대 모두 `viren-work.pages.dev` 면 정상. 내 PC만 안 열리면 `Clear-DnsClientCache`.
 
 ## 3. 보안 구조 — 고치기 전에 반드시 이해할 것
 
@@ -103,13 +118,19 @@ GitHub virenmotion/viren (public!) ── main ──┬─> Vercel      : 홈�
 
 ## 5. 남은 일 (우선순위 순)
 
-1. **work.viren.kr 활성화 확인** — Cloudflare가 viren@viren.kr로 활성화 메일을 보낸다. 열리면 끝.
-2. **직원 등록 안내** — 지은님과 한 단계씩: Supabase → Authentication → Users → Add user(Auto Confirm 체크) → VIREN WORK 관리 → 직원에서 이름·직위·입사일 입력 + **재직 켜고 저장**.
-3. **사무실 IP 등록** — 사무실 와이파이에서 관리 → 출근 설정 → 목록에 추가 → 저장.
-4. **실서버에서 첨부 업로드 한 번 확인**(로컬에서 검증 못 함).
-5. **Supabase "Grace period is over" 경고 확인** — 조직 "비렌" 대시보드 상단에 떠 있었다. 무료 사용량 초과 경고로 보이며 **홈페이지 Supabase 프로젝트(같은 조직)도 영향받을 수 있다.** Billing/Usage에서 무엇이 초과됐는지 같이 확인할 것.
-6. 매달 백업 안내(관리 → 백업 → JSON을 회사 Dropbox에 보관). 무료 플랜은 자동 백업 없음.
-7. 2단계 후보: 결재 알림(카카오워크 병행 중이므로 카카오워크 봇/웹훅 알림이 자연스러움, 또는 메일), 메일 이전(Zoho/네이버웍스/Google 중 선택), 공휴일 반영, 양식 추가.
+1. **직원 등록 안내** — 지은님과 한 단계씩: Supabase → Authentication → Users → Add user(Auto Confirm 체크) → VIREN WORK 관리 → 직원에서 이름·직위·입사일 입력 + **재직 켜고 저장**.
+2. **사무실 IP 등록** — 사무실 와이파이에서 관리 → 출근 설정 → 목록에 추가 → 저장.
+3. **실서버에서 첨부 업로드 한 번 확인**(로컬에서 검증 못 함).
+4. **Supabase "Grace period is over" 경고 확인** — 조직 "비렌" 대시보드 상단에 떠 있었다. 무료 사용량 초과 경고로 보이며 **홈페이지 Supabase 프로젝트(같은 조직)도 영향받을 수 있다.** Billing/Usage에서 무엇이 초과됐는지 같이 확인할 것.
+5. 매달 백업 안내(관리 → 백업 → JSON을 회사 Dropbox에 보관). 무료 플랜은 자동 백업 없음.
+6. 2단계 후보: 결재 알림(카카오워크 병행 중이므로 카카오워크 봇/웹훅 알림이 자연스러움, 또는 메일), 메일 이전(Zoho/네이버웍스/Google 중 선택), 공휴일 반영, 양식 추가.
+
+### 끝난 일
+
+- **2026-10-20 work.viren.kr 열림 확인** — 지은님 PC(홈페이지 담당 창)에서 직접 확인했다.
+  Cloudflare 인증서 10-20 12:52 발급, 로그인 화면 정상, 브라우저 오류 0건,
+  번들에 Supabase 주소·키가 제대로 들어가 있음(Cloudflare 환경변수 적용 확인).
+  같은 김에 홈페이지 Supabase(별개 프로젝트 `wxggycizpfmwjaeltabg`)도 확인 — 정상, 프로젝트 11건.
 
 ## 6. 비용 결정 기록
 
