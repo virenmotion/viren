@@ -49,16 +49,23 @@ export default function Calendar() {
       supabase.rpc('leave_days', { p_from: from, p_to: to }),
       supabase.from('event_categories').select('*').order('sort').order('name'),
     ])
-    /* 일정 테이블·함수가 아직 없으면(= DB 설정 전) 빨간 오류 대신 할 일을 알려 준다 */
-    const notReady = (e) => e && /events|event_categories|leave_days|schema cache|does not exist/i.test(`${e.message || ''} ${e.details || ''}`)
-    if (notReady(ev.error) || notReady(lv.error) || notReady(ct.error)) {
+    /* DB 설정이 덜 됐을 때. **달력 자체는 죽지 않게** 한다 —
+       일정 표(events)가 없을 때만 화면을 멈추고, 분류·휴가처럼 곁가지가 없으면
+       그 부분만 비운다.
+       ⚠️ 2026-10-20: 분류 표 하나가 없다고 **달력 전체가 안 뜨는 일이 실제로 있었다.**
+          곁가지 때문에 본체가 멈추지 않게 할 것. */
+    const notReady = (e) => e && /schema cache|does not exist|Could not find the (table|function)/i.test(`${e.message || ''} ${e.details || ''}`)
+    if (notReady(ev.error)) {
       setErr('캘린더를 쓰려면 데이터베이스 설정을 한 번 해야 합니다. 관리자에게 알려 주세요. (work/supabase/migrations 의 SQL)')
       setEvents([]); setLeaves([]); setCats([]); setLoading(false)
       return
     }
+    if (notReady(lv.error) || notReady(ct.error)) {
+      setErr('설정이 덜 됐습니다. 일정은 쓸 수 있지만 분류 색과 휴가 표시가 나오지 않습니다. 관리자에게 알려 주세요.')
+    }
     if (ev.error) setErr(errText(ev.error)); else setEvents(ev.data)
-    if (lv.error) setErr(errText(lv.error)); else setLeaves(lv.data || [])
-    if (ct.error) setErr(errText(ct.error)); else setCats(ct.data || [])
+    setLeaves(lv.error ? [] : (lv.data || []))
+    setCats(ct.error ? [] : (ct.data || []))
     setLoading(false)
   }, [from, to])
 
