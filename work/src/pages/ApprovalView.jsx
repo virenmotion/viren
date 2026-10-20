@@ -4,6 +4,7 @@ import { errText, FILE_BUCKET, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { dateTime, dot } from '../lib/dates'
 import { FORMS, LEAVE_KINDS, STEP_STATUS, won } from '../lib/labels'
+import { FormView } from '../components/FormFields'
 import { ErrorBox, StatusPill } from '../components/ui'
 
 export default function ApprovalView() {
@@ -18,7 +19,8 @@ export default function ApprovalView() {
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.from('approval_docs')
-      .select('*, approval_steps(*), approval_refs(user_id), approval_files(*)').eq('id', id).maybeSingle()
+      .select('*, approval_steps(*), approval_refs(user_id), approval_files(*), doc_forms(id, name, guide, fields)')
+      .eq('id', id).maybeSingle()
     if (error) setErr(errText(error))
     setDoc(data)
   }, [id])
@@ -70,7 +72,7 @@ export default function ApprovalView() {
       <article className="card doc">
         <header className="doc-head">
           <div>
-            <p className="muted small tnum">{FORMS[doc.form_type]} · {doc.doc_no}</p>
+            <p className="muted small tnum">{doc.doc_forms?.name || FORMS[doc.form_type] || '문서'} · {doc.doc_no}</p>
             <h1>{doc.title}</h1>
             <p className="muted small">기안 {nameOf(doc.drafter_id)}{drafter?.dept && ` · ${drafter.dept}`} · {dateTime(doc.created_at)}</p>
           </div>
@@ -124,6 +126,12 @@ export default function ApprovalView() {
               <tfoot><tr><td></td><td className="r">합계</td><td className="r tnum"><strong>{won(doc.data.total)}</strong></td></tr></tfoot>
             </table>
           </div>
+        )}
+
+        {doc.form_type === 'custom' && (
+          doc.doc_forms
+            ? <FormView fields={doc.doc_forms.fields} values={doc.data?.fields} />
+            : <p className="muted small">이 문서가 쓰던 양식이 지워졌습니다. 아래 내용만 남아 있습니다.</p>
         )}
 
         {doc.content && <div className="doc-body">{doc.content}</div>}

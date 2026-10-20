@@ -5,8 +5,9 @@ import { leavePeriod } from '../lib/leave'
 import { ymd } from '../lib/dates'
 import { downloadBlob } from '../lib/csv'
 import { ErrorBox } from '../components/ui'
+import AdminForms from './AdminForms'
 
-const TABS = [['staff', '직원'], ['settings', '출근 설정'], ['cats', '일정 분류'], ['backup', '백업']]
+const TABS = [['staff', '직원'], ['settings', '출근 설정'], ['forms', '양식'], ['cats', '일정 분류'], ['backup', '백업']]
 
 export default function Admin() {
   const [tab, setTab] = useState('staff')
@@ -18,6 +19,7 @@ export default function Admin() {
       </div>
       {tab === 'staff' && <Staff />}
       {tab === 'settings' && <Settings />}
+      {tab === 'forms' && <AdminForms />}
       {tab === 'cats' && <Categories />}
       {tab === 'backup' && <Backup />}
     </div>
@@ -214,7 +216,7 @@ function Settings() {
   )
 }
 
-const BACKUP_TABLES = ['employees', 'settings', 'approval_docs', 'approval_steps', 'approval_refs', 'approval_files', 'attendance', 'events']
+const BACKUP_TABLES = ['employees', 'settings', 'doc_forms', 'approval_docs', 'approval_steps', 'approval_refs', 'approval_files', 'attendance', 'events', 'event_categories']
 
 function Backup() {
   const [busy, setBusy] = useState(false)

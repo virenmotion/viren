@@ -56,4 +56,8 @@ export const LEAVE_SHORT = {
   comp: '대휴',
 }
 
+/* 목록·문서에 뜨는 양식 이름. 직접 만든 양식(form_type = 'custom')은 join 해 온
+   doc_forms.name 을 쓴다. 양식이 지워졌으면 '문서'. */
+export const formName = (d) => d?.doc_forms?.name || FORMS[d?.form_type] || '문서'
+
 export const won = (n) => `${Number(n || 0).toLocaleString('ko-KR')}원`

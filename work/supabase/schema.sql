@@ -138,10 +138,38 @@ $$;
 -- ---------------------------------------------------------------------
 -- 전자결재
 -- ---------------------------------------------------------------------
+create table public.doc_forms (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null check (length(trim(name)) > 0),
+  guide      text not null default '',
+  fields     jsonb not null default '[]'::jsonb,
+  default_approvers uuid[] not null default '{}',
+  sort       int  not null default 0,
+  active     boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint doc_forms_fields_is_array check (jsonb_typeof(fields) = 'array')
+);
+
+alter table public.doc_forms enable row level security;
+
+create policy "양식은 재직자 누구나 본다" on public.doc_forms
+  for select to authenticated using (public.is_active_employee());
+create policy "양식은 관리자만 만든다" on public.doc_forms
+  for insert to authenticated with check (public.is_admin());
+create policy "양식은 관리자만 고친다" on public.doc_forms
+  for update to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "양식은 관리자만 지운다" on public.doc_forms
+  for delete to authenticated using (public.is_admin());
+
+revoke all on public.doc_forms from anon;
+
 create table public.approval_docs (
   id           uuid primary key default gen_random_uuid(),
   doc_no       text not null unique,              -- 2026-0001
-  form_type    text not null check (form_type in ('general', 'leave', 'expense')),
+  form_type    text not null check (form_type in ('general', 'leave', 'expense', 'custom')),
+  -- 직접 만든 양식으로 쓴 문서면 그 양식. 양식을 지워도 문서는 남는다.
+  form_id      uuid references public.doc_forms(id) on delete set null,
   title        text not null check (length(trim(title)) > 0),
   content      text not null default '',
   data         jsonb not null default '{}'::jsonb, -- 양식별 항목(휴가 기간, 지출 내역 등)
@@ -299,7 +327,8 @@ create function public.submit_doc(
   p_content   text,
   p_data      jsonb,
   p_approvers uuid[],
-  p_refs      uuid[] default '{}'
+  p_refs      uuid[] default '{}',
+  p_form_id   uuid default null
 ) returns uuid
 language plpgsql security definer set search_path = public as $$
 declare
@@ -332,6 +361,14 @@ begin
     v_data := public.check_leave_data(v_data);
   elsif p_form_type = 'expense' then
     v_data := public.check_expense_data(v_data);
+  elsif p_form_type = 'custom' then
+    -- 직접 만든 양식. 그 양식이 실제로 있고 쓰는 중인지만 본다.
+    -- (필수 칸 검사는 화면에서 한다 — 맨 위 주석 참고)
+    if p_form_id is null then raise exception '양식을 골라 주세요.'; end if;
+    if not exists (select 1 from doc_forms f where f.id = p_form_id and f.active) then
+      raise exception '지금은 쓸 수 없는 양식입니다.';
+    end if;
+    if jsonb_typeof(v_data) <> 'object' then raise exception '양식 내용이 올바르지 않습니다.'; end if;
   elsif p_form_type <> 'general' then
     raise exception '알 수 없는 양식입니다.';
   end if;
@@ -342,8 +379,9 @@ begin
   from approval_docs where doc_no like v_year || '-%';
   v_no := v_year || '-' || lpad(v_seq::text, 4, '0');
 
-  insert into approval_docs (doc_no, form_type, title, content, data, drafter_id)
-  values (v_no, p_form_type, trim(p_title), coalesce(p_content, ''), v_data, auth.uid())
+  insert into approval_docs (doc_no, form_type, title, content, data, drafter_id, form_id)
+  values (v_no, p_form_type, trim(p_title), coalesce(p_content, ''), v_data, auth.uid(),
+          case when p_form_type = 'custom' then p_form_id else null end)
   returning id into v_id;
 
   for i in 1 .. array_length(p_approvers, 1) loop
@@ -629,7 +667,7 @@ revoke all on all tables in schema public from anon;
 revoke execute on all functions in schema public from anon, public;
 grant execute on function
   public.is_active_employee(), public.is_admin(), public.can_view_doc(uuid),
-  public.my_ip(), public.request_ip(), public.submit_doc(text, text, text, jsonb, uuid[], uuid[]),
+  public.my_ip(), public.request_ip(), public.submit_doc(text, text, text, jsonb, uuid[], uuid[], uuid),
   public.act_on_doc(uuid, text, text), public.withdraw_doc(uuid),
   public.check_in(), public.check_out(), public.doc_id_from_path(text),
   public.leave_days(date, date)

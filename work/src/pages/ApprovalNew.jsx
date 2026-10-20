@@ -6,6 +6,8 @@ import { dot, today, weekdays } from '../lib/dates'
 import { leaveSummary } from '../lib/leave'
 import { FORMS, LEAVE_KINDS, LEAVE_PICK, won } from '../lib/labels'
 import { ErrorBox } from '../components/ui'
+import { FormInputs } from '../components/FormFields'
+import { emptyValue, firstMissing } from '../lib/formFields'
 
 const MAX_FILE_MB = 20
 const LINE_KEY = 'viren-work:last-line'
@@ -18,8 +20,19 @@ function loadLastLine() {
 export default function ApprovalNew() {
   const { me, userId, activeEmployees, nameOf } = useSession()
   const [params, setParams] = useSearchParams()
-  const form = FORMS[params.get('form')] ? params.get('form') : 'general'
   const nav = useNavigate()
+
+  /* 직접 만든 양식(관리 → 양식). 탭은 기본 3종 다음에 붙는다. */
+  const [customForms, setCustomForms] = useState([])
+  useEffect(() => {
+    supabase.from('doc_forms').select('*').eq('active', true).order('sort').order('name')
+      .then(({ data, error }) => { if (!error) setCustomForms(data || []) })
+  }, [])
+
+  const picked = params.get('form') || 'general'
+  const customForm = customForms.find((x) => x.id === picked) || null
+  const form = customForm ? 'custom' : (FORMS[picked] ? picked : 'general')
+  const [fieldValues, setFieldValues] = useState({})
 
   const others = activeEmployees.filter((e) => e.id !== userId)
   const valid = (ids) => ids.filter((id) => others.some((e) => e.id === id))
@@ -40,6 +53,16 @@ export default function ApprovalNew() {
       .in('status', ['approved', 'pending']).then(({ data }) => setLeaveDocs(data || []))
   }, [form, userId])
 
+  /* 양식을 바꾸면 그 양식의 기본값과 기본 결재선을 채워 준다.
+     결재선은 **비어 있을 때만** 덮는다 — 사용자가 이미 고른 걸 지우면 곤란하다. */
+  useEffect(() => {
+    if (!customForm) return
+    setFieldValues(Object.fromEntries((customForm.fields || []).map((x) => [x.key, emptyValue(x)])))
+    const pre = valid(customForm.default_approvers || [])
+    if (pre.length) setApprovers(pre)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customForm?.id])
+
   const half = leave.kind === 'half_am' || leave.kind === 'half_pm'
   const maxDays = half ? 0.5 : weekdays(leave.start, leave.end)
   const days = half ? 0.5 : (leave.days === '' ? maxDays : Number(leave.days))
@@ -52,6 +75,7 @@ export default function ApprovalNew() {
       return `${LEAVE_KINDS[leave.kind]} 신청 (${range})`
     }
     if (form === 'expense') return `지출결의 (${won(total)})`
+    if (form === 'custom') return customForm?.name || ''
     return ''
   }
 
@@ -66,10 +90,16 @@ export default function ApprovalNew() {
     let data = {}
     if (form === 'leave') data = { kind: leave.kind, start: leave.start, end: half ? leave.start : leave.end, days }
     if (form === 'expense') data = { items: items.filter((it) => it.desc.trim() || it.amount).map((it) => ({ ...it, amount: Number(it.amount) })) }
+    if (form === 'custom') {
+      const miss = firstMissing(customForm?.fields, fieldValues)
+      if (miss) { setBusy(false); return setErr(`'${miss.label}' 칸을 채워 주세요.`) }
+      data = { fields: fieldValues }
+    }
 
     setBusy(true)
     const { data: id, error } = await supabase.rpc('submit_doc', {
       p_form_type: form, p_title: t, p_content: content, p_data: data, p_approvers: approvers, p_refs: refs,
+      p_form_id: customForm?.id || null,
     })
     if (error) { setBusy(false); return setErr(errText(error)) }
 
@@ -92,7 +122,10 @@ export default function ApprovalNew() {
       <h1>새 문서 작성</h1>
       <div className="tabs" role="tablist">
         {Object.entries(FORMS).map(([k, label]) => (
-          <button type="button" key={k} role="tab" aria-selected={form === k} className={form === k ? 'on' : ''} onClick={() => setParams({ form: k })}>{label}</button>
+          <button type="button" key={k} role="tab" aria-selected={picked === k} className={picked === k ? 'on' : ''} onClick={() => setParams({ form: k })}>{label}</button>
+        ))}
+        {customForms.map((cf) => (
+          <button type="button" key={cf.id} role="tab" aria-selected={picked === cf.id} className={picked === cf.id ? 'on' : ''} onClick={() => setParams({ form: cf.id })}>{cf.name}</button>
         ))}
       </div>
 
@@ -180,11 +213,20 @@ export default function ApprovalNew() {
         </section>
       )}
 
+      {form === 'custom' && customForm && (
+        <section className="card stack-sm">
+          <h2>{customForm.name}</h2>
+          {customForm.guide && <p className="guide">{customForm.guide}</p>}
+          <FormInputs fields={customForm.fields} values={fieldValues} onChange={setFieldValues} />
+        </section>
+      )}
+
       <section className="card stack-sm">
         <label className="field"><span>제목</span>
           <input id="doc-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={autoTitle() || '제목'} /></label>
         <label className="field"><span>{form === 'general' ? '내용' : '사유 · 메모'}</span>
-          <textarea id="doc-content" rows={form === 'general' ? 12 : 4} value={content} onChange={(e) => setContent(e.target.value)} /></label>
+          <textarea id="doc-content" rows={form === 'general' ? 12 : 4} value={content} onChange={(e) => setContent(e.target.value)} />
+          {form === 'custom' && <span className="hint">양식 안의 칸에 다 적었으면 비워 두셔도 됩니다.</span>}</label>
         <label className="field"><span>첨부파일 (파일당 {MAX_FILE_MB}MB까지)</span>
           <input id="doc-files" type="file" multiple onChange={(e) => setFiles([...e.target.files])} /></label>
       </section>

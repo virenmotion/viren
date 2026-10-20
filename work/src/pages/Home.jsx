@@ -4,7 +4,7 @@ import { errText, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { dot, hm, hoursText, minutesBetween, parse, today, weekday } from '../lib/dates'
 import { leaveSummary } from '../lib/leave'
-import { FORMS } from '../lib/labels'
+import { formName } from '../lib/labels'
 import { Empty, ErrorBox, StatusPill } from '../components/ui'
 
 /* 화면에 띄워 둔 동안 시계·근무시간이 흘러가도록 20초마다 다시 그린다 */
@@ -36,10 +36,10 @@ export default function Home() {
       .then(async ({ data }) => {
         const ids = (data || []).map((r) => r.doc_id)
         if (!ids.length) return setTodo([])
-        const { data: docs } = await supabase.from('approval_docs').select('*').in('id', ids).order('created_at')
+        const { data: docs } = await supabase.from('approval_docs').select('*, doc_forms(name)').in('id', ids).order('created_at')
         setTodo(docs || [])
       })
-    supabase.from('approval_docs').select('*').eq('drafter_id', userId).order('created_at', { ascending: false }).limit(5)
+    supabase.from('approval_docs').select('*, doc_forms(name)').eq('drafter_id', userId).order('created_at', { ascending: false }).limit(5)
       .then(({ data }) => setMine(data || []))
     supabase.from('approval_docs').select('id', { count: 'exact', head: true }).eq('drafter_id', userId).eq('status', 'pending')
       .then(({ count }) => setMinePending(count || 0))
@@ -145,7 +145,7 @@ function DocList({ docs }) {
       {docs.map((d) => (
         <li key={d.id}>
           <Link to={`/approval/${d.id}`}>
-            <span className="tag">{FORMS[d.form_type]}</span>
+            <span className="tag">{formName(d)}</span>
             <span className="title">{d.title}</span>
             <span className="meta">{nameOf(d.drafter_id)}</span>
             <StatusPill status={d.status} />

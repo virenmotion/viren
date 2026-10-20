@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { errText, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { dot, ymd } from '../lib/dates'
-import { FORMS } from '../lib/labels'
+import { formName } from '../lib/labels'
 import { Empty, ErrorBox, StatusPill } from '../components/ui'
 
 const BOXES = [
@@ -32,7 +32,7 @@ export default function Approvals() {
     let alive = true
     setDocs(null); setErr('')
     ;(async () => {
-      let q = supabase.from('approval_docs').select('*, approval_steps(step, approver_id, status)')
+      let q = supabase.from('approval_docs').select('*, approval_steps(step, approver_id, status), doc_forms(name)')
       if (box === 'mine') q = q.eq('drafter_id', userId)
       else if (box === 'todo') q = q.in('id', await idsFrom('approval_steps', 'doc_id', { approver_id: userId, status: 'pending' }))
       else if (box === 'done') q = q.in('id', await idsFrom('approval_steps', 'doc_id', { approver_id: userId, status: ['approved', 'rejected'] }))
@@ -71,7 +71,7 @@ export default function Approvals() {
                   return (
                     <tr key={d.id}>
                       <td className="tnum muted">{d.doc_no}</td>
-                      <td><span className="tag">{FORMS[d.form_type]}</span></td>
+                      <td><span className="tag">{formName(d)}</span></td>
                       <td className="title-cell"><Link to={`/approval/${d.id}`}>{d.title}</Link></td>
                       <td>{nameOf(d.drafter_id)}</td>
                       <td className="tnum">{dot(ymd(new Date(d.created_at)))}</td>
@@ -89,7 +89,7 @@ export default function Approvals() {
               return (
                 <li key={d.id}>
                   <Link to={`/approval/${d.id}`}>
-                    <div className="row-between"><span className="tag">{FORMS[d.form_type]}</span><StatusPill status={d.status} /></div>
+                    <div className="row-between"><span className="tag">{formName(d)}</span><StatusPill status={d.status} /></div>
                     <strong>{d.title}</strong>
                     <span className="muted small tnum">
                       {nameOf(d.drafter_id)} · {dot(ymd(new Date(d.created_at)))}{cur && ` · 지금 ${nameOf(cur.approver_id)} 차례`}
