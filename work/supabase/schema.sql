@@ -258,16 +258,50 @@ create policy "기안자가 첨부를 올린다" on public.approval_files
 create function public.check_leave_data(p jsonb) returns jsonb
 language plpgsql immutable set search_path = public as $$
 declare
-  k   text := p->>'kind';
-  s   date;
-  e   date;
-  d   numeric;
-  wd  int;
+  k     text := p->>'kind';
+  arr   jsonb := p->'dates';
+  s     date;
+  e     date;
+  d     numeric;
+  wd    int;
+  n     int;
+  uniq  date[];
 begin
   -- 연차 · 월차 · 반차(오전/오후) · 공가 · 대휴
   if k is null or k not in ('annual', 'monthly', 'half_am', 'half_pm', 'public', 'comp') then
     raise exception '휴가 종류를 골라 주세요.';
   end if;
+
+  if arr is not null and jsonb_typeof(arr) = 'array' and jsonb_array_length(arr) > 0 then
+    -- ── 새 방식: 고른 날짜들 ──────────────────────────────────────
+    begin
+      select array_agg(distinct x::date order by x::date) into uniq
+      from jsonb_array_elements_text(arr) x;
+    exception when others then
+      raise exception '휴가 날짜를 확인해 주세요.';
+    end;
+
+    n := coalesce(array_length(uniq, 1), 0);
+    if n = 0 then raise exception '휴가 날짜를 골라 주세요.'; end if;
+    if n > 60 then raise exception '한 번에 60일까지만 신청할 수 있습니다.'; end if;
+
+    if k in ('half_am', 'half_pm') then
+      if n <> 1 then raise exception '반차는 하루만 고를 수 있습니다.'; end if;
+      d := 0.5;
+    else
+      d := n;
+    end if;
+
+    s := uniq[1];
+    e := uniq[n];
+    return p || jsonb_build_object(
+      'kind', k,
+      'dates', to_jsonb(uniq),
+      'start', s, 'end', e, 'days', d
+    );
+  end if;
+
+  -- ── 옛 방식: 시작일~종료일 (옛 화면이 보낸 것) ────────────────────
   begin
     s := (p->>'start')::date;
     e := coalesce(nullif(p->>'end', ''), p->>'start')::date;
@@ -637,7 +671,8 @@ create policy "일정은 올린 사람이나 관리자가 지운다" on public.e
 
 -- 달력에 띄울 '승인된 휴가'. 이름·기간·반차 여부만 내준다(휴가 종류는 내주지 않는다).
 create function public.leave_days(p_from date, p_to date)
-returns table (user_id uuid, name text, job_title text, kind text, start_date date, end_date date)
+returns table (user_id uuid, name text, job_title text, kind text,
+               start_date date, end_date date, dates jsonb)
 language sql stable security definer set search_path = public as $$
   select d.drafter_id,
          e.name,
@@ -646,7 +681,9 @@ language sql stable security definer set search_path = public as $$
          case when d.data->>'kind' in ('annual','monthly','half_am','half_pm','public','comp')
               then d.data->>'kind' else 'other' end,
          (d.data->>'start')::date,
-         coalesce(nullif(d.data->>'end', ''), d.data->>'start')::date
+         coalesce(nullif(d.data->>'end', ''), d.data->>'start')::date,
+         -- 없으면 null. 화면이 null 이면 옛 방식(기간)으로 칠한다.
+         case when jsonb_typeof(d.data->'dates') = 'array' then d.data->'dates' else null end
   from approval_docs d
   join employees e on e.id = d.drafter_id
   where public.is_active_employee()

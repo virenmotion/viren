@@ -19,7 +19,12 @@ async function fetchMonth(userIds, ym) {
   ])
   if (att.error) throw att.error
   if (lv.error) throw lv.error
-  const leaveOn = (uid, d) => lv.data.find((x) => x.drafter_id === uid && x.data.start <= d && x.data.end >= d)
+  /* 고른 날짜(dates)가 있으면 그 날만. 옛 문서는 예전처럼 기간으로 본다. */
+  const leaveOn = (uid, d) => lv.data.find((x) => {
+    if (x.drafter_id !== uid) return false
+    if (Array.isArray(x.data?.dates)) return x.data.dates.includes(d)
+    return x.data.start <= d && x.data.end >= d
+  })
   return { days, rows: att.data, leaveOn }
 }
 

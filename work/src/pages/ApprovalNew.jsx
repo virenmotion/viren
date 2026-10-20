@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { errText, FILE_BUCKET, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { dot, today, weekdays } from '../lib/dates'
+import { dot, today } from '../lib/dates'
 import { leaveSummary } from '../lib/leave'
 import { FORMS, LEAVE_KINDS, LEAVE_PICK, won } from '../lib/labels'
 import { ErrorBox } from '../components/ui'
 import { FormInputs } from '../components/FormFields'
+import DatePick from '../components/DatePick'
 import { emptyValue, firstMissing } from '../lib/formFields'
 
 const MAX_FILE_MB = 20
@@ -41,7 +42,8 @@ export default function ApprovalNew() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [files, setFiles] = useState([])
-  const [leave, setLeave] = useState({ kind: 'annual', start: today(), end: today(), days: '' })
+  /* 휴가는 '기간' 이 아니라 **고른 날짜들**이다. 띄엄띄엄 쉬는 연차를 한 장으로 낸다. */
+  const [leave, setLeave] = useState({ kind: 'annual', dates: [today()] })
   const [items, setItems] = useState([{ date: today(), desc: '', amount: '' }])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -64,14 +66,15 @@ export default function ApprovalNew() {
   }, [customForm?.id])
 
   const half = leave.kind === 'half_am' || leave.kind === 'half_pm'
-  const maxDays = half ? 0.5 : weekdays(leave.start, leave.end)
-  const days = half ? 0.5 : (leave.days === '' ? maxDays : Number(leave.days))
+  const days = half ? 0.5 : leave.dates.length
   const total = useMemo(() => items.reduce((a, it) => a + (Number(it.amount) || 0), 0), [items])
   const summary = leaveSummary(me, leaveDocs)
 
   function autoTitle() {
     if (form === 'leave') {
-      const range = half || leave.start === leave.end ? dot(leave.start) : `${dot(leave.start)}~${dot(leave.end)}`
+      const d = leave.dates
+      if (!d.length) return `${LEAVE_KINDS[leave.kind]} 신청`
+      const range = d.length === 1 ? dot(d[0]) : `${dot(d[0])} 외 ${d.length - 1}일`
       return `${LEAVE_KINDS[leave.kind]} 신청 (${range})`
     }
     if (form === 'expense') return `지출결의 (${won(total)})`
@@ -88,7 +91,13 @@ export default function ApprovalNew() {
     if (!t) return setErr('제목을 넣어 주세요.')
 
     let data = {}
-    if (form === 'leave') data = { kind: leave.kind, start: leave.start, end: half ? leave.start : leave.end, days }
+    if (form === 'leave') {
+      if (!leave.dates.length) { setBusy(false); return setErr('휴가 날짜를 골라 주세요.') }
+      /* dates 가 진짜다. start·end·days 도 같이 보내는 이유:
+         서버 쪽 SQL(2026-10-20f)이 아직 안 올라간 동안에도 옛 검사식이 통과하도록.
+         올라간 뒤에는 서버가 dates 로 다시 계산하므로 이 값들은 덮어쓰인다. */
+      data = { kind: leave.kind, dates: leave.dates, start: leave.dates[0], end: leave.dates[leave.dates.length - 1], days }
+    }
     if (form === 'expense') data = { items: items.filter((it) => it.desc.trim() || it.amount).map((it) => ({ ...it, amount: Number(it.amount) })) }
     if (form === 'custom') {
       const miss = firstMissing(customForm?.fields, fieldValues)
@@ -117,16 +126,44 @@ export default function ApprovalNew() {
     nav(`/approval/${id}`, { replace: true, state: failed.length ? { uploadFailed: failed } : null })
   }
 
+  /* 양식을 아직 안 골랐으면 고르는 화면부터 */
+  if (!params.get('form')) {
+    return (
+      <div className="stack">
+        <h1>새 문서 작성</h1>
+        <p className="hint">쓸 양식을 고르세요.</p>
+        <section className="card">
+          <h2>기본 양식</h2>
+          <div className="pick-grid">
+            {Object.entries(FORMS).map(([k, label]) => (
+              <button type="button" key={k} className="pick" onClick={() => setParams({ form: k })}>
+                <strong>{label}</strong>
+              </button>
+            ))}
+          </div>
+        </section>
+        {customForms.length > 0 && (
+          <section className="card">
+            <h2>회사 양식</h2>
+            <div className="pick-grid">
+              {customForms.map((cf) => (
+                <button type="button" key={cf.id} className="pick" onClick={() => setParams({ form: cf.id })}>
+                  <strong>{cf.name}</strong>
+                  {cf.guide && <span className="small muted">{cf.guide}</span>}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    )
+  }
+
   return (
     <form className="stack" onSubmit={submit}>
-      <h1>새 문서 작성</h1>
-      <div className="tabs" role="tablist">
-        {Object.entries(FORMS).map(([k, label]) => (
-          <button type="button" key={k} role="tab" aria-selected={picked === k} className={picked === k ? 'on' : ''} onClick={() => setParams({ form: k })}>{label}</button>
-        ))}
-        {customForms.map((cf) => (
-          <button type="button" key={cf.id} role="tab" aria-selected={picked === cf.id} className={picked === cf.id ? 'on' : ''} onClick={() => setParams({ form: cf.id })}>{cf.name}</button>
-        ))}
+      <div className="row-between">
+        <h1>{customForm ? customForm.name : FORMS[form]}</h1>
+        <button type="button" className="btn small-btn" onClick={() => setParams({})}>← 양식 다시 고르기</button>
       </div>
 
       <section className="card stack-sm">
@@ -164,7 +201,12 @@ export default function ApprovalNew() {
           <div className="form-row">
             <label className="field"><span>종류</span>
               <select id="leave-kind" value={half ? 'half' : leave.kind}
-                onChange={(e) => setLeave({ ...leave, kind: e.target.value === 'half' ? 'half_am' : e.target.value, days: '' })}>
+                onChange={(e) => {
+                  const kind = e.target.value === 'half' ? 'half_am' : e.target.value
+                  const toHalf = kind.startsWith('half_')
+                  /* 반차로 바꾸면 하루만 남긴다 */
+                  setLeave({ kind, dates: toHalf ? leave.dates.slice(0, 1) : leave.dates })
+                }}>
                 {Object.entries(LEAVE_PICK).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select></label>
             {half && (
@@ -173,18 +215,14 @@ export default function ApprovalNew() {
                   <option value="half_am">오전</option><option value="half_pm">오후</option>
                 </select></label>
             )}
-            <label className="field"><span>{half ? '날짜' : '시작일'}</span>
-              <input id="leave-start" type="date" required value={leave.start} onChange={(e) => setLeave({ ...leave, start: e.target.value, end: e.target.value > leave.end ? e.target.value : leave.end, days: '' })} /></label>
-            {!half && (
-              <label className="field"><span>종료일</span>
-                <input id="leave-end" type="date" required min={leave.start} value={leave.end} onChange={(e) => setLeave({ ...leave, end: e.target.value, days: '' })} /></label>
-            )}
-            {!half && (
-              <label className="field"><span>일수</span>
-                <input id="leave-days" type="number" step="0.5" min="0.5" max={maxDays} value={leave.days === '' ? maxDays : leave.days} onChange={(e) => setLeave({ ...leave, days: e.target.value })} /></label>
-            )}
           </div>
-          {!half && <p className="hint">주말을 뺀 {maxDays}일로 계산했습니다. 기간에 공휴일이 있으면 일수를 줄여 주세요.</p>}
+
+          <div className="field">
+            <span className="field-label">쉬는 날 {half ? '(반차는 하루만)' : ''}</span>
+            <DatePick value={leave.dates} single={half} onChange={(dates) => setLeave({ ...leave, dates })} />
+          </div>
+          <p className="hint">신청 일수 <strong className="tnum">{days}일</strong>
+            {!half && leave.dates.length > 1 && ' — 고른 날만 셉니다. 사이에 낀 날은 들어가지 않습니다.'}</p>
           {['public', 'comp'].includes(leave.kind) && <p className="hint">{LEAVE_KINDS[leave.kind]}는 연차에서 빠지지 않습니다.</p>}
         </section>
       )}

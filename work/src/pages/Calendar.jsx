@@ -86,9 +86,16 @@ export default function Calendar() {
     for (const l of leaves) {
       const tag = LEAVE_SHORT[l.kind] || '휴가'
       const who = `${l.name}${l.job_title || ''}`
+      const mark = (d) => put(d, { kind: 'leave', label: `[${tag}] ${who}`, color: LEAVE_COLOR })
+      if (Array.isArray(l.dates)) {
+        /* 고른 날짜만 칠한다. 띄엄띄엄 쓴 연차가 사이 날까지 물들지 않게. */
+        for (const d of l.dates) if (d >= from && d <= to) mark(d)
+        continue
+      }
+      /* 옛 문서(dates 없음)는 예전처럼 기간으로. 주말은 뺀다. */
       for (let d = l.start_date < from ? from : l.start_date; d <= l.end_date && d <= to; d = addDays(d, 1)) {
-        if ([0, 6].includes(parse(d).getUTCDay())) continue // 주말은 휴가로 세지 않는다
-        put(d, { kind: 'leave', label: `[${tag}] ${who}`, color: LEAVE_COLOR })
+        if ([0, 6].includes(parse(d).getUTCDay())) continue
+        mark(d)
       }
     }
     return map

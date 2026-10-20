@@ -109,7 +109,9 @@ export default function ApprovalView() {
         {doc.form_type === 'leave' && (
           <dl className="kv doc-data">
             <dt>종류</dt><dd>{LEAVE_KINDS[doc.data.kind]}</dd>
-            <dt>기간</dt><dd className="tnum">{doc.data.start === doc.data.end ? dot(doc.data.start) : `${dot(doc.data.start)} ~ ${dot(doc.data.end)}`}</dd>
+            <dt>날짜</dt><dd className="tnum">{Array.isArray(doc.data.dates)
+              ? doc.data.dates.map(dot).join(', ')
+              : (doc.data.start === doc.data.end ? dot(doc.data.start) : `${dot(doc.data.start)} ~ ${dot(doc.data.end)}`)}</dd>
             <dt>일수</dt><dd className="tnum">{doc.data.days}일</dd>
           </dl>
         )}
