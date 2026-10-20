@@ -33,8 +33,8 @@
     schema.sql 실행 완료, 회원가입 꺼짐, 첫 관리자 = jieunp711@viren.kr.
   - Cloudflare 계정 `viren@viren.kr` → Pages 프로젝트 `viren-work` (main, 루트 `work`).
     환경변수 `VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY`(publishable 키) · `NODE_VERSION=22`.
-  - 주소: https://viren-work.pages.dev , **https://work.viren.kr — 2026-10-20 열림 확인**
-    (cafe24 DNS에 CNAME `work → viren-work.pages.dev`).
+  - 주소: https://viren-work.pages.dev (정상) , https://work.viren.kr
+    (서버는 준비 끝. cafe24 네임서버 4대 중 1대 갱신 지연 — `work/HANDOFF.md` 2절)
   - ⚠️ 그날 Supabase 대시보드 상단에 "Grace period is over" 경고가 떠 있었다(조직 사용량 초과 경고로 보임). 확인 필요.
 
 ## 2. 배포 흐름 (중요)
@@ -259,19 +259,26 @@
 
 1. **사내 플랫폼 VIREN WORK 이어받음** — 다른 창(클라우드 세션)이 만든 `work/` 폴더를 내려받아
    이 PC에서 빌드까지 확인했다(`npm install` → `npm run build` 통과). 상세는 `work/HANDOFF.md`.
-2. **work.viren.kr 열림 확인 — 남은 일 1번 해결.** 그 창은 프록시 때문에 `*.pages.dev` 에
-   접속을 못 해서 확인을 못 하고 있었다. 이 PC에서는 되므로 직접 확인했다.
-   · 처음엔 안 열렸는데 설정 문제가 아니라 **cafe24 네임서버 4대 중 1대만 늦게 갱신된 것**이었다.
-     ns1.cafe24.com 만 옛 응답(와일드카드 `*`)을 주고 나머지 3대는 정상 → 사람마다 갈림.
-     ➡️ **cafe24에서 DNS를 바꾸면 4대를 다 따로 조회해 볼 것.** 방법은 `work/HANDOFF.md` 2절.
-   · Cloudflare 인증서 10-20 12:52 발급 완료, 로그인 화면 정상, 브라우저 오류 0건,
-     번들에 Supabase 주소·키 제대로 들어감(Cloudflare 환경변수 적용 확인).
+2. **work.viren.kr 진단 — 서버는 끝, DNS 한 대만 남음.** 그 창은 프록시 때문에
+   `*.pages.dev` 에 접속을 못 해 확인이 막혀 있었다. 이 PC에서는 되므로 대신 확인했다.
+   · **Cloudflare 쪽은 완료.** 인증서 10-20 12:52 발급, 주소로 직접 붙으면 HTTP 200,
+     로그인 화면 정상, 브라우저 오류 0건, 번들에 Supabase 주소·키 제대로 들어감.
+   · **원인은 cafe24 네임서버 4대 중 ns1.cafe24.com 1대의 갱신 지연.** 나머지 3대와
+     공개 DNS(구글·Cloudflare·KT)는 전부 정상 → 사람마다 열리고 안 열리고가 갈린다.
+     설정 잘못이 아니라 기다릴 일. 하루 지나도 그대로면 cafe24 문의.
+   · ⚠️ **"설정은 맞는데 내 PC 만 안 열린다"가 실제로 일어난다.** 틀린 답을 한 번 받은
+     공유기가 30분(TTL) 동안 쥐고 있어서다. 지은님 PC 가 그 상태였고, 같은 PC 안에서도
+     브라우저는 열리는데 `nslookup` 은 옛 주소를 주는 식으로 계층마다 값이 달랐다.
+     ➡️ **DNS 는 한 번 조회해 보고 판단하지 말 것.** 네임서버를 한 대씩 따로 물어보고
+     공개 DNS 와도 대조한다. 방법은 `work/HANDOFF.md` 2절.
 3. **홈페이지 Supabase 도 같이 확인** — VIREN WORK 쪽 "Grace period is over" 경고가
    같은 조직이라 홈페이지에도 번질 수 있다고 적혀 있어 확인했다. **현재는 정상**
    (프로젝트 11건 · 공개 10건, 응답 정상). 다만 경고 자체는 Billing 화면을 봐야 해서 지은님 몫.
 
 **남은 일**
 
+- **work.viren.kr — ns1.cafe24.com 갱신 기다리는 중.** 하루 지나도 그대로면 cafe24 문의.
+  그동안은 https://viren-work.pages.dev 로 쓰면 된다.
 - VIREN WORK: 직원 등록 / 사무실 IP 등록 / 첨부 업로드 실서버 확인 / Supabase 사용량 경고 확인
   (`work/HANDOFF.md` 5절).
 - 안동소수력발전소 공개(2027년 4~5월 예상, 계약 후).

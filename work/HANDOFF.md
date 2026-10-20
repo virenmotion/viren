@@ -48,7 +48,7 @@ GitHub virenmotion/viren (public!) ── main ──┬─> Vercel      : 홈�
 | Cloudflare | 계정 viren@viren.kr (처음에 잘못 만든 virenmotion@... 계정은 비어 있음, 무시) |
 | Pages 프로젝트 | `viren-work`, 브랜치 main, Root `work`, build `npm run build`, output `dist` |
 | 환경변수 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`(= publishable 키 `sb_publishable_...`), `NODE_VERSION=22` |
-| 주소 | https://viren-work.pages.dev · **https://work.viren.kr — 2026-10-20 작동 확인** |
+| 주소 | https://viren-work.pages.dev (정상) · https://work.viren.kr (**서버는 준비 끝, DNS 한 대 지연 — 2절**) |
 | DNS | cafe24 → viren.kr → 별칭(CNAME) `work → viren-work.pages.dev` 추가함. 기존 `*`, `www → cname.vercel-dns.com` 그대로 |
 
 **배포:** main에 push하면 Cloudflare가 자동 빌드(1~3분). 홈페이지(Vercel)도 같이 다시 빌드되지만 루트만 빌드하므로 영향 없음.
@@ -57,10 +57,25 @@ GitHub virenmotion/viren (public!) ── main ──┬─> Vercel      : 홈�
 **지은님 PC의 데스크톱 세션(홈페이지 담당 창)에서는 접속된다** — 2026-10-20 확인. 실서버 확인이
 필요하면 그쪽에서 하는 편이 빠르다(브라우저·curl·DNS 조회 모두 됨). work/ 빌드도 그 PC에서 통과.
 
-### work.viren.kr 이 안 열릴 때 (2026-10-20에 겪은 것)
-cafe24는 네임서버가 4대인데 **4대가 동시에 갱신되지 않는다.** 10-20 확인 시점에 ns1.cafe24.com
-한 대만 옛 응답(와일드카드 `*` → viren.kr)을 주고 있었고 나머지 3대는 정상이었다. 그래서
-**사람마다 열리고 안 열리고가 갈린다.** 설정이 틀린 게 아니니 기다리면 된다. 확인하는 법:
+### work.viren.kr 이 안 열릴 때 (2026-10-20 진단 완료)
+
+**결론: 서버 설정은 다 끝났다. 남은 건 cafe24 네임서버 한 대의 갱신 지연뿐이다.**
+
+끝난 것 — Cloudflare Pages 쪽은 완전히 준비됐다. work.viren.kr 인증서가 10-20 12:52 에
+발급됐고, Cloudflare 주소로 직접 붙으면 HTTP 200 에 로그인 화면이 제대로 나온다.
+공개 DNS(구글 8.8.8.8 · Cloudflare 1.1.1.1 · KT 168.126.63.1)도 전부 올바른 값을 준다.
+
+남은 것 — cafe24 는 네임서버가 4대인데 **4대가 동시에 갱신되지 않는다.** 10-20 시점에
+ns1.cafe24.com 한 대만 옛 응답(와일드카드 → viren.kr → Vercel 주소 216.198.79.1)을 주고
+나머지 3대는 정상이었다. 그래서 **누구는 열리고 누구는 안 열린다.** 설정이 틀린 게
+아니므로 기다리면 된다. 하루가 지나도 ns1 이 그대로면 cafe24 고객센터에 문의한다
+(네임서버끼리 맞추는 건 cafe24 몫이다).
+
+⚠️ **"설정은 맞는데 내 PC 에서만 안 열린다"가 실제로 일어난다.** 틀린 답을 한 번 받은
+공유기·PC 가 그 값을 TTL(30분) 동안 쥐고 있어서다. 10-20 에 지은님 PC 가 그 상태였는데,
+같은 PC 안에서도 **브라우저는 열리는데 nslookup 은 옛 주소**를 주는 식으로 캐시 계층마다
+값이 달랐다. 그러니 **한 번 조회해 보고 판단하지 말 것.** 급하면 pages.dev 주소를 쓴다.
+확인하는 법:
 
 ```powershell
 foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe24.co.kr")) {
@@ -68,7 +83,8 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 }
 ```
 
-4대 모두 `viren-work.pages.dev` 면 정상. 내 PC만 안 열리면 `Clear-DnsClientCache`.
+4대 모두 `viren-work.pages.dev` 면 정상. 그래도 내 PC만 안 열리면 공유기가 옛 답을 쥐고 있는
+것이니 30분쯤 기다린다(`Clear-DnsClientCache` 는 PC 캐시만 지워서 이 경우엔 소용없다).
 
 ## 3. 보안 구조 — 고치기 전에 반드시 이해할 것
 
@@ -118,20 +134,23 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 
 ## 5. 남은 일 (우선순위 순)
 
-1. **직원 등록 안내** — 지은님과 한 단계씩: Supabase → Authentication → Users → Add user(Auto Confirm 체크) → VIREN WORK 관리 → 직원에서 이름·직위·입사일 입력 + **재직 켜고 저장**.
-2. **사무실 IP 등록** — 사무실 와이파이에서 관리 → 출근 설정 → 목록에 추가 → 저장.
-3. **실서버에서 첨부 업로드 한 번 확인**(로컬에서 검증 못 함).
-4. **Supabase "Grace period is over" 경고 확인** — 조직 "비렌" 대시보드 상단에 떠 있었다. 무료 사용량 초과 경고로 보이며 **홈페이지 Supabase 프로젝트(같은 조직)도 영향받을 수 있다.** Billing/Usage에서 무엇이 초과됐는지 같이 확인할 것.
-5. 매달 백업 안내(관리 → 백업 → JSON을 회사 Dropbox에 보관). 무료 플랜은 자동 백업 없음.
-6. 2단계 후보: 결재 알림(카카오워크 병행 중이므로 카카오워크 봇/웹훅 알림이 자연스러움, 또는 메일), 메일 이전(Zoho/네이버웍스/Google 중 선택), 공휴일 반영, 양식 추가.
+1. **work.viren.kr 기다리기** — 서버 설정은 끝났고 cafe24 네임서버 ns1 한 대만 옛 값을 준다(2절).
+   하루 지나도 그대로면 cafe24 고객센터 문의. 그동안은 https://viren-work.pages.dev 로 쓴다.
+2. **직원 등록 안내** — 지은님과 한 단계씩: Supabase → Authentication → Users → Add user(Auto Confirm 체크) → VIREN WORK 관리 → 직원에서 이름·직위·입사일 입력 + **재직 켜고 저장**.
+3. **사무실 IP 등록** — 사무실 와이파이에서 관리 → 출근 설정 → 목록에 추가 → 저장.
+4. **실서버에서 첨부 업로드 한 번 확인**(로컬에서 검증 못 함).
+5. **Supabase "Grace period is over" 경고 확인** — 조직 "비렌" 대시보드 상단에 떠 있었다. 무료 사용량 초과 경고로 보이며 **홈페이지 Supabase 프로젝트(같은 조직)도 영향받을 수 있다.** Billing/Usage에서 무엇이 초과됐는지 같이 확인할 것.
+6. 매달 백업 안내(관리 → 백업 → JSON을 회사 Dropbox에 보관). 무료 플랜은 자동 백업 없음.
+7. 2단계 후보: 결재 알림(카카오워크 병행 중이므로 카카오워크 봇/웹훅 알림이 자연스러움, 또는 메일), 메일 이전(Zoho/네이버웍스/Google 중 선택), 공휴일 반영, 양식 추가.
 
 ### 끝난 일
 
-- **2026-10-20 work.viren.kr 열림 확인** — 지은님 PC(홈페이지 담당 창)에서 직접 확인했다.
-  Cloudflare 인증서 10-20 12:52 발급, 로그인 화면 정상, 브라우저 오류 0건,
-  번들에 Supabase 주소·키가 제대로 들어가 있음(Cloudflare 환경변수 적용 확인).
+- **2026-10-20 Cloudflare 쪽 준비 완료 확인** — 지은님 PC(홈페이지 담당 창)에서 직접 확인했다.
+  인증서 10-20 12:52 발급, Cloudflare 주소로 붙으면 HTTP 200 에 로그인 화면 정상,
+  브라우저 오류 0건, 번들에 Supabase 주소·키 제대로 들어감(환경변수 적용 확인).
+  **다만 work.viren.kr 은 cafe24 ns1 갱신 지연으로 아직 사람마다 갈린다**(2절). 남은 일 그대로 둠.
   같은 김에 홈페이지 Supabase(별개 프로젝트 `wxggycizpfmwjaeltabg`)도 확인 — 정상, 프로젝트 11건.
-
+  work/ 빌드도 이 PC에서 통과(`npm install` → `npm run build`).
 ## 6. 비용 결정 기록
 
 - 비교표(지은님 소유 아티팩트): https://claude.ai/artifact/CHUuhGefJ9b4vomAKKdzsB
