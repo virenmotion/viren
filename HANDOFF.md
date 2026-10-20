@@ -21,6 +21,14 @@
   - ⚠️ `.env.local`(Supabase 키)도 Dropbox에 올라간다. 이 폴더에 접근 권한이 있는 사람은 키를 볼 수 있다.
 - **셸**: Windows PowerShell 기본 + Bash(POSIX) 병행. 경로에 한글(`클로드`) 포함.
 
+## 1-1. 사내 플랫폼 VIREN WORK (`work/` 폴더, 2026-10-20 신설)
+
+- 홈페이지와 **별개 앱**이다. 전자결재 · 근태관리. 설치·운영 안내는 `work/README.md`.
+- 서버는 **Cloudflare Pages**(무료), DB는 **홈페이지와 다른 Supabase 프로젝트**(무료).
+  홈페이지의 Vercel·Supabase 설정은 건드리지 않는다.
+- 홈페이지 빌드(`npm run build`)는 루트만 빌드하므로 `work/`의 영향을 받지 않는다.
+- 카카오워크는 적응 기간 동안 그대로 함께 쓴다(지은님 결정). 메일 이전은 2단계.
+
 ## 2. 배포 흐름 (중요)
 
 ```
