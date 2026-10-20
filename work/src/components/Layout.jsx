@@ -18,31 +18,72 @@ function useTodoCount() {
   return n
 }
 
+/* 메뉴 아이콘 — 선 굵기 1.8 의 단순한 모양만 쓴다 */
+const ICONS = {
+  home: <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" />,
+  approval: <><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20z" /><path d="M14 3.5V8h4M9.5 13.5l2 2 3.5-4" /></>,
+  attendance: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>,
+  admin: <><circle cx="12" cy="12" r="3" /><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2 5.5 5.5" /></>,
+  me: <><circle cx="12" cy="8.5" r="3.8" /><path d="M4.5 20.5c1.2-3.6 4-5.3 7.5-5.3s6.3 1.7 7.5 5.3" /></>,
+}
+const Icon = ({ name }) => (
+  <svg className="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {ICONS[name]}
+  </svg>
+)
+
 export default function Layout() {
   const { me, isAdmin } = useSession()
   const todo = useTodoCount()
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+
+  const items = [
+    { to: '/', end: true, label: '홈', icon: 'home' },
+    { to: '/approval', label: '전자결재', icon: 'approval', badge: todo },
+    { to: '/attendance', label: '근태', icon: 'attendance' },
+    ...(isAdmin ? [{ to: '/admin', label: '관리', icon: 'admin' }] : []),
+  ]
+
   return (
     <div className="shell">
       <header className="topbar">
         <div className="topbar-in">
-          <NavLink to="/" className="logo">VIREN <span>WORK</span></NavLink>
-          <nav className="nav">
-            <NavLink to="/" end>홈</NavLink>
-            <NavLink to="/approval">
-              전자결재{todo > 0 && <span className="badge" aria-label={`결재할 문서 ${todo}건`}>{todo}</span>}
-            </NavLink>
-            <NavLink to="/attendance">근태</NavLink>
-            {isAdmin && <NavLink to="/admin">관리</NavLink>}
+          <NavLink to="/" className="logo" aria-label="VIREN WORK 홈">VIREN<span>WORK</span></NavLink>
+          <nav className="nav" aria-label="주 메뉴">
+            {items.map((it) => (
+              <NavLink key={it.to} to={it.to} end={it.end}>
+                {it.label}
+                {it.badge > 0 && <span className="badge" aria-label={`결재할 문서 ${it.badge}건`}>{it.badge}</span>}
+              </NavLink>
+            ))}
           </nav>
           <div className="who">
-            <NavLink to="/me" className="who-name">{me.name || me.email}</NavLink>
-            <button className="linkbtn" onClick={() => supabase.auth.signOut()}>로그아웃</button>
+            <NavLink to="/me" className="who-name">
+              <span className="avatar" aria-hidden="true">{(me.name || me.email).slice(0, 1)}</span>
+              <span className="who-text">{me.name || me.email}</span>
+            </NavLink>
+            <button className="linkbtn logout" onClick={() => supabase.auth.signOut()}>로그아웃</button>
           </div>
         </div>
       </header>
+
       <main className="page">
         <Outlet />
       </main>
+
+      {/* 휴대폰: 아래쪽 탭 메뉴 */}
+      <nav className="tabbar" aria-label="주 메뉴">
+        {[...items, { to: '/me', label: '내 정보', icon: 'me' }].map((it) => (
+          <NavLink key={it.to} to={it.to} end={it.end}>
+            <span className="tab-ico">
+              <Icon name={it.icon} />
+              {it.badge > 0 && <span className="badge">{it.badge}</span>}
+            </span>
+            <span>{it.label}</span>
+          </NavLink>
+        ))}
+      </nav>
     </div>
   )
 }

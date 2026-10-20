@@ -44,6 +44,9 @@ export default function Me() {
         {msg && <p className="ok">{msg}</p>}
         <button className="btn primary">비밀번호 바꾸기</button>
       </form>
+      <div className="actions start">
+        <button className="btn" onClick={() => supabase.auth.signOut()}>로그아웃</button>
+      </div>
     </div>
   )
 }

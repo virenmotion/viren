@@ -50,7 +50,7 @@ export default function Approvals() {
     <div className="stack">
       <div className="row-between">
         <h1>전자결재</h1>
-        <Link to="/approval/new" className="btn primary">새 문서 작성</Link>
+        <Link to="/approval/new" className="btn primary">+ 새 문서</Link>
       </div>
       <div className="tabs" role="tablist">
         {boxes.map(([k, label]) => (
@@ -58,30 +58,48 @@ export default function Approvals() {
         ))}
       </div>
       <ErrorBox>{err}</ErrorBox>
-      {docs === null ? <p className="muted">불러오는 중…</p> : docs.length === 0 ? <Empty>문서가 없습니다.</Empty> : (
-        <div className="table-wrap card flush">
-          <table className="table">
-            <thead>
-              <tr><th>문서번호</th><th>양식</th><th>제목</th><th>기안자</th><th>기안일</th><th>현재 결재자</th><th>상태</th></tr>
-            </thead>
-            <tbody>
-              {docs.map((d) => {
-                const cur = d.approval_steps?.find((s) => s.status === 'pending')
-                return (
-                  <tr key={d.id}>
-                    <td className="tnum muted">{d.doc_no}</td>
-                    <td><span className="tag">{FORMS[d.form_type]}</span></td>
-                    <td className="title-cell"><Link to={`/approval/${d.id}`}>{d.title}</Link></td>
-                    <td>{nameOf(d.drafter_id)}</td>
-                    <td className="tnum">{dot(ymd(new Date(d.created_at)))}</td>
-                    <td>{cur ? nameOf(cur.approver_id) : '—'}</td>
-                    <td><StatusPill status={d.status} /></td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+      {docs === null ? <p className="muted">불러오는 중…</p> : docs.length === 0 ? <div className="card"><Empty>문서가 없어요.</Empty></div> : (
+        <>
+          <div className="table-wrap card flush only-wide">
+            <table className="table">
+              <thead>
+                <tr><th>문서번호</th><th>양식</th><th>제목</th><th>기안자</th><th>기안일</th><th>현재 결재자</th><th>상태</th></tr>
+              </thead>
+              <tbody>
+                {docs.map((d) => {
+                  const cur = d.approval_steps?.find((s) => s.status === 'pending')
+                  return (
+                    <tr key={d.id}>
+                      <td className="tnum muted">{d.doc_no}</td>
+                      <td><span className="tag">{FORMS[d.form_type]}</span></td>
+                      <td className="title-cell"><Link to={`/approval/${d.id}`}>{d.title}</Link></td>
+                      <td>{nameOf(d.drafter_id)}</td>
+                      <td className="tnum">{dot(ymd(new Date(d.created_at)))}</td>
+                      <td>{cur ? nameOf(cur.approver_id) : '—'}</td>
+                      <td><StatusPill status={d.status} /></td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <ul className="doc-cards only-narrow">
+            {docs.map((d) => {
+              const cur = d.approval_steps?.find((s) => s.status === 'pending')
+              return (
+                <li key={d.id}>
+                  <Link to={`/approval/${d.id}`}>
+                    <div className="row-between"><span className="tag">{FORMS[d.form_type]}</span><StatusPill status={d.status} /></div>
+                    <strong>{d.title}</strong>
+                    <span className="muted small tnum">
+                      {nameOf(d.drafter_id)} · {dot(ymd(new Date(d.created_at)))}{cur && ` · 지금 ${nameOf(cur.approver_id)} 차례`}
+                    </span>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </>
       )}
     </div>
   )

@@ -2,18 +2,30 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { errText, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { dot, hm, hoursText, minutesBetween, today, weekday } from '../lib/dates'
+import { dot, hm, hoursText, minutesBetween, parse, today, weekday } from '../lib/dates'
 import { leaveSummary } from '../lib/leave'
 import { FORMS } from '../lib/labels'
 import { Empty, ErrorBox, StatusPill } from '../components/ui'
 
+/* 화면에 띄워 둔 동안 시계·근무시간이 흘러가도록 20초마다 다시 그린다 */
+function useNow(ms = 20000) {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), ms)
+    return () => clearInterval(t)
+  }, [ms])
+  return now
+}
+
 export default function Home() {
   const { me, userId } = useSession()
+  const now = useNow()
   const [att, setAtt] = useState(undefined)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
-  const [todo, setTodo] = useState([])
-  const [mine, setMine] = useState([])
+  const [todo, setTodo] = useState(null)
+  const [mine, setMine] = useState(null)
+  const [minePending, setMinePending] = useState(0)
   const [leaveDocs, setLeaveDocs] = useState([])
   const d = today()
 
@@ -29,6 +41,8 @@ export default function Home() {
       })
     supabase.from('approval_docs').select('*').eq('drafter_id', userId).order('created_at', { ascending: false }).limit(5)
       .then(({ data }) => setMine(data || []))
+    supabase.from('approval_docs').select('id', { count: 'exact', head: true }).eq('drafter_id', userId).eq('status', 'pending')
+      .then(({ count }) => setMinePending(count || 0))
     supabase.from('approval_docs').select('form_type,status,data').eq('drafter_id', userId).eq('form_type', 'leave')
       .in('status', ['approved', 'pending'])
       .then(({ data }) => setLeaveDocs(data || []))
@@ -43,61 +57,86 @@ export default function Home() {
   }
 
   const leave = leaveSummary(me, leaveDocs)
-  const worked = att?.check_in && att?.check_out ? minutesBetween(att.check_in, att.check_out) : 0
+  const state = !att?.check_in ? 'before' : att.check_out ? 'done' : 'working'
+  const worked = state === 'working' ? minutesBetween(att.check_in, now) : state === 'done' ? minutesBetween(att.check_in, att.check_out) : 0
+  const [, m, day] = d.split('-').map(Number)
+  const hour = Number(hm(now).slice(0, 2))
+  const greet = hour < 11 ? '좋은 아침이에요' : hour < 17 ? '오늘도 수고 많아요' : '오늘 하루 고생했어요'
 
   return (
-    <div className="stack">
-      <h1>{me.name}님, 안녕하세요</h1>
-      <div className="grid-home">
-        <section className="card punch">
-          <h2>오늘 근무 <span className="muted small">{dot(d)} ({weekday(d)})</span></h2>
-          <div className="punch-times">
-            <div><span className="label">출근</span><strong className="tnum">{att?.check_in ? hm(att.check_in) : '--:--'}</strong></div>
-            <div><span className="label">퇴근</span><strong className="tnum">{att?.check_out ? hm(att.check_out) : '--:--'}</strong></div>
-          </div>
-          {att?.in_office === false && <p className="hint">사무실 밖에서 출근을 찍었습니다.</p>}
-          {worked > 0 && <p className="hint">근무 {hoursText(worked)}</p>}
-          <ErrorBox>{err}</ErrorBox>
-          {att === undefined ? null : !att?.check_in ? (
-            <button className="btn primary big" disabled={busy} onClick={() => punch('check_in')}>출근하기</button>
-          ) : (
-            <button className="btn big" disabled={busy} onClick={() => punch('check_out')}>
-              {att.check_out ? '퇴근 시각 다시 찍기' : '퇴근하기'}
-            </button>
-          )}
-        </section>
+    <div className="stack home">
+      <header className="home-head">
+        <p className="eyebrow">{m}월 {day}일 {weekday(d)}요일</p>
+        <h1>{me.name}님, {greet}</h1>
+      </header>
 
-        <section className="card">
-          <h2>내 연차</h2>
-          {!leave ? (
-            <p className="muted">입사일이 등록되지 않아 연차를 계산할 수 없습니다. 관리자에게 입사일 등록을 요청해 주세요.</p>
+      <section className={`punch punch-${state}`} aria-label="오늘 근무">
+        <div className="punch-clock">
+          <span className="clock tnum">{hm(now)}</span>
+          <span className={`punch-state st-${state}`}>
+            {state === 'before' && '출근 전'}
+            {state === 'working' && <>근무 중 · {worked > 0 ? hoursText(worked) : '방금 출근'}</>}
+            {state === 'done' && <>퇴근 완료 · {hoursText(worked)}</>}
+          </span>
+        </div>
+        <dl className="punch-times">
+          <div><dt>출근</dt><dd className="tnum">{att?.check_in ? hm(att.check_in) : '—'}</dd></div>
+          <div><dt>퇴근</dt><dd className="tnum">{att?.check_out ? hm(att.check_out) : '—'}</dd></div>
+        </dl>
+        {att?.in_office === false && <p className="punch-note">사무실 밖에서 출근을 찍었어요.</p>}
+        <ErrorBox>{err}</ErrorBox>
+        {att !== undefined && (
+          state === 'before' ? (
+            <button className="btn punch-btn in" disabled={busy} onClick={() => punch('check_in')}>출근하기</button>
           ) : (
+            <button className="btn punch-btn out" disabled={busy} onClick={() => punch('check_out')}>
+              {state === 'done' ? '퇴근 시각 다시 찍기' : '퇴근하기'}
+            </button>
+          )
+        )}
+      </section>
+
+      <div className="stat-row">
+        <Link to="/approval?box=todo" className={`stat ${todo?.length ? 'hot' : ''}`}>
+          <span className="stat-label">결재할 문서</span>
+          <span className="stat-num tnum">{todo?.length ?? '–'}<small>건</small></span>
+        </Link>
+        <Link to="/approval?box=mine" className="stat">
+          <span className="stat-label">진행 중인 내 문서</span>
+          <span className="stat-num tnum">{minePending}<small>건</small></span>
+        </Link>
+        <Link to="/approval/new?form=leave" className="stat">
+          <span className="stat-label">남은 연차</span>
+          {leave ? (
             <>
-              <div className="leave-big"><strong className="tnum">{leave.remaining}</strong><span>일 남음</span></div>
-              <dl className="kv small">
-                <dt>올해 연차</dt><dd className="tnum">{leave.entitled}일{leave.overridden && ' (회사 지정)'}</dd>
-                <dt>사용</dt><dd className="tnum">{leave.used}일</dd>
-                {leave.pending > 0 && <><dt>결재 중</dt><dd className="tnum">{leave.pending}일</dd></>}
-                <dt>기간</dt><dd className="tnum">{dot(leave.start)} ~ {dot(leave.end)} 전날</dd>
-              </dl>
+              <span className="stat-num tnum">{leave.remaining}<small>일</small></span>
+              <span className="stat-sub tnum">{leave.entitled}일 중 {leave.used}일 사용{leave.pending > 0 && ` · 결재 중 ${leave.pending}일`}</span>
             </>
+          ) : (
+            <span className="stat-sub">입사일 등록 후 계산돼요</span>
           )}
-          <Link className="btn" to="/approval/new?form=leave">휴가 신청</Link>
+        </Link>
+      </div>
+
+      <div className="home-lists">
+        <section className="card">
+          <div className="row-between"><h2>결재할 문서</h2><Link to="/approval?box=todo" className="more">전체 보기</Link></div>
+          {todo === null ? null : todo.length === 0 ? <Empty>지금 결재할 문서가 없어요.</Empty> : <DocList docs={todo} />}
+        </section>
+        <section className="card">
+          <div className="row-between"><h2>내가 올린 문서</h2><Link to="/approval/new" className="btn primary small-btn">+ 새 문서</Link></div>
+          {mine === null ? null : mine.length === 0 ? <Empty>아직 올린 문서가 없어요.</Empty> : <DocList docs={mine} />}
         </section>
       </div>
 
-      <section className="card">
-        <div className="row-between"><h2>내가 결재할 문서</h2><Link to="/approval?box=todo" className="small">전체 보기</Link></div>
-        {todo.length === 0 ? <Empty>지금 결재할 문서가 없습니다.</Empty> : <DocList docs={todo} />}
-      </section>
-
-      <section className="card">
-        <div className="row-between"><h2>내가 올린 문서</h2><Link to="/approval/new" className="btn primary small-btn">새 문서 작성</Link></div>
-        {mine.length === 0 ? <Empty>아직 올린 문서가 없습니다.</Empty> : <DocList docs={mine} />}
-      </section>
+      {leave && (
+        <p className="hint center">연차 기간 {dot(leave.start)} ~ {dot(addDayBefore(leave.end))}{leave.overridden && ' · 회사 지정 일수'}</p>
+      )}
     </div>
   )
 }
+
+const addDayBefore = (s) => { const x = parse(s); x.setUTCDate(x.getUTCDate() - 1); return x.toISOString().slice(0, 10) }
 
 function DocList({ docs }) {
   const { nameOf } = useSession()
@@ -106,10 +145,9 @@ function DocList({ docs }) {
       {docs.map((d) => (
         <li key={d.id}>
           <Link to={`/approval/${d.id}`}>
-            <span className="muted small tnum">{d.doc_no}</span>
             <span className="tag">{FORMS[d.form_type]}</span>
             <span className="title">{d.title}</span>
-            <span className="muted small">{nameOf(d.drafter_id)}</span>
+            <span className="meta">{nameOf(d.drafter_id)}</span>
             <StatusPill status={d.status} />
           </Link>
         </li>
