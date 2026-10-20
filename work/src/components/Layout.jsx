@@ -23,6 +23,7 @@ const ICONS = {
   home: <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" />,
   approval: <><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20z" /><path d="M14 3.5V8h4M9.5 13.5l2 2 3.5-4" /></>,
   attendance: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>,
+  calendar: <><rect x="3.5" y="5" width="17" height="15.5" rx="2" /><path d="M3.5 9.5h17M8 3.3V6.7M16 3.3V6.7" /></>,
   admin: <><circle cx="12" cy="12" r="3" /><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2 5.5 5.5" /></>,
   me: <><circle cx="12" cy="8.5" r="3.8" /><path d="M4.5 20.5c1.2-3.6 4-5.3 7.5-5.3s6.3 1.7 7.5 5.3" /></>,
 }
@@ -42,6 +43,7 @@ export default function Layout() {
     { to: '/', end: true, label: '홈', icon: 'home' },
     { to: '/approval', label: '전자결재', icon: 'approval', badge: todo },
     { to: '/attendance', label: '근태', icon: 'attendance' },
+    { to: '/calendar', label: '캘린더', icon: 'calendar' },
     ...(isAdmin ? [{ to: '/admin', label: '관리', icon: 'admin' }] : []),
   ]
 

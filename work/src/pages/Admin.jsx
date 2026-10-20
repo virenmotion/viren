@@ -131,7 +131,7 @@ function Settings() {
   )
 }
 
-const BACKUP_TABLES = ['employees', 'settings', 'approval_docs', 'approval_steps', 'approval_refs', 'approval_files', 'attendance']
+const BACKUP_TABLES = ['employees', 'settings', 'approval_docs', 'approval_steps', 'approval_refs', 'approval_files', 'attendance', 'events']
 
 function Backup() {
   const [busy, setBusy] = useState(false)
@@ -159,7 +159,7 @@ function Backup() {
   return (
     <section className="card stack-sm narrow-form">
       <h2>데이터 백업</h2>
-      <p>무료 서버에는 자동 백업이 없습니다. <strong>한 달에 한 번</strong> 아래 버튼으로 전체 기록(직원, 결재 문서, 결재선, 근태)을 내려받아 회사 Dropbox에 보관해 주세요.</p>
+      <p>무료 서버에는 자동 백업이 없습니다. <strong>한 달에 한 번</strong> 아래 버튼으로 전체 기록(직원, 결재 문서, 결재선, 근태, 일정)을 내려받아 회사 Dropbox에 보관해 주세요.</p>
       <p className="hint">첨부파일 자체는 이 파일에 들어가지 않습니다. 첨부파일은 Supabase 대시보드 → Storage → approval-files 에서 따로 내려받을 수 있습니다.</p>
       <ErrorBox>{err}</ErrorBox>
       <div className="actions"><button className="btn primary" disabled={busy} onClick={run}>{busy ? '내려받는 중…' : '전체 백업 내려받기'}</button></div>

@@ -524,6 +524,77 @@ create policy "결재 첨부 올리기" on storage.objects
   );
 
 -- ---------------------------------------------------------------------
+-- 일정(캘린더) — 회사 공용. 재직자 누구나 올리고, 올린 사람과 관리자가 고친다.
+--   · 달력의 "누가 언제 쉬는지"는 leave_days() 로 따로 내준다. 결재 문서는 관련자만
+--     볼 수 있어서 그대로는 남의 휴가를 띄울 수 없기 때문이다.
+--   · 휴가 종류(병가·경조사)는 일부러 내주지 않는다. 달력에는 '휴가'/'반차' 로만 뜬다.
+-- ---------------------------------------------------------------------
+create table public.events (
+  id         uuid primary key default gen_random_uuid(),
+  title      text not null check (length(trim(title)) > 0),
+  start_date date not null,
+  end_date   date not null,
+  -- all_day 면 시간 없음. 아니면 start_time 필수.
+  all_day    boolean not null default true,
+  start_time time,
+  end_time   time,
+  place      text not null default '',
+  memo       text not null default '',
+  created_by uuid not null references public.employees(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint events_period check (end_date >= start_date),
+  constraint events_time check (
+    case when all_day then start_time is null and end_time is null
+         else start_time is not null end
+  ),
+  constraint events_time_order check (
+    all_day or start_date <> end_date or end_time is null or end_time >= start_time
+  )
+);
+
+create index on public.events (start_date, end_date);
+
+alter table public.events enable row level security;
+
+create policy "일정은 재직자 누구나 본다" on public.events
+  for select to authenticated using (public.is_active_employee());
+
+create policy "일정은 재직자가 올린다" on public.events
+  for insert to authenticated
+  with check (public.is_active_employee() and created_by = auth.uid());
+
+create policy "일정은 올린 사람이나 관리자가 고친다" on public.events
+  for update to authenticated
+  using (public.is_active_employee() and (created_by = auth.uid() or public.is_admin()))
+  with check (public.is_active_employee() and (created_by = auth.uid() or public.is_admin()));
+
+create policy "일정은 올린 사람이나 관리자가 지운다" on public.events
+  for delete to authenticated
+  using (public.is_active_employee() and (created_by = auth.uid() or public.is_admin()));
+
+-- 달력에 띄울 '승인된 휴가'. 이름·기간·반차 여부만 내준다(휴가 종류는 내주지 않는다).
+create function public.leave_days(p_from date, p_to date)
+returns table (user_id uuid, name text, start_date date, end_date date, half boolean)
+language sql stable security definer set search_path = public as $
+  select d.drafter_id,
+         e.name,
+         (d.data->>'start')::date,
+         (d.data->>'end')::date,
+         (d.data->>'kind') in ('half_am', 'half_pm')
+  from approval_docs d
+  join employees e on e.id = d.drafter_id
+  where public.is_active_employee()
+    and d.form_type = 'leave'
+    and d.status = 'approved'
+    and (d.data->>'start')::date <= p_to
+    and (d.data->>'end')::date >= p_from
+$;
+
+revoke execute on function public.leave_days(date, date) from anon, public;
+grant execute on function public.leave_days(date, date) to authenticated;
+
+-- ---------------------------------------------------------------------
 -- 권한 정리: 로그인 안 한 사람(anon)은 아무것도 못 한다.
 -- ---------------------------------------------------------------------
 revoke all on all tables in schema public from anon;
@@ -532,5 +603,6 @@ grant execute on function
   public.is_active_employee(), public.is_admin(), public.can_view_doc(uuid),
   public.my_ip(), public.request_ip(), public.submit_doc(text, text, text, jsonb, uuid[], uuid[]),
   public.act_on_doc(uuid, text, text), public.withdraw_doc(uuid),
-  public.check_in(), public.check_out(), public.doc_id_from_path(text)
+  public.check_in(), public.check_out(), public.doc_id_from_path(text),
+  public.leave_days(date, date)
 to authenticated;

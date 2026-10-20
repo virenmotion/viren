@@ -8,6 +8,7 @@ import Approvals from './pages/Approvals'
 import ApprovalNew from './pages/ApprovalNew'
 import ApprovalView from './pages/ApprovalView'
 import Attendance from './pages/Attendance'
+import Calendar from './pages/Calendar'
 import Admin from './pages/Admin'
 import Me from './pages/Me'
 
@@ -52,6 +53,7 @@ function Gate() {
         <Route path="approval/new" element={<ApprovalNew />} />
         <Route path="approval/:id" element={<ApprovalView />} />
         <Route path="attendance" element={<Attendance />} />
+        <Route path="calendar" element={<Calendar />} />
         <Route path="me" element={<Me />} />
         <Route path="admin" element={<AdminOnly />} />
         <Route path="*" element={<Navigate to="/" replace />} />
