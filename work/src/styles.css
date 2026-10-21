@@ -312,7 +312,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .punch-btn.out { background: transparent; border: 1.5px solid #4a4a45; color: var(--on-brand); }
 .punch-btn.out:hover { border-color: var(--on-brand); background: #1a1a19; }
 
-.stat-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.stat-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .stat {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px;
   display: grid; gap: 4px; text-decoration: none; box-shadow: var(--shadow); align-content: start;
@@ -334,8 +334,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   .punch { grid-template-columns: 1fr; grid-template-areas: "clock" "times" "note" "btn"; padding: 22px 20px; border-radius: 14px; }
   .clock { font-size: 2.6rem; }
   .punch-btn { width: 100%; min-height: 60px; }
+  /* 휴대폰: 두 칸씩 두 줄 */
   .stat-row { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .stat-row .stat:last-child { grid-column: 1 / -1; }
   .stat { padding: 14px 16px; }
   .stat-num { font-size: 1.7rem; }
   .home-lists { grid-template-columns: 1fr; }

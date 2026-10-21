@@ -29,6 +29,8 @@ export default function Home() {
   const [mine, setMine] = useState(null)
   const [minePending, setMinePending] = useState(0)
   const [leaveDocs, setLeaveDocs] = useState([])
+  /* 남은 대체휴무는 서버가 센다(comp_balance) — 화면과 서버가 같은 값을 쓰도록 */
+  const [comp, setComp] = useState(null)
   const d = today()
 
   useEffect(() => {
@@ -48,6 +50,8 @@ export default function Home() {
     supabase.from('approval_docs').select('form_type,status,data').eq('drafter_id', userId).eq('form_type', 'leave')
       .in('status', ['approved', 'pending'])
       .then(({ data }) => setLeaveDocs(data || []))
+    supabase.rpc('comp_balance', { p_user: userId })
+      .then(({ data, error }) => setComp(error ? null : Number(data ?? 0)))
   }, [userId, d])
 
   async function punch(kind) {
@@ -126,6 +130,13 @@ export default function Home() {
           ) : (
             <span className="stat-sub">입사일 등록 후 계산돼요</span>
           )}
+        </Link>
+        <Link to="/approval/new?form=leave&kind=comp" className="stat">
+          <span className="stat-label">남은 대체휴무</span>
+          <span className="stat-num tnum">{comp == null ? '–' : comp}<small>일</small></span>
+          <span className="stat-sub">
+            {comp ? '휴가신청서에서 대휴로 쓸 수 있어요' : '휴일근무신청서가 승인되면 생겨요'}
+          </span>
         </Link>
       </div>
 

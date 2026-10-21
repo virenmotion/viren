@@ -50,7 +50,11 @@ export default function ApprovalNew() {
   const [content, setContent] = useState('')
   const [files, setFiles] = useState([])
   /* 휴가는 '기간' 이 아니라 **고른 날짜들**이다. 띄엄띄엄 쉬는 연차를 한 장으로 낸다. */
-  const [leave, setLeave] = useState({ kind: 'annual', half: '', dates: [today()] })
+  /* 홈의 '남은 대체휴무' 처럼 종류를 정해 두고 들어오는 길이 있다 */
+  const [leave, setLeave] = useState(() => ({
+    kind: LEAVE_PICK[params.get('kind')] ? params.get('kind') : 'annual',
+    half: '', dates: [today()],
+  }))
   const [items, setItems] = useState([{ date: today(), desc: '', amount: '' }])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
