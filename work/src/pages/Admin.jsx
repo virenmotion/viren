@@ -36,6 +36,8 @@ function Categories() {
   const [add, setAdd] = useState(NEW_CAT)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
+  const [dragFrom, setDragFrom] = useState(null)  // 끌고 있는 줄
+  const [canDrag, setCanDrag] = useState(null)    // 손잡이를 누르고 있을 때만 끌린다
 
   async function load() {
     const { data, error } = await supabase.from('event_categories').select('*').order('sort').order('name')
@@ -51,10 +53,30 @@ function Categories() {
   async function save(r) {
     setErr(''); setMsg('')
     const { error } = await supabase.from('event_categories')
-      .update({ name: r.name.trim(), color: r.color, sort: Number(r.sort) || 0 }).eq('id', r.id)
+      .update({ name: r.name.trim(), color: r.color }).eq('id', r.id)
     if (error) return setErr(errText(error))
     setMsg(`'${r.name}' 분류를 저장했습니다.`)
     load()
+  }
+
+  /* 순서 바꾸기 — 화면을 먼저 바꾸고 바뀐 줄만 저장한다 */
+  async function reorder(from, to) {
+    if (from == null || to == null || from === to || to < 0 || to >= rows.length) return
+    const next = [...rows]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    const renumbered = next.map((r, i) => ({ ...r, sort: i + 1 }))
+    setRows(renumbered)
+    setErr(''); setMsg('')
+
+    /* 순서 번호가 실제로 달라진 줄만 저장한다 */
+    const before = new Map(rows.map((r) => [r.id, r.sort]))
+    const changed = renumbered.filter((r) => before.get(r.id) !== r.sort)
+    for (const r of changed) {
+      const { error } = await supabase.from('event_categories').update({ sort: r.sort }).eq('id', r.id)
+      if (error) { setErr(errText(error)); load(); return }
+    }
+    setMsg('순서를 바꿨습니다.')
   }
 
   async function create(e) {
@@ -82,15 +104,31 @@ function Categories() {
     <section className="card stack-sm narrow-form">
       <h2>일정 분류</h2>
       <p className="hint">달력의 색 구분입니다. 여기서 만든 분류를 일정마다 고르면 그 색으로 표시됩니다.
-        순서 숫자가 작을수록 목록 위에 옵니다.</p>
+        <strong>왼쪽 손잡이(⠿)를 끌어</strong> 순서를 바꾸세요. 바꾸면 바로 저장됩니다.</p>
 
       {!rows.length && <p className="muted">아직 분류가 없습니다. 아래에서 만들어 주세요.</p>}
       <ul className="cat-list">
-        {rows.map((r) => (
-          <li key={r.id} className="cat-row">
+        {rows.map((r, i) => (
+          <li
+            key={r.id}
+            className={`cat-row${dragFrom === i ? ' dragging' : ''}`}
+            draggable={canDrag === r.id}
+            onDragStart={() => setDragFrom(i)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => { e.preventDefault(); reorder(dragFrom, i); setDragFrom(null); setCanDrag(null) }}
+            onDragEnd={() => { setDragFrom(null); setCanDrag(null) }}
+          >
+            {/* 손잡이를 누르고 있을 때만 끌리게 한다. 안 그러면 글자 선택이 안 된다. */}
+            <span
+              className="drag-handle" aria-hidden="true" title="끌어서 순서 바꾸기"
+              onMouseDown={() => setCanDrag(r.id)} onMouseUp={() => setCanDrag(null)}
+            >⠿</span>
             <input type="color" aria-label={`${r.name} 색`} value={r.color} onChange={(e) => set(r.id, { color: e.target.value })} />
             <input aria-label="분류 이름" value={r.name} onChange={(e) => set(r.id, { name: e.target.value })} />
-            <input className="tnum cat-sort" type="number" aria-label="순서" value={r.sort} onChange={(e) => set(r.id, { sort: e.target.value })} />
+            <span className="ord-btns">
+              <button className="icon" aria-label={`${r.name} 위로`} disabled={i === 0} onClick={() => reorder(i, i - 1)}>↑</button>
+              <button className="icon" aria-label={`${r.name} 아래로`} disabled={i === rows.length - 1} onClick={() => reorder(i, i + 1)}>↓</button>
+            </span>
             <button className="btn small-btn primary" disabled={!r._dirty} onClick={() => save(r)}>저장</button>
             <button className="btn small-btn danger" onClick={() => remove(r)}>삭제</button>
           </li>

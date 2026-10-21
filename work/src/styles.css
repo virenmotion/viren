@@ -580,3 +580,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   background: var(--surface-2); color: var(--muted); font-size: .92rem;
   border-left: 1px solid var(--line); white-space: nowrap;
 }
+
+/* 끌어서 순서 바꾸기 */
+.drag-handle { cursor: grab; color: var(--muted); font-size: 1.1rem; line-height: 1; padding: 0 2px; user-select: none; flex: none; }
+.drag-handle:active { cursor: grabbing; }
+.cat-row.dragging { opacity: .45; }
+.cat-row { border-radius: var(--radius-sm); }
+.ord-btns { display: flex; gap: 2px; flex: none; }
