@@ -151,6 +151,18 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 
 ### 끝난 일
 
+- **2026-10-21 컴퓨터에 '앱' 으로 설치되게.** 지은님: "카카오워크처럼 컴퓨터 앱으로 할 수 있어?"
+  · **설치 파일(.exe)을 만들지 않았다.** 브라우저가 주소창 없는 독립 창으로 띄우는
+    방식(PWA)이다. 서명·배포·업데이트를 떠안지 않아도 되고 열면 늘 최신이다.
+    6명 회사에 설치 파일 배포 체계는 과하다. Electron 은 생각만 하고 접었다.
+  · manifest 에 바로가기(메신저·결재·근태) — 작업표시줄 아이콘 우클릭에 뜬다.
+  · 작업표시줄·독 아이콘에 안 읽은 수 배지(`setAppBadge`, `lib/install.js`).
+  · 내 정보에 설치 칸(`InstallCard.jsx`). ⚠️ 설치 단추는 **크롬·엣지에서만** 뜬다
+    (`beforeinstallprompt`를 그 둘만 알려 준다). 나머지는 어디를 누르는지 글로 안내.
+  · `orientation: portrait` 를 뺐다 — 데스크톱 창에는 맞지 않는 값.
+  · 확인: 배포된 manifest 에 바로가기 3개·standalone 확인. 설치 단추 자체는
+    브라우저 창에서 `beforeinstallprompt` 가 안 떠서 못 눌러 봤다(지은님 크롬에서 확인 필요).
+
 - **2026-10-21 사내 메신저.** (`2026-10-21i-chat.sql` + `pages/Chat.jsx`·`ChatRoom.jsx`)
   지은님이 "알림 먼저, 그다음 메신저" 를 골랐고 알림이 끝나서 이어 만들었다.
   · 표는 셋뿐 — `rooms` · `room_members` · `messages`.
