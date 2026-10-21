@@ -410,7 +410,12 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   min-width: 22px; height: 22px; padding: 0 6px; align-self: flex-start;
   display: inline-flex; align-items: center; justify-content: center;
 }
-.cal-hol { font-size: .7rem; color: var(--bad); line-height: 1.2; }
+/* 공휴일 이름은 숫자 **오른쪽**에 (지은님 2026-10-21). 아래에 두면 띠와 겹쳤다. */
+.cal-top { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.cal-hol {
+  font-size: .7rem; color: var(--bad); line-height: 1.2;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
 .cal-chips { display: grid; gap: 2px; min-width: 0; }
 .cal-chip {
   font-size: .72rem; line-height: 1.35; padding: 1px 5px; border-radius: 3px;
@@ -592,9 +597,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 
 /* ── 여러 날 일정을 띠로 잇기 (지은님 2026-10-21) ─────────────────── */
 /* 날짜 칸 높이 = 숫자줄 + 띠 줄 수만큼. 띠가 많은 주는 저절로 길어진다. */
-.cal-wk .cal-day { min-height: calc(var(--bar-top, 28px) + var(--lanes, 0) * 20px + 10px); }
+.cal-wk .cal-day { min-height: calc(28px + var(--lanes, 2) * 20px + 10px); }
 .cal-bars {
-  position: absolute; left: 0; right: 0; top: var(--bar-top, 28px);
+  position: absolute; left: 0; right: 0; top: 28px;
   display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
   grid-auto-rows: 18px; gap: 2px 0;
   pointer-events: none;  /* 눌림은 아래 날짜 칸이 받는다 */
@@ -609,8 +614,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .cal-bar.cut-r { margin-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
 
 @media (max-width: 760px) {
-  .cal-wk .cal-day { min-height: calc(var(--bar-top, 24px) + var(--lanes, 0) * 15px + 8px); }
-  .cal-bars { grid-auto-rows: 14px; }
+  .cal-wk .cal-day { min-height: calc(24px + var(--lanes, 2) * 15px + 8px); }
+  .cal-bars { top: 24px; grid-auto-rows: 14px; }
   .cal-bar { font-size: .58rem; line-height: 14px; padding: 0 3px; margin: 0 2px; border-left-width: 2px; }
 }
 .dept-name { flex: 1; min-width: 0; font-weight: 600; }

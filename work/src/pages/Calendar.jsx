@@ -138,8 +138,7 @@ export default function Calendar() {
         lanes[n] = sp.col + sp.len - 1
         sp.lane = n
       }
-      /* 공휴일 이름이 들어가는 주는 띠를 한 줄 더 내린다(글자와 겹치지 않게) */
-      out.push({ days, spans: inWeek, lanes: lanes.length, hasHol: days.some((d) => holidayName(d)) })
+      out.push({ days, spans: inWeek, lanes: lanes.length })
     }
     return out
   }, [items, from, to])
@@ -180,7 +179,8 @@ export default function Calendar() {
         </div>
         <div className="cal-grid">
           {weeks.map((wk) => (
-            <div className="cal-wk" key={wk.days[0]} style={{ '--lanes': wk.lanes, '--bar-top': wk.hasHol ? '44px' : '28px' }}>
+            /* 빈 주도 두 줄만큼은 높이를 준다 — 칸 크기가 들쭉날쭉하지 않게(지은님 2026-10-21) */
+            <div className="cal-wk" key={wk.days[0]} style={{ '--lanes': Math.max(2, wk.lanes) }}>
               <div className="cal-cells">
                 {wk.days.map((d) => {
                   const dow = parse(d).getUTCDay()
@@ -195,8 +195,10 @@ export default function Calendar() {
                       aria-pressed={d === picked}
                       aria-label={`${dot(d)}${hol ? ` ${hol}` : ''} 일정 ${n}건 — 눌러서 일정 쓰기`}
                     >
-                      <span className={`cal-num tnum${hol || dow === 0 ? ' sun' : dow === 6 ? ' sat' : ''}`}>{Number(d.slice(8))}</span>
-                      {hol && <span className="cal-hol">{hol}</span>}
+                      <span className="cal-top">
+                        <span className={`cal-num tnum${hol || dow === 0 ? ' sun' : dow === 6 ? ' sat' : ''}`}>{Number(d.slice(8))}</span>
+                        {hol && <span className="cal-hol">{hol}</span>}
+                      </span>
                     </button>
                   )
                 })}
