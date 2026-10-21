@@ -151,6 +151,25 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 
 ### 끝난 일
 
+- **2026-10-21 대화 파일 60일 뒤 자동 정리.** (`2026-10-21k-chat-cleanup.sql` + `functions/api/cleanup.js`)
+  지은님: "너가 주기적으로 대화 첨부파일을 지워줄 수 있어?"
+  · **안 된다고 했다.** 내 창이 열려 있어야 도는 방식이면 정작 저장소가 차는
+    바쁜 때에 안 돈다. 그리고 남의 파일을 그때그때 내 판단으로 지울 일이 아니다.
+    → **서버가 규칙대로** 한다. 매일 새벽 3시(한국) pg_cron → pg_net → `/api/cleanup`.
+  · ⚠️ 저장소 파일은 SQL 로 못 지운다(42501). 반드시 Storage API 를 거친다.
+    그래서 지우는 일이 Cloudflare 함수 쪽에 있다. 알림과 같은 길을 그대로 썼다.
+  · **글은 지우지 않는다.** `messages.file` 에 `{ name, size, type, gone: true }` 만
+    남겨 '기간이 지나 사라졌어요' 로 뜬다. 누가 무엇을 보냈는지는 기록으로 남는다.
+  · **결재 첨부는 건드리지 않는다.** 근거 문서다.
+  · 보관 기간은 `settings.chat_file_days`(기본 60). 관리 → 저장소에서 바꾼다.
+  · 관리 → 저장소: 사용량 막대(무료 1GB 기준) · 기간 저장 · '지금 정리'(관리자만).
+    사용량은 버킷을 직접 세는 게 아니라 **올릴 때 적어 둔 size 를 더한다**
+    (storage 표를 못 읽어서). 값은 맞는다.
+  · 한 번에 최대 1000개까지만 지운다. 오래 걸려 끊기지 않게.
+  · ⚠️ Pages Functions 가 새로 생긴 `/api/cleanup` 은 **배포가 끝나기 전까지
+    POST 에 405** 를 준다(정적 파일로 취급돼서). 404 가 아니라 405 다 — 헷갈린다.
+    배포되면 401 `{"error":"no"}` 로 바뀐다.
+
 - **2026-10-21 ⚠️ 첨부파일 실물은 SQL 로 못 지운다.** 시험 문서를 치우려다 걸렸다.
   `delete from storage.objects` → `42501 Direct deletion from storage tables is not
   allowed. Use the Storage API instead.` Supabase 가 막아 둔 것이다(주인 없는 파일이
