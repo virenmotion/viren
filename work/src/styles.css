@@ -388,15 +388,17 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .cal-week > div { padding: 9px 0; }
 .cal-week .sun, .cal-num.sun { color: var(--bad); }
 .cal-week .sat, .cal-num.sat { color: var(--info-ink); }
-.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.cal-grid { display: block; }
+.cal-wk { position: relative; }
+.cal-cells { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .cal-day {
   display: flex; flex-direction: column; gap: 3px; align-items: stretch;
   min-height: 104px; padding: 6px 6px 8px; text-align: left; min-width: 0;
   background: var(--surface); border: 0; border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line); cursor: pointer; font: inherit;
 }
-.cal-day:nth-child(7n) { border-right: 0; }
-.cal-grid > .cal-day:nth-last-child(-n+7) { border-bottom: 0; }
+.cal-cells > .cal-day:nth-child(7n) { border-right: 0; }
+.cal-wk:last-child .cal-day { border-bottom: 0; }
 .cal-day.out { background: var(--surface-2); }
 .cal-day.out .cal-num { opacity: .4; }
 .cal-day:hover { background: var(--accent-soft); }
@@ -587,3 +589,28 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .cat-row.dragging { opacity: .45; }
 .cat-row { border-radius: var(--radius-sm); }
 .ord-btns { display: flex; gap: 2px; flex: none; }
+
+/* ── 여러 날 일정을 띠로 잇기 (지은님 2026-10-21) ─────────────────── */
+/* 날짜 칸 높이 = 숫자줄 + 띠 줄 수만큼. 띠가 많은 주는 저절로 길어진다. */
+.cal-wk .cal-day { min-height: calc(30px + var(--lanes, 0) * 20px + 10px); }
+.cal-bars {
+  position: absolute; left: 0; right: 0; top: 28px;
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: 18px; gap: 2px 0;
+  pointer-events: none;  /* 눌림은 아래 날짜 칸이 받는다 */
+}
+.cal-bar {
+  margin: 0 3px; padding: 0 5px; border-radius: 3px; border-left: 3px solid var(--accent);
+  font-size: .72rem; line-height: 18px; color: var(--ink-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* 주를 넘어 이어지는 쪽은 모서리를 펴서 이어진 느낌을 준다 */
+.cal-bar.cut-l { margin-left: 0; border-left-width: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.cal-bar.cut-r { margin-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+
+@media (max-width: 760px) {
+  .cal-wk .cal-day { min-height: calc(26px + var(--lanes, 0) * 15px + 8px); }
+  .cal-bars { top: 24px; grid-auto-rows: 14px; }
+  .cal-bar { font-size: .58rem; line-height: 14px; padding: 0 3px; margin: 0 2px; border-left-width: 2px; }
+}
+.dept-name { flex: 1; min-width: 0; font-weight: 600; }

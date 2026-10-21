@@ -73,41 +73,80 @@ export default function Calendar() {
 
   const catOf = useCallback((id) => cats.find((c) => c.id === id), [cats])
 
-  /* 날짜별로 미리 묶어 둔다. 칸마다 전체를 훑지 않도록. */
-  const byDay = useMemo(() => {
-    const map = {}
-    const put = (d, item) => { (map[d] ||= []).push(item) }
+  /* 달력에 그릴 '구간' 들. 하루짜리도 구간 하나로 본다.
+     여러 날 일정은 **제목을 한 번만** 쓰고 띠로 쭉 잇는다(지은님 2026-10-21). */
+  const items = useMemo(() => {
+    const out = []
     for (const e of events) {
       const c = cats.find((x) => x.id === e.category_id)
-      for (let d = e.start_date < from ? from : e.start_date; d <= e.end_date && d <= to; d = addDays(d, 1)) {
-        put(d, { kind: 'event', label: e.title, color: c?.color || NO_CAT_COLOR, cat: c, row: e })
-      }
+      out.push({ kind: 'event', label: e.title, color: c?.color || NO_CAT_COLOR, cat: c, row: e, s: e.start_date, e: e.end_date })
     }
     for (const l of leaves) {
       const tag = LEAVE_SHORT[l.kind] || '휴가'
-      const who = `${l.name}${l.job_title || ''}`
-      const mark = (d) => put(d, { kind: 'leave', label: `[${tag}] ${who}`, color: LEAVE_COLOR })
+      const label = `[${tag}] ${l.name}${l.job_title || ''}`
       if (Array.isArray(l.dates)) {
-        /* 고른 날짜만 칠한다. 띄엄띄엄 쓴 연차가 사이 날까지 물들지 않게. */
-        for (const d of l.dates) if (d >= from && d <= to) mark(d)
+        /* 고른 날짜들 — **붙어 있는 날끼리만** 한 띠로 묶는다. 띄엄띄엄 쓴 연차가
+           사이 날까지 물들면 안 된다. */
+        const ds = [...l.dates].sort()
+        let i = 0
+        while (i < ds.length) {
+          let j = i
+          while (j + 1 < ds.length && addDays(ds[j], 1) === ds[j + 1]) j++
+          out.push({ kind: 'leave', label, color: LEAVE_COLOR, s: ds[i], e: ds[j] })
+          i = j + 1
+        }
         continue
       }
-      /* 옛 문서(dates 없음)는 예전처럼 기간으로. 주말은 뺀다. */
-      for (let d = l.start_date < from ? from : l.start_date; d <= l.end_date && d <= to; d = addDays(d, 1)) {
+      /* 옛 문서(dates 없음)는 기간 그대로. 주말은 빼고 날짜별로 쪼갠다. */
+      for (let d = l.start_date; d <= l.end_date; d = addDays(d, 1)) {
         if ([0, 6].includes(parse(d).getUTCDay())) continue
-        mark(d)
+        out.push({ kind: 'leave', label, color: LEAVE_COLOR, s: d, e: d })
       }
     }
-    return map
-  }, [events, leaves, cats, from, to])
-
-  const days = useMemo(() => {
-    const out = []
-    for (let d = from; d <= to; d = addDays(d, 1)) out.push(d)
     return out
-  }, [from, to])
+  }, [events, leaves, cats])
+
+  /* 고른 날 목록(아래 상세)에 쓸 날짜별 묶음 */
+  const byDay = useMemo(() => {
+    const map = {}
+    for (const it of items) {
+      for (let d = it.s < from ? from : it.s; d <= it.e && d <= to; d = addDays(d, 1)) (map[d] ||= []).push(it)
+    }
+    return map
+  }, [items, from, to])
+
+  /* 주 단위로 쪼개고, 주마다 띠가 겹치지 않게 줄(lane)을 배정한다 */
+  const weeks = useMemo(() => {
+    const out = []
+    for (let w = from; w <= to; w = addDays(w, 7)) {
+      const days = Array.from({ length: 7 }, (_, i) => addDays(w, i))
+      const wEnd = days[6]
+      const inWeek = items
+        .filter((it) => it.s <= wEnd && it.e >= w)
+        .map((it) => {
+          const s = it.s < w ? w : it.s
+          const e = it.e > wEnd ? wEnd : it.e
+          return { ...it, col: days.indexOf(s) + 1, len: days.indexOf(e) - days.indexOf(s) + 1, cutL: it.s < w, cutR: it.e > wEnd }
+        })
+        /* 긴 것부터 위로 — 짧은 게 긴 띠를 끊지 않게 */
+        .sort((a, b) => a.col - b.col || b.len - a.len || a.label.localeCompare(b.label, 'ko'))
+
+      const lanes = []  // lanes[n] = 그 줄에서 마지막으로 찬 칸
+      for (const sp of inWeek) {
+        let n = 0
+        while (lanes[n] != null && lanes[n] >= sp.col) n++
+        lanes[n] = sp.col + sp.len - 1
+        sp.lane = n
+      }
+      out.push({ days, spans: inWeek, lanes: lanes.length })
+    }
+    return out
+  }, [items, from, to])
 
   const openNew = () => setForm({ ...EMPTY, start_date: picked, end_date: picked })
+  /* 달력에서 날짜를 누르면 그 날로 바로 쓰기 창을 연다.
+     아래 '고른 날' 목록도 같이 그 날로 옮긴다(창을 닫으면 보인다). */
+  const openOn = (d) => { setPicked(d); setForm({ ...EMPTY, start_date: d, end_date: d }) }
 
   async function remove(ev) {
     if (!window.confirm(`${ev.title} 일정을 지울까요? 되돌릴 수 없습니다.`)) return
@@ -129,7 +168,7 @@ export default function Calendar() {
           <button className="icon" aria-label="다음달" onClick={() => setMonth(ym(addMonths(firstOf(month), 1)))}>›</button>
           <button className="btn small-btn" onClick={() => { setMonth(ym(today())); setPicked(today()) }}>오늘</button>
         </div>
-        <button className="btn primary" onClick={openNew}>+ 일정</button>
+        <span className="muted small">날짜를 누르면 그 날 일정을 쓸 수 있습니다.</span>
       </div>
 
       {err && <p className="error">{err}</p>}
@@ -139,30 +178,42 @@ export default function Calendar() {
           {WEEK.map((w, i) => <div key={w} className={i === 0 ? 'sun' : i === 6 ? 'sat' : ''}>{w}</div>)}
         </div>
         <div className="cal-grid">
-          {days.map((d) => {
-            const dow = parse(d).getUTCDay()
-            const hol = holidayName(d)
-            const items = byDay[d] || []
-            const out = ym(d) !== month
-            return (
-              <button
-                type="button" key={d}
-                className={`cal-day${out ? ' out' : ''}${d === picked ? ' on' : ''}${d === today() ? ' now' : ''}`}
-                onClick={() => setPicked(d)}
-                aria-pressed={d === picked}
-                aria-label={`${dot(d)} 일정 ${items.length}건`}
-              >
-                <span className={`cal-num tnum${hol || dow === 0 ? ' sun' : dow === 6 ? ' sat' : ''}`}>{Number(d.slice(8))}</span>
-                {hol && <span className="cal-hol">{hol}</span>}
-                <span className="cal-chips">
-                  {items.slice(0, 3).map((it, i) => (
-                    <span key={i} className="cal-chip" style={chipStyle(it.color)}>{it.label}</span>
-                  ))}
-                  {items.length > 3 && <span className="cal-more">+{items.length - 3}</span>}
-                </span>
-              </button>
-            )
-          })}
+          {weeks.map((wk) => (
+            <div className="cal-wk" key={wk.days[0]} style={{ '--lanes': wk.lanes }}>
+              <div className="cal-cells">
+                {wk.days.map((d) => {
+                  const dow = parse(d).getUTCDay()
+                  const hol = holidayName(d)
+                  const out = ym(d) !== month
+                  const n = (byDay[d] || []).length
+                  return (
+                    <button
+                      type="button" key={d}
+                      className={`cal-day${out ? ' out' : ''}${d === picked ? ' on' : ''}${d === today() ? ' now' : ''}`}
+                      onClick={() => openOn(d)}
+                      aria-pressed={d === picked}
+                      aria-label={`${dot(d)}${hol ? ` ${hol}` : ''} 일정 ${n}건 — 눌러서 일정 쓰기`}
+                    >
+                      <span className={`cal-num tnum${hol || dow === 0 ? ' sun' : dow === 6 ? ' sat' : ''}`}>{Number(d.slice(8))}</span>
+                      {hol && <span className="cal-hol">{hol}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+              {/* 띠는 칸 위에 얹는다. 눌림은 아래 날짜 칸이 받도록 pointer-events 를 끈다. */}
+              <div className="cal-bars" aria-hidden="true">
+                {wk.spans.map((sp, i) => (
+                  <span
+                    key={i}
+                    className={`cal-bar${sp.cutL ? ' cut-l' : ''}${sp.cutR ? ' cut-r' : ''}`}
+                    style={{ gridColumn: `${sp.col} / span ${sp.len}`, gridRow: sp.lane + 1, background: `${sp.color}22`, borderLeftColor: sp.color }}
+                  >
+                    {sp.cutL && '‹ '}{sp.label}{sp.cutR && ' ›'}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

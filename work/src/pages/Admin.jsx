@@ -8,7 +8,7 @@ import { downloadBlob } from '../lib/csv'
 import { ErrorBox } from '../components/ui'
 import AdminForms from './AdminForms'
 
-const TABS = [['staff', '직원'], ['settings', '출근 설정'], ['forms', '양식'], ['cats', '일정 분류'], ['backup', '백업']]
+const TABS = [['staff', '직원'], ['dept', '부서'], ['settings', '출근 설정'], ['forms', '양식'], ['cats', '일정 분류'], ['backup', '백업']]
 
 export default function Admin() {
   const [tab, setTab] = useState('staff')
@@ -19,6 +19,7 @@ export default function Admin() {
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}
       </div>
       {tab === 'staff' && <Staff />}
+      {tab === 'dept' && <DeptOrder />}
       {tab === 'settings' && <Settings />}
       {tab === 'forms' && <AdminForms />}
       {tab === 'cats' && <Categories />}
@@ -152,6 +153,8 @@ function Categories() {
 function DeptOrder() {
   const { employees, deptOrder, reloadEmployees } = useSession()
   const [list, setList] = useState([])
+  const [dragFrom, setDragFrom] = useState(null)
+  const [canDrag, setCanDrag] = useState(null)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
@@ -162,44 +165,59 @@ function DeptOrder() {
     setList([...kept, ...used.filter((d) => !kept.includes(d)).sort((a, b) => a.localeCompare(b, 'ko'))])
   }, [employees, deptOrder])
 
-  const move = (i, d) => {
-    const j = i + d
-    if (j < 0 || j >= list.length) return
-    const out = [...list]
-    ;[out[i], out[j]] = [out[j], out[i]]
-    setList(out)
-  }
-
-  async function save() {
+  /* 순서 바꾸기 — 화면을 먼저 바꾸고 바로 저장한다 (일정 분류와 같은 방식) */
+  async function reorder(from, to) {
+    if (from == null || to == null || from === to || to < 0 || to >= list.length) return
+    const next = [...list]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    setList(next)
     setErr(''); setMsg('')
     const { error } = await supabase.from('settings')
-      .update({ dept_order: list, updated_at: new Date().toISOString() }).eq('id', 1)
+      .update({ dept_order: next, updated_at: new Date().toISOString() }).eq('id', 1)
     if (error) {
       return setErr(/dept_order|column/i.test(error.message)
         ? '아직 데이터베이스 설정 전입니다. work/supabase/migrations 의 부서 순서 SQL 을 한 번 실행해 주세요.'
         : errText(error))
     }
-    setMsg('부서 순서를 저장했습니다.')
+    setMsg('순서를 바꿨습니다.')
     reloadEmployees()
   }
 
-  if (!list.length) return null
   return (
     <section className="card stack-sm narrow-form">
       <h2>부서 순서</h2>
-      <p className="hint">직원 목록이 이 순서대로 나옵니다. 같은 부서 안에서는 직급(대표→사원) 순입니다.</p>
-      <ol className="line-list">
+      <p className="hint">직원 목록이 이 순서대로 나옵니다. 같은 부서 안에서는 직급(대표→사원) 순입니다.
+        <strong>왼쪽 손잡이(⠿)를 끌어</strong> 바꾸세요. 바꾸면 바로 저장됩니다.</p>
+      <p className="hint">부서 이름은 <strong>직원</strong> 탭에서 각자의 부서 칸을 고쳐 바꿉니다.
+        여기에는 지금 쓰이는 부서만 나옵니다.</p>
+
+      {!list.length && <p className="muted">아직 부서가 없습니다. 직원 탭에서 부서를 넣어 주세요.</p>}
+      <ul className="cat-list">
         {list.map((d, i) => (
-          <li key={d}>
-            <span>{d}</span>
-            <button className="icon" aria-label="위로" disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
-            <button className="icon" aria-label="아래로" disabled={i === list.length - 1} onClick={() => move(i, 1)}>↓</button>
+          <li
+            key={d}
+            className={`cat-row${dragFrom === i ? ' dragging' : ''}`}
+            draggable={canDrag === d}
+            onDragStart={() => setDragFrom(i)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => { e.preventDefault(); reorder(dragFrom, i); setDragFrom(null); setCanDrag(null) }}
+            onDragEnd={() => { setDragFrom(null); setCanDrag(null) }}
+          >
+            <span
+              className="drag-handle" aria-hidden="true" title="끌어서 순서 바꾸기"
+              onMouseDown={() => setCanDrag(d)} onMouseUp={() => setCanDrag(null)}
+            >⠿</span>
+            <span className="dept-name">{d}</span>
+            <span className="ord-btns">
+              <button className="icon" aria-label={`${d} 위로`} disabled={i === 0} onClick={() => reorder(i, i - 1)}>↑</button>
+              <button className="icon" aria-label={`${d} 아래로`} disabled={i === list.length - 1} onClick={() => reorder(i, i + 1)}>↓</button>
+            </span>
           </li>
         ))}
-      </ol>
+      </ul>
       <ErrorBox>{err}</ErrorBox>
       {msg && <p className="ok">{msg}</p>}
-      <div className="actions"><button className="btn primary" onClick={save}>순서 저장</button></div>
     </section>
   )
 }
@@ -233,7 +251,6 @@ function Staff() {
         <p><strong>퇴사:</strong> 계정을 지우지 말고 ‘재직’ 체크를 끄세요. 결재 기록은 그대로 남고 로그인만 막힙니다.</p>
         <p><strong>연차:</strong> 비워 두면 입사일 기준 근로기준법 방식으로 자동 계산합니다. 상시 5인 미만 사업장은 법정 연차 적용 대상이 아니므로, 회사 규정이 따로 있으면 ‘연차 직접 지정’에 일수를 넣으세요.</p>
       </div>
-      <DeptOrder />
       <ErrorBox>{err}</ErrorBox>
       {msg && <p className="ok">{msg}</p>}
       <div className="table-wrap card flush">
