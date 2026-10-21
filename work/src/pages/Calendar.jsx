@@ -138,7 +138,8 @@ export default function Calendar() {
         lanes[n] = sp.col + sp.len - 1
         sp.lane = n
       }
-      out.push({ days, spans: inWeek, lanes: lanes.length })
+      /* 공휴일 이름이 들어가는 주는 띠를 한 줄 더 내린다(글자와 겹치지 않게) */
+      out.push({ days, spans: inWeek, lanes: lanes.length, hasHol: days.some((d) => holidayName(d)) })
     }
     return out
   }, [items, from, to])
@@ -179,7 +180,7 @@ export default function Calendar() {
         </div>
         <div className="cal-grid">
           {weeks.map((wk) => (
-            <div className="cal-wk" key={wk.days[0]} style={{ '--lanes': wk.lanes }}>
+            <div className="cal-wk" key={wk.days[0]} style={{ '--lanes': wk.lanes, '--bar-top': wk.hasHol ? '44px' : '28px' }}>
               <div className="cal-cells">
                 {wk.days.map((d) => {
                   const dow = parse(d).getUTCDay()
