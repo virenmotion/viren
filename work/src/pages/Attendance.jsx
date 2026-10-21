@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { errText, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { hm, hoursText, isWeekend, minutesBetween, monthDays, today, weekday } from '../lib/dates'
+import { WEEK, addDays, hm, hoursText, isWeekend, minutesBetween, monthDays, parse, today, weekday } from '../lib/dates'
+import { holidayName } from '../lib/holidays'
 import { LEAVE_KINDS } from '../lib/labels'
 import { downloadCsv } from '../lib/csv'
 import { ErrorBox } from '../components/ui'
+import WorkRing from '../components/WorkRing'
 
 /* 'HH:MM' + 날짜 → 한국 시간 timestamptz 문자열 */
 const toTs = (date, t) => (t ? `${date}T${t}:00+09:00` : null)
@@ -35,6 +37,8 @@ export default function Attendance() {
   const [data, setData] = useState(null)
   const [err, setErr] = useState('')
   const [editing, setEditing] = useState(null)
+  /* 달력이 기본. 표는 고치거나 자세히 볼 때(지은님 2026-10-21). */
+  const [view, setView] = useState('cal')
 
   const load = useCallback(() => {
     setErr('')
@@ -89,6 +93,10 @@ export default function Attendance() {
             </select></label>
         )}
         <div className="grow" />
+        <div className="seg" role="tablist" aria-label="보기 방식">
+          <button type="button" role="tab" aria-selected={view === 'cal'} className={view === 'cal' ? 'on' : ''} onClick={() => setView('cal')}>달력</button>
+          <button type="button" role="tab" aria-selected={view === 'table'} className={view === 'table' ? 'on' : ''} onClick={() => setView('table')}>표</button>
+        </div>
         <button className="btn small-btn" onClick={() => exportCsv(false)}>엑셀(CSV) 받기</button>
         {isAdmin && <button className="btn small-btn" onClick={() => exportCsv(true)}>전 직원 CSV</button>}
       </div>
@@ -101,7 +109,34 @@ export default function Attendance() {
 
       <ErrorBox>{err}</ErrorBox>
 
-      {data && (
+      {data && view === 'cal' && (
+        <AttCalendar
+          ym={ym} data={data} target={target} isAdmin={isAdmin}
+          onPick={(d, r) => setEditing({ date: d, in_t: hm(r?.check_in), out_t: hm(r?.check_out), note: r?.note || '' })}
+        />
+      )}
+
+      {editing && view === 'cal' && (
+        <div className="modal-back" onClick={(e) => e.target === e.currentTarget && setEditing(null)}>
+          <div className="card stack-sm modal-card">
+            <h2 className="tnum">{editing.date.replaceAll('-', '.')} ({weekday(editing.date)})</h2>
+            <div className="form-row">
+              <label className="field"><span>출근</span>
+                <input type="time" value={editing.in_t} onChange={(e) => setEditing({ ...editing, in_t: e.target.value })} /></label>
+              <label className="field"><span>퇴근</span>
+                <input type="time" value={editing.out_t} onChange={(e) => setEditing({ ...editing, out_t: e.target.value })} /></label>
+            </div>
+            <label className="field"><span>수정 사유</span>
+              <input value={editing.note} onChange={(e) => setEditing({ ...editing, note: e.target.value })} placeholder="왜 고쳤는지 적어 두면 좋습니다" /></label>
+            <div className="actions">
+              <button className="btn" onClick={() => setEditing(null)}>취소</button>
+              <button className="btn primary" onClick={saveEdit}>저장</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {data && view === 'table' && (
         <div className="table-wrap card flush">
           <table className="table att">
             <thead><tr><th>날짜</th><th>출근</th><th>퇴근</th><th>근무시간</th><th>비고</th>{isAdmin && <th></th>}</tr></thead>
@@ -142,6 +177,64 @@ export default function Attendance() {
           </table>
         </div>
       )}
+    </div>
+  )
+}
+
+/* 근태 달력 — 하루마다 동그란 그래프로 근무량을 보여 준다.
+   한 달 치만 그리므로 달력 페이지처럼 주 단위 띠는 필요 없다. */
+function AttCalendar({ ym, data, target, isAdmin, onPick }) {
+  const first = `${ym}-01`
+  const last = monthDays(ym).at(-1)
+  const start = addDays(first, -parse(first).getUTCDay())
+  const end = addDays(last, 6 - parse(last).getUTCDay())
+
+  const cells = []
+  for (let d = start; d <= end; d = addDays(d, 1)) cells.push(d)
+
+  return (
+    <div className="card att-cal">
+      <div className="cal-week">
+        {WEEK.map((w, i) => <div key={w} className={i === 0 ? 'sun' : i === 6 ? 'sat' : ''}>{w}</div>)}
+      </div>
+      <div className="att-grid">
+        {cells.map((d) => {
+          const out = d.slice(0, 7) !== ym
+          const r = data.rows.find((x) => x.work_date === d)
+          const lv = data.leaveOn(target, d)
+          const min = minutesBetween(r?.check_in, r?.check_out)
+          const dow = parse(d).getUTCDay()
+          const hol = holidayName(d)
+          const Cell = isAdmin && !out ? 'button' : 'div'
+          return (
+            <Cell
+              key={d} type={isAdmin && !out ? 'button' : undefined}
+              className={`att-day${out ? ' out' : ''}${d === today() ? ' now' : ''}${isWeekend(d) || hol ? ' off' : ''}`}
+              onClick={isAdmin && !out ? () => onPick(d, r) : undefined}
+              title={isAdmin && !out ? '눌러서 고치기' : undefined}
+            >
+              <span className="att-top">
+                <span className={`cal-num tnum${hol || dow === 0 ? ' sun' : dow === 6 ? ' sat' : ''}`}>{Number(d.slice(8))}</span>
+                {hol && <span className="cal-hol">{hol}</span>}
+              </span>
+              {!out && (
+                <>
+                  <WorkRing minutes={min} />
+                  <span className="att-time tnum">
+                    {r?.check_in ? `${hm(r.check_in)}~${hm(r.check_out) || ''}` : ''}
+                  </span>
+                  <span className="att-tags">
+                    {lv && <span className="tag leave">{LEAVE_KINDS[lv.data.kind]}</span>}
+                    {r?.in_office === false && <span className="tag">외부</span>}
+                  </span>
+                </>
+              )}
+            </Cell>
+          )
+        })}
+      </div>
+      <p className="hint att-legend">동그라미가 가득 차면 <strong>8시간</strong>입니다.
+        {isAdmin && ' 날짜를 누르면 출퇴근 시각을 고칠 수 있습니다.'}</p>
     </div>
   )
 }

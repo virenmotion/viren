@@ -1,0 +1,30 @@
+/* 하루 근무량을 동그란 그래프로. **100% = 8시간**(지은님 2026-10-21).
+   · 8시간을 채우면 초록, 모자라면 노랑. 넘으면 초록 가득 + 실제 퍼센트를 글자로.
+   · 글자는 가운데에 퍼센트만. 시간은 바깥에 따로 적는다(칸이 좁아 둘 다 넣으면 읽기 힘들다). */
+
+const FULL_MIN = 8 * 60
+
+export default function WorkRing({ minutes = 0, size = 54 }) {
+  const pct = Math.round((minutes / FULL_MIN) * 100)
+  const r = 22
+  const c = 2 * Math.PI * r
+  const filled = Math.max(0, Math.min(1, minutes / FULL_MIN))
+  const done = minutes >= FULL_MIN
+
+  return (
+    <svg className="ring" viewBox="0 0 56 56" width={size} height={size} role="img" aria-label={`근무 ${pct}%`}>
+      <circle className="ring-bg" cx="28" cy="28" r={r} />
+      {minutes > 0 && (
+        <circle
+          className={`ring-fg${done ? ' done' : ''}`}
+          cx="28" cy="28" r={r}
+          strokeDasharray={`${(c * filled).toFixed(2)} ${c.toFixed(2)}`}
+          transform="rotate(-90 28 28)"
+        />
+      )}
+      <text className={`ring-txt${done ? ' done' : ''}`} x="28" y="28" textAnchor="middle" dominantBaseline="central">
+        {minutes > 0 ? `${pct}%` : ''}
+      </text>
+    </svg>
+  )
+}
