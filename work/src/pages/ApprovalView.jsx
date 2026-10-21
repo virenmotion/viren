@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { errText, FILE_BUCKET, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { dateTime, dot } from '../lib/dates'
-import { FORMS, LEAVE_KINDS, STEP_STATUS, won } from '../lib/labels'
+import { FORMS, STEP_STATUS, leaveName, won } from '../lib/labels'
 import { FormView } from '../components/FormFields'
 import { ErrorBox, StatusPill } from '../components/ui'
 
@@ -108,7 +108,7 @@ export default function ApprovalView() {
 
         {doc.form_type === 'leave' && (
           <dl className="kv doc-data">
-            <dt>종류</dt><dd>{LEAVE_KINDS[doc.data.kind]}</dd>
+            <dt>종류</dt><dd>{leaveName(doc.data.kind, doc.data.half)}</dd>
             <dt>날짜</dt><dd className="tnum">{Array.isArray(doc.data.dates)
               ? doc.data.dates.map(dot).join(', ')
               : (doc.data.start === doc.data.end ? dot(doc.data.start) : `${dot(doc.data.start)} ~ ${dot(doc.data.end)}`)}</dd>

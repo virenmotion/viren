@@ -273,6 +273,7 @@ create function public.check_leave_data(p jsonb) returns jsonb
 language plpgsql immutable set search_path = public as $$
 declare
   k     text := p->>'kind';
+  h     text := nullif(p->>'half', '');
   arr   jsonb := p->'dates';
   s     date;
   e     date;
@@ -281,9 +282,18 @@ declare
   n     int;
   uniq  date[];
 begin
-  -- 연차 · 월차 · 반차(오전/오후) · 공가 · 대휴
-  if k is null or k not in ('annual', 'monthly', 'half_am', 'half_pm', 'public', 'comp') then
+  -- 옛 화면이 보낸 값도 받아 준다 (half_am → 연차 + 오전 반차)
+  if k in ('half_am', 'half_pm') then
+    h := right(k, 2);
+    k := 'annual';
+  end if;
+
+  -- 연차 · 월차 · 공가 · 대휴. 반차 여부는 half 칸이 따로 가진다.
+  if k is null or k not in ('annual', 'monthly', 'public', 'comp') then
     raise exception '휴가 종류를 골라 주세요.';
+  end if;
+  if h is not null and h not in ('am', 'pm') then
+    raise exception '반차는 오전·오후 중에서 고르세요.';
   end if;
 
   if arr is not null and jsonb_typeof(arr) = 'array' and jsonb_array_length(arr) > 0 then
@@ -299,7 +309,7 @@ begin
     if n = 0 then raise exception '휴가 날짜를 골라 주세요.'; end if;
     if n > 60 then raise exception '한 번에 60일까지만 신청할 수 있습니다.'; end if;
 
-    if k in ('half_am', 'half_pm') then
+    if h is not null then
       if n <> 1 then raise exception '반차는 하루만 고를 수 있습니다.'; end if;
       d := 0.5;
     else
@@ -309,7 +319,7 @@ begin
     s := uniq[1];
     e := uniq[n];
     return p || jsonb_build_object(
-      'kind', k,
+      'kind', k, 'half', h,
       'dates', to_jsonb(uniq),
       'start', s, 'end', e, 'days', d
     );
@@ -325,7 +335,7 @@ begin
   if s is null then raise exception '휴가 시작일을 넣어 주세요.'; end if;
   if e < s then raise exception '휴가 종료일이 시작일보다 빠릅니다.'; end if;
 
-  if k in ('half_am', 'half_pm') then
+  if h is not null then
     if e <> s then raise exception '반차는 하루만 고를 수 있습니다.'; end if;
     d := 0.5;
   else
@@ -338,7 +348,7 @@ begin
     end if;
   end if;
 
-  return p || jsonb_build_object('kind', k, 'start', s, 'end', e, 'days', d);
+  return p || jsonb_build_object('kind', k, 'half', h, 'start', s, 'end', e, 'days', d);
 end $$;
 
 -- 지출결의 검사. 항목 금액을 더해 합계를 서버에서 다시 계산한다.
@@ -685,15 +695,21 @@ create policy "일정은 올린 사람이나 관리자가 지운다" on public.e
 
 -- 달력에 띄울 '승인된 휴가'. 이름·기간·반차 여부만 내준다(휴가 종류는 내주지 않는다).
 create function public.leave_days(p_from date, p_to date)
-returns table (user_id uuid, name text, job_title text, kind text,
+returns table (user_id uuid, name text, job_title text, kind text, half text,
                start_date date, end_date date, dates jsonb)
 language sql stable security definer set search_path = public as $$
   select d.drafter_id,
          e.name,
          e.position,  -- 바깥 이름은 job_title (position 은 SQL 예약어라 피했다)
          -- 옛 문서(병가·경조사·기타)는 종류를 밝히지 않고 '휴가'로 뭉뚱그린다.
-         case when d.data->>'kind' in ('annual','monthly','half_am','half_pm','public','comp')
-              then d.data->>'kind' else 'other' end,
+         case when d.data->>'kind' in ('annual','monthly','public','comp')
+                then d.data->>'kind'
+              when d.data->>'kind' in ('half_am','half_pm')
+                then 'annual'
+              else 'other' end,
+         case when d.data->>'kind' = 'half_am' then 'am'
+              when d.data->>'kind' = 'half_pm' then 'pm'
+              else nullif(d.data->>'half', '') end,
          (d.data->>'start')::date,
          coalesce(nullif(d.data->>'end', ''), d.data->>'start')::date,
          -- 없으면 null. 화면이 null 이면 옛 방식(기간)으로 칠한다.

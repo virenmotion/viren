@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, errText } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { holidayName } from '../lib/holidays'
-import { LEAVE_SHORT } from '../lib/labels'
+import { leaveShort } from '../lib/labels'
 import { WEEK, addDays, addMonths, dot, parse, today } from '../lib/dates'
 
 /* 회사 공용 달력.
@@ -82,7 +82,7 @@ export default function Calendar() {
       out.push({ kind: 'event', label: e.title, color: c?.color || NO_CAT_COLOR, cat: c, row: e, s: e.start_date, e: e.end_date })
     }
     for (const l of leaves) {
-      const tag = LEAVE_SHORT[l.kind] || '휴가'
+      const tag = leaveShort(l.kind, l.half)
       const label = `[${tag}] ${l.name}${l.job_title || ''}`
       if (Array.isArray(l.dates)) {
         /* 고른 날짜들 — **붙어 있는 날끼리만** 한 띠로 묶는다. 띄엄띄엄 쓴 연차가

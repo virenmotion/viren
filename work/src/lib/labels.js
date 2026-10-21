@@ -22,14 +22,17 @@ export const STEP_STATUS = {
 /* 휴가 종류 — 2026-10-20 에 연차·월차·반차·공가·대휴 다섯 가지로 정했다(지은님).
    반차만 저장할 때 오전(half_am)·오후(half_pm) 로 갈라진다. */
 
-/* 신청 화면에서 고르는 것. 반차를 고르면 오전·오후를 한 번 더 고른다. */
+/* 신청 화면에서 고르는 휴가 종류. '얼마나'(하루·반차)는 HALF_PICK 으로 따로 고른다. */
 export const LEAVE_PICK = {
   annual: '연차',
   monthly: '월차',
-  half: '반차',
   public: '공가',
   comp: '대휴',
 }
+
+/* 반나절인지는 **종류와 다른 칸**이다(2026-10-21). 그래야 연차 반차뿐 아니라
+   대휴 반차·공가 반차도 적을 수 있다. 빈 값이 '하루 종일'. */
+export const HALF_PICK = { '': '하루 종일', am: '오전 반차', pm: '오후 반차' }
 
 /* 저장된 값 → 보여줄 이름. sick·family·other 는 2026-10-20 이전 문서용이라
    목록에서 고를 수는 없지만 옛 문서를 열면 이름이 떠야 한다. */
@@ -55,6 +58,17 @@ export const LEAVE_SHORT = {
   public: '공가',
   comp: '대휴',
 }
+
+/* 종류 + 반차를 묶어 사람이 읽을 이름으로. 화면마다 따로 조립하지 않는다.
+   · leaveName  — 문서에 쓰는 긴 이름 ('연차 오전 반차')
+   · leaveShort — 달력·근태표의 짧은 이름 ('연차 반차')
+   옛 문서(kind 자체가 half_am)는 half 가 없으므로 그대로 '오전 반차' 가 된다. */
+export const leaveName = (kind, half) =>
+  half ? `${LEAVE_KINDS[kind] || '휴가'} ${half === 'am' ? '오전' : '오후'} 반차`
+       : (LEAVE_KINDS[kind] || '휴가')
+
+export const leaveShort = (kind, half) =>
+  half ? `${LEAVE_SHORT[kind] || '휴가'} 반차` : (LEAVE_SHORT[kind] || '휴가')
 
 /* 직급과 직책 (지은님 2026-10-21).
    · 직급(DB 칸 이름은 position) — 위에서 아래 순서가 곧 정렬 순서다.

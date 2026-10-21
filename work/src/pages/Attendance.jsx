@@ -3,7 +3,7 @@ import { errText, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { WEEK, addDays, hm, hoursText, isWeekend, minutesBetween, monthDays, parse, today, weekday } from '../lib/dates'
 import { holidayName } from '../lib/holidays'
-import { LEAVE_KINDS } from '../lib/labels'
+import { leaveName, leaveShort } from '../lib/labels'
 import { downloadCsv } from '../lib/csv'
 import { ErrorBox } from '../components/ui'
 import WorkRing from '../components/WorkRing'
@@ -57,7 +57,7 @@ export default function Attendance() {
           const lv = m.leaveOn(uid, d)
           if (!r && !lv) continue
           out.push([nameOf(uid), d, weekday(d), hm(r?.check_in), hm(r?.check_out),
-            minutesBetween(r?.check_in, r?.check_out) || '', lv ? LEAVE_KINDS[lv.data.kind] : '',
+            minutesBetween(r?.check_in, r?.check_out) || '', lv ? leaveName(lv.data.kind, lv.data.half) : '',
             r?.in_office == null ? '' : r.in_office ? '사무실' : '외부', r?.note || ''])
         }
       }
@@ -163,7 +163,7 @@ export default function Attendance() {
                     <td className="tnum">{hm(r?.check_out)}</td>
                     <td className="tnum">{hoursText(minutesBetween(r?.check_in, r?.check_out))}</td>
                     <td className="small">
-                      {lv && <span className="tag leave">{LEAVE_KINDS[lv.data.kind]}</span>}
+                      {lv && <span className="tag leave">{leaveShort(lv.data.kind, lv.data.half)}</span>}
                       {r?.in_office === false && <span className="tag">외부</span>}
                       {r?.note && <span className="muted"> {r.note}</span>}
                     </td>
@@ -230,7 +230,7 @@ function AttCalendar({ ym, data, target, isAdmin, onPick }) {
                     <WorkRing minutes={min} size={64} />
                   </span>
                   <span className="att-tags">
-                    {lv && <span className="tag leave">{LEAVE_KINDS[lv.data.kind]}</span>}
+                    {lv && <span className="tag leave">{leaveShort(lv.data.kind, lv.data.half)}</span>}
                     {r?.in_office === false && <span className="tag">외부</span>}
                   </span>
                 </>

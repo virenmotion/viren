@@ -4,7 +4,7 @@ import { errText, FILE_BUCKET, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { dot, today } from '../lib/dates'
 import { leaveSummary } from '../lib/leave'
-import { FORMS, LEAVE_KINDS, LEAVE_PICK, won } from '../lib/labels'
+import { FORMS, HALF_PICK, LEAVE_KINDS, LEAVE_PICK, leaveName, won } from '../lib/labels'
 import { ErrorBox } from '../components/ui'
 import { FormInputs } from '../components/FormFields'
 import DatePick from '../components/DatePick'
@@ -43,7 +43,7 @@ export default function ApprovalNew() {
   const [content, setContent] = useState('')
   const [files, setFiles] = useState([])
   /* 휴가는 '기간' 이 아니라 **고른 날짜들**이다. 띄엄띄엄 쉬는 연차를 한 장으로 낸다. */
-  const [leave, setLeave] = useState({ kind: 'annual', dates: [today()] })
+  const [leave, setLeave] = useState({ kind: 'annual', half: '', dates: [today()] })
   const [items, setItems] = useState([{ date: today(), desc: '', amount: '' }])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -79,7 +79,7 @@ export default function ApprovalNew() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customForm?.id])
 
-  const half = leave.kind === 'half_am' || leave.kind === 'half_pm'
+  const half = !!leave.half
   const days = half ? 0.5 : leave.dates.length
   const total = useMemo(() => items.reduce((a, it) => a + (Number(it.amount) || 0), 0), [items])
   const summary = leaveSummary(me, leaveDocs)
@@ -87,9 +87,10 @@ export default function ApprovalNew() {
   function autoTitle() {
     if (form === 'leave') {
       const d = leave.dates
-      if (!d.length) return `${LEAVE_KINDS[leave.kind]} 신청`
+      const name = leaveName(leave.kind, leave.half)
+      if (!d.length) return `${name} 신청`
       const range = d.length === 1 ? dot(d[0]) : `${dot(d[0])} 외 ${d.length - 1}일`
-      return `${LEAVE_KINDS[leave.kind]} 신청 (${range})`
+      return `${name} 신청 (${range})`
     }
     if (form === 'expense') return `지출결의 (${won(total)})`
     if (form === 'custom') return customForm?.name || ''
@@ -114,7 +115,7 @@ export default function ApprovalNew() {
       /* dates 가 진짜다. start·end·days 도 같이 보내는 이유:
          서버 쪽 SQL(2026-10-20f)이 아직 안 올라간 동안에도 옛 검사식이 통과하도록.
          올라간 뒤에는 서버가 dates 로 다시 계산하므로 이 값들은 덮어쓰인다. */
-      data = { kind: leave.kind, dates: leave.dates, start: leave.dates[0], end: leave.dates[leave.dates.length - 1], days }
+      data = { kind: leave.kind, half: leave.half || null, dates: leave.dates, start: leave.dates[0], end: leave.dates[leave.dates.length - 1], days }
       /* 대휴면 어느 휴일근무로 생긴 건지 같이 남긴다. 나중에 문서만 봐도 알 수 있게
          제목·문서번호를 함께 적어 둔다(그 문서를 못 보는 사람도 뭔지 알 수 있다). */
       if (leave.kind === 'comp' && leave.ref) {
@@ -224,21 +225,19 @@ export default function ApprovalNew() {
           {summary && <p className="hint">남은 연차 <strong className="tnum">{summary.remaining}일</strong>{summary.pending > 0 && ` (결재 중 ${summary.pending}일 별도)`}</p>}
           <div className="form-row">
             <label className="field"><span>종류</span>
-              <select id="leave-kind" value={half ? 'half' : leave.kind}
-                onChange={(e) => {
-                  const kind = e.target.value === 'half' ? 'half_am' : e.target.value
-                  const toHalf = kind.startsWith('half_')
-                  /* 반차로 바꾸면 하루만 남긴다 */
-                  setLeave({ kind, dates: toHalf ? leave.dates.slice(0, 1) : leave.dates })
-                }}>
+              <select id="leave-kind" value={leave.kind}
+                onChange={(e) => setLeave({ ...leave, kind: e.target.value })}>
                 {Object.entries(LEAVE_PICK).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select></label>
-            {half && (
-              <label className="field"><span>오전 · 오후</span>
-                <select id="leave-half" value={leave.kind} onChange={(e) => setLeave({ ...leave, kind: e.target.value })}>
-                  <option value="half_am">오전</option><option value="half_pm">오후</option>
-                </select></label>
-            )}
+            <label className="field"><span>얼마나</span>
+              <select id="leave-half" value={leave.half}
+                onChange={(e) => {
+                  const h = e.target.value
+                  /* 반차로 바꾸면 하루만 남긴다 */
+                  setLeave({ ...leave, half: h, dates: h ? leave.dates.slice(0, 1) : leave.dates })
+                }}>
+                {Object.entries(HALF_PICK).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select></label>
           </div>
 
           <div className="field">

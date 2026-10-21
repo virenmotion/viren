@@ -9,6 +9,8 @@ import { addMonths, addYears, today } from './dates'
 
 /* 연차에서 깎이는 종류. **공가·대휴는 깎이지 않는다**(공가는 예비군·건강검진 같은 것,
    대휴는 초과근무 보상이라 연차와 별개다). 회사 규정이 다르면 여기만 고치면 된다. */
+/* half_am·half_pm 은 2026-10-21 이전의 '반차' 종류다. 지금은 연차 + half 로 적지만
+   못 바꾼 옛 문서가 남아 있을 수 있어 같이 센다. 반나절(0.5)은 days 에 들어 있다. */
 export const COUNTED_KINDS = ['annual', 'monthly', 'half_am', 'half_pm']
 
 export function leavePeriod(hireDate, on = today()) {
