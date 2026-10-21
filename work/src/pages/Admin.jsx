@@ -7,8 +7,9 @@ import { ymd } from '../lib/dates'
 import { downloadBlob } from '../lib/csv'
 import { ErrorBox } from '../components/ui'
 import AdminForms from './AdminForms'
+import StorageCard from '../components/StorageCard'
 
-const TABS = [['staff', '직원'], ['settings', '출근 설정'], ['forms', '양식'], ['cats', '일정 분류'], ['backup', '백업']]
+const TABS = [['staff', '직원'], ['settings', '출근 설정'], ['forms', '양식'], ['cats', '일정 분류'], ['storage', '저장소'], ['backup', '백업']]
 
 export default function Admin() {
   const [tab, setTab] = useState('staff')
@@ -22,6 +23,7 @@ export default function Admin() {
       {tab === 'settings' && <Settings />}
       {tab === 'forms' && <AdminForms />}
       {tab === 'cats' && <Categories />}
+      {tab === 'storage' && <StorageCard />}
       {tab === 'backup' && <Backup />}
     </div>
   )

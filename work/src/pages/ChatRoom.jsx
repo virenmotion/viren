@@ -177,7 +177,9 @@ export default function ChatRoom() {
 /* 붙인 파일. 사진이면 바로 보여 주고, 아니면 받는 고리만. */
 function Attach({ file }) {
   const [url, setUrl] = useState(null)
-  useEffect(() => { fileUrl(file.path).then(setUrl) }, [file.path])
+  // 보관 기간이 지나 서버가 치운 파일. 누가 무엇을 보냈는지는 남겨 둔다.
+  useEffect(() => { if (!file.gone) fileUrl(file.path).then(setUrl) }, [file.path, file.gone])
+  if (file.gone) return <span className="gone">📎 {file.name} · 기간이 지나 사라졌어요</span>
   if (!url) return <span className="hint">{file.name} 여는 중…</span>
   if (isImage(file)) {
     return (

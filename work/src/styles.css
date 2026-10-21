@@ -804,3 +804,9 @@ button.att-day:hover { background: var(--accent-soft); }
   .bubble-wrap { max-width: 82%; }
   .chat-img { max-width: 200px; max-height: 200px; }
 }
+
+/* 저장소 사용량 막대 */
+.bar { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--ok); border-radius: 99px; }
+.bar span.hot { background: var(--bad); }
+.gone { color: var(--muted); font-size: .88rem; }

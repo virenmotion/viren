@@ -110,6 +110,8 @@ create table public.settings (
   require_office_ip boolean not null default false,
   -- 직원 목록에서 부서가 나올 순서. 여기 없는 부서는 뒤에 가나다순으로 붙는다.
   dept_order        text[] not null default '{}',
+  -- 대화에 붙인 사진·파일을 며칠 두고 지울지. 0 보다 커야 지운다.
+  chat_file_days    int not null default 60,
   updated_at        timestamptz not null default now()
 );
 insert into public.settings (id) values (1);
@@ -866,9 +868,10 @@ create policy "내 기기만 지운다" on public.push_subs
 --    이 표는 **정책을 하나도 두지 않는다** → 아무도 직접 못 읽는다.
 --    security definer 함수만 들여다본다.
 create table if not exists public.push_config (
-  id     int primary key default 1 check (id = 1),
-  url    text,
-  secret text
+  id          int primary key default 1 check (id = 1),
+  url         text,
+  cleanup_url text,
+  secret      text
 );
 insert into public.push_config (id) values (1) on conflict (id) do nothing;
 alter table public.push_config enable row level security;
@@ -1178,6 +1181,67 @@ create policy "대화 파일 올리기" on storage.objects
   with check (bucket_id = 'chat-files' and public.in_room(public.room_id_from_path(name)));
 
 -- ---------------------------------------------------------------------
+-- 대화 파일 자동 정리
+--   저장소 파일은 SQL 로 못 지운다(42501). 반드시 Storage API 를 거쳐야 해서
+--   매일 새벽 pg_cron 이 pg_net 으로 work.viren.kr/api/cleanup 을 부른다.
+--   ⚠️ 설치 뒤 push_config.cleanup_url 을 채워야 실제로 돈다.
+-- ---------------------------------------------------------------------
+-- ③ 정리 깨우기 ---------------------------------------------------------
+create or replace function public.run_chat_cleanup() returns void
+language plpgsql security definer set search_path = public as $$
+declare c public.push_config;
+begin
+  select * into c from public.push_config where id = 1;
+  if c.cleanup_url is null or c.cleanup_url = '' then return; end if;
+  perform net.http_post(
+    url     := c.cleanup_url,
+    headers := jsonb_build_object('Content-Type', 'application/json',
+                                  'x-push-secret', coalesce(c.secret, '')),
+    body    := '{}'::jsonb,
+    timeout_milliseconds := 20000
+  );
+exception when others then
+  null;  -- 정리가 실패해도 대화는 되어야 한다
+end $$;
+
+revoke execute on function public.run_chat_cleanup() from anon, public, authenticated;
+
+-- ④ 저장소 사용량 (관리 화면에 보여 준다) --------------------------------
+-- 실제 버킷을 세는 게 아니라 **우리가 적어 둔 크기를 더한다.**
+-- storage 표는 직접 못 읽어서다. 올릴 때 size 를 같이 적어 두니 값은 맞는다.
+create or replace function public.storage_usage()
+returns table (kind text, files bigint, bytes bigint)
+language sql stable security definer set search_path = public as $$
+  select '대화 파일',
+         count(*),
+         coalesce(sum((m.file->>'size')::bigint), 0)
+  from messages m
+  where public.is_admin()
+    and m.file ? 'path'
+  union all
+  select '결재 첨부',
+         count(*),
+         coalesce(sum(f.size), 0)
+  from approval_files f
+  where public.is_admin()
+$$;
+
+grant execute on function public.storage_usage() to authenticated;
+
+-- ⑤ 매일 새벽 3시(한국) ---------------------------------------------------
+create extension if not exists pg_cron;
+
+-- 같은 이름으로 다시 걸면 먼저 걷어낸다(두 번 돌지 않게).
+do $$
+begin
+  perform cron.unschedule('viren-chat-cleanup');
+exception when others then null;
+end $$;
+
+-- 18:00 UTC = 03:00 한국. 아무도 안 쓰는 시간에.
+select cron.schedule('viren-chat-cleanup', '0 18 * * *', $$select public.run_chat_cleanup()$$);
+
+-- ---------------------------------------------------------------------
 -- 권한 정리: 로그인 안 한 사람(anon)은 아무것도 못 한다.
 -- ---------------------------------------------------------------------
 revoke all on all tables in schema public from anon;
@@ -1192,5 +1256,6 @@ grant execute on function
   public.leave_days(date, date),
   public.in_room(uuid), public.open_direct(uuid), public.create_group(text, uuid[]),
   public.add_to_room(uuid, uuid), public.leave_room(uuid),
-  public.unread_counts(), public.mark_read(uuid), public.room_id_from_path(text)
+  public.unread_counts(), public.mark_read(uuid), public.room_id_from_path(text),
+  public.storage_usage()
 to authenticated;
