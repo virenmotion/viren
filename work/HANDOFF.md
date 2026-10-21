@@ -151,6 +151,30 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 
 ### 끝난 일
 
+- **2026-10-21 결재 알림을 휴대폰으로 (웹 푸시).** (`2026-10-21h-push.sql` + `work/functions/`)
+  지은님이 메일 대신 휴대폰 알림을 골랐다.
+  · **DB 는 "이 문서에 알릴 일이 생겼다" 만 알린다**(`notify_push` → pg_net).
+    누구에게 무슨 말을 보낼지는 받는 쪽이 정한다 — 문구 하나 바꾸려고 DB 함수를
+    건드리지 않게. 보내는 쪽은 Cloudflare Pages Functions `work/functions/api/notify.js`
+    (main 에 올리면 Pages 가 같이 올린다. 따로 배포할 것이 없다.)
+  · 알릴 때를 submit_doc·act_on_doc **안에 넣지 않고 표의 변화를 보는 트리거**로 잡았다
+    (`push_step` on approval_steps, `push_doc` on approval_docs).
+    기안·재기안·승인·반려 어느 길로 와도 빠짐없이 걸린다. 함수를 고칠 때마다
+    알림 한 줄을 같이 옮겨 적는 실수가 없다.
+  · `notify_push` 는 실패를 삼킨다. **알림이 안 가도 결재는 되어야 한다.**
+  · 암호(`push_config`)는 settings 에 두지 않았다 — settings 는 재직자 누구나 읽는다.
+    push_config 는 **정책을 하나도 두지 않아** 아무도 직접 못 읽는다.
+  · Workers 에는 Node 의 crypto 가 없어 RFC 8291(aes128gcm)·8292(VAPID)를
+    Web Crypto 로 직접 짰다. ⚠️ **표준 구현(http_ece)과 같은 소금·열쇠로 돌려
+    바이트까지 같은 것을 확인했다.** 직접 짠 암호는 반드시 이렇게 맞춰 볼 것 —
+    브라우저 창은 알림이 막혀 있어 실제 발송 시험을 못 했다.
+  · service worker 는 **알림만** 한다. 화면 캐시를 넣으면 새로 배포한 화면이
+    안 보이는 사고가 반드시 한 번은 난다.
+  · ⚠️ **아이폰은 '홈 화면에 추가' 로 깔아야 알림이 온다**(iOS 16.4+, 애플 규칙).
+    화면에서 이걸 안내하지 않으면 '안 되는 앱' 이 된다 → `PushCard.jsx` 가 안내한다.
+  · 환경변수(Cloudflare Pages): `VITE_VAPID_PUBLIC` · `VAPID_PRIVATE` ·
+    `SUPABASE_SERVICE_ROLE_KEY` · `PUSH_SECRET`. **개인키는 저장소에 없다.**
+
 - **2026-10-21 회수한 문서를 고쳐서 다시 올린다.** (`2026-10-21g-resubmit.sql`)
   지은님 요청. 회수하면 끝이라 오타 하나에 처음부터 다시 써야 했다.
   · **새 문서를 만들지 않는다.** 같은 문서를 고쳐 다시 올린다 — 문서번호·첨부파일 그대로.
