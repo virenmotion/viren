@@ -50,29 +50,6 @@ function Categories() {
 
   const set = (id, patch) => setRows(rows.map((r) => (r.id === id ? { ...r, ...patch, _dirty: true } : r)))
 
-  /* 줄을 끌어 순서 바꾸기 — 일정 분류와 같은 방식. 놓으면 바로 저장된다.
-     ⚠️ 끌기는 터치 화면에서 안 되므로 ↑↓ 도 같이 둔다. */
-  async function reorder(from, to) {
-    if (from == null || to == null || from === to || to < 0 || to >= rows.length) return
-    const next = [...rows]
-    const [moved] = next.splice(from, 1)
-    next.splice(to, 0, moved)
-    const renumbered = next.map((r, i) => ({ ...r, sort: i + 1 }))
-    setRows(renumbered)
-    setErr(''); setMsg('')
-    const before = new Map(rows.map((r) => [r.id, r.sort]))
-    for (const r of renumbered.filter((r) => before.get(r.id) !== r.sort)) {
-      const { error } = await supabase.from('employees').update({ sort: r.sort }).eq('id', r.id)
-      if (error) {
-        return setErr(/sort/i.test(error.message)
-          ? '아직 데이터베이스 설정 전입니다. work/supabase/migrations 의 직원 순서 SQL 을 한 번 실행해 주세요.'
-          : errText(error))
-      }
-    }
-    setMsg('순서를 바꿨습니다.')
-    reloadEmployees()
-  }
-
   async function save(r) {
     setErr(''); setMsg('')
     const { error } = await supabase.from('event_categories')
@@ -185,6 +162,30 @@ function Staff() {
   useEffect(() => setRows(employees), [employees])
 
   const set = (id, patch) => setRows(rows.map((r) => (r.id === id ? { ...r, ...patch, _dirty: true } : r)))
+
+  /* 줄을 끌어 순서 바꾸기 — 일정 분류와 같은 방식. 놓으면 바로 저장된다.
+     ⚠️ 끌기는 터치 화면에서 안 되므로 ↑↓ 도 같이 둔다. */
+  async function reorder(from, to) {
+    if (from == null || to == null || from === to || to < 0 || to >= rows.length) return
+    const next = [...rows]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    const renumbered = next.map((r, i) => ({ ...r, sort: i + 1 }))
+    setRows(renumbered)
+    setErr(''); setMsg('')
+    const before = new Map(rows.map((r) => [r.id, r.sort]))
+    for (const r of renumbered.filter((r) => before.get(r.id) !== r.sort)) {
+      const { error } = await supabase.from('employees').update({ sort: r.sort }).eq('id', r.id)
+      if (error) {
+        return setErr(/sort/i.test(error.message)
+          ? '아직 데이터베이스 설정 전입니다. work/supabase/migrations 의 직원 순서 SQL 을 한 번 실행해 주세요.'
+          : errText(error))
+      }
+    }
+    setMsg('순서를 바꿨습니다.')
+    reloadEmployees()
+  }
+
 
   async function save(r) {
     setErr(''); setMsg('')
