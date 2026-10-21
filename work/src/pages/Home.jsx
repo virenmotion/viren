@@ -7,6 +7,7 @@ import { leaveSummary } from '../lib/leave'
 import { formName } from '../lib/labels'
 import { Empty, ErrorBox, StatusPill } from '../components/ui'
 import Shortcuts from '../components/Shortcuts'
+import { pushSupported } from '../lib/push'
 
 /* 화면에 띄워 둔 동안 시계·근무시간이 흘러가도록 20초마다 다시 그린다 */
 function useNow(ms = 20000) {
@@ -67,6 +68,13 @@ export default function Home() {
   return (
     <div className="stack home">
       <Shortcuts />
+
+      {/* 알림을 아직 안 켠 기기에만 뜬다. 켜 두면 사라진다. */}
+      {pushSupported() && Notification.permission !== 'granted' && (
+        <Link to="/me" className="push-nudge">
+          결재 알림이 꺼져 있어요 — 이 기기에서 켜기 →
+        </Link>
+      )}
 
       <header className="home-head">
         <p className="eyebrow">{m}월 {day}일 {weekday(d)}요일</p>

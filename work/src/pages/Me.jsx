@@ -3,6 +3,7 @@ import { errText, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { dot } from '../lib/dates'
 import { ErrorBox } from '../components/ui'
+import PushCard from '../components/PushCard'
 
 export default function Me() {
   const { me } = useSession()
@@ -35,6 +36,8 @@ export default function Me() {
         </dl>
         <p className="hint">정보가 틀렸다면 관리자에게 수정을 요청해 주세요.</p>
       </section>
+      <PushCard />
+
       <form className="card narrow-form" onSubmit={change}>
         <h2>비밀번호 변경</h2>
         <label className="field"><span>새 비밀번호 (8자 이상)</span>

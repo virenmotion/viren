@@ -251,6 +251,17 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .home { gap: 22px; }
 .home-head { display: grid; gap: 2px; }
 
+/* 알림 켜기 권유 — 켜고 나면 사라지므로 눈에 띄어도 거슬리지 않는다 */
+.push-nudge {
+  display: block; padding: 11px 16px; border-radius: 12px;
+  background: var(--accent-soft); border: 1px solid #f0dfa4;
+  color: var(--accent-ink); font-size: .88rem; font-weight: 600; text-decoration: none;
+}
+.push-nudge:hover { background: #ffeeb8; border-color: var(--accent); }
+
+.pill.on { background: var(--ok-bg); color: var(--ok); font-weight: 600; padding: 5px 12px; border-radius: 99px; font-size: .85rem; }
+.hint.warn { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 0 8px 8px 0; color: var(--accent-ink); }
+
 /* 바로가기 줄 — 바이렌 바깥 페이지로 나가는 길. 화면이 좁으면 옆으로 민다. */
 .shortcuts {
   display: flex; gap: 8px; flex-wrap: wrap;
