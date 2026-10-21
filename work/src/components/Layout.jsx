@@ -70,7 +70,8 @@ export default function Layout() {
         </div>
       </header>
 
-      <main className="page">
+      {/* 표가 넓은 화면(관리·근태)은 양옆 여백까지 쓴다 — 칸이 눌려 글자가 잘렸다 */}
+      <main className={`page${pathname.startsWith('/admin') || pathname.startsWith('/attendance') ? ' wide' : ''}`}>
         <Outlet />
       </main>
 

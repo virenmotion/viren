@@ -96,7 +96,7 @@ code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
 .who .logout:hover { color: #fff; }
 
 .page {
-  width: 100%; max-width: 1120px; margin: 0 auto;
+  width: 100%; max-width: 1280px; margin: 0 auto;
   padding-block: 32px 72px;
   padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px));
 }
@@ -226,10 +226,15 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .table .title-cell a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .table.compact th, .table.compact td { padding: 7px 8px; }
 .table.compact input { padding: 7px 9px; }
-.table.staff { min-width: 1060px; }
+.table.staff { min-width: 1180px; }
 .table.staff input, .table.staff select { padding: 6px 8px; }
 .table.staff td { padding: 7px 8px; }
 .table.staff select { min-width: 92px; }
+/* 이름·부서 칸이 "김ㄱ" 처럼 눌리지 않게 최소 너비를 준다 */
+.table.staff td input[type="text"], .table.staff td input:not([type]) { min-width: 96px; }
+.table.staff th:nth-child(2), .table.staff td:nth-child(2) { min-width: 110px; }  /* 이름 */
+.table.staff th:nth-child(4), .table.staff td:nth-child(4) { min-width: 110px; }  /* 부서 */
+.table.staff .ord-cell { width: 1%; }
 .table.staff input[type="number"] { width: 84px; }
 .table.staff input[type="date"] { min-width: 140px; }
 .table.staff tr.inactive td { opacity: .55; }
@@ -632,3 +637,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .ord-cell { white-space: nowrap; }
 .ord-cell .drag-handle { margin-right: 4px; }
 .table tr.dragging { opacity: .45; }
+
+/* 표가 넓은 화면은 여백까지 쓴다(지은님 2026-10-21). 글이 주인 화면은 그대로 1280px. */
+.page.wide { max-width: min(1800px, 100%); }
