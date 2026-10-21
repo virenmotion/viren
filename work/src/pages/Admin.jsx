@@ -109,6 +109,63 @@ function Categories() {
   )
 }
 
+/* 부서 순서 — 직원 목록이 어떤 부서부터 나올지 정한다.
+   settings.dept_order 에 배열로 담는다(새 표를 만들 만큼 큰 일이 아니다). */
+function DeptOrder() {
+  const { employees, deptOrder, reloadEmployees } = useSession()
+  const [list, setList] = useState([])
+  const [msg, setMsg] = useState('')
+  const [err, setErr] = useState('')
+
+  useEffect(() => {
+    /* 저장된 순서 + 아직 순서에 없는 부서(뒤에 붙임) */
+    const used = [...new Set(employees.map((e) => (e.dept || '').trim()).filter(Boolean))]
+    const kept = deptOrder.filter((d) => used.includes(d))
+    setList([...kept, ...used.filter((d) => !kept.includes(d)).sort((a, b) => a.localeCompare(b, 'ko'))])
+  }, [employees, deptOrder])
+
+  const move = (i, d) => {
+    const j = i + d
+    if (j < 0 || j >= list.length) return
+    const out = [...list]
+    ;[out[i], out[j]] = [out[j], out[i]]
+    setList(out)
+  }
+
+  async function save() {
+    setErr(''); setMsg('')
+    const { error } = await supabase.from('settings')
+      .update({ dept_order: list, updated_at: new Date().toISOString() }).eq('id', 1)
+    if (error) {
+      return setErr(/dept_order|column/i.test(error.message)
+        ? '아직 데이터베이스 설정 전입니다. work/supabase/migrations 의 부서 순서 SQL 을 한 번 실행해 주세요.'
+        : errText(error))
+    }
+    setMsg('부서 순서를 저장했습니다.')
+    reloadEmployees()
+  }
+
+  if (!list.length) return null
+  return (
+    <section className="card stack-sm narrow-form">
+      <h2>부서 순서</h2>
+      <p className="hint">직원 목록이 이 순서대로 나옵니다. 같은 부서 안에서는 직급(대표→사원) 순입니다.</p>
+      <ol className="line-list">
+        {list.map((d, i) => (
+          <li key={d}>
+            <span>{d}</span>
+            <button className="icon" aria-label="위로" disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
+            <button className="icon" aria-label="아래로" disabled={i === list.length - 1} onClick={() => move(i, 1)}>↓</button>
+          </li>
+        ))}
+      </ol>
+      <ErrorBox>{err}</ErrorBox>
+      {msg && <p className="ok">{msg}</p>}
+      <div className="actions"><button className="btn primary" onClick={save}>순서 저장</button></div>
+    </section>
+  )
+}
+
 function Staff() {
   const { employees, reloadEmployees, userId } = useSession()
   const [rows, setRows] = useState(employees)
@@ -138,6 +195,7 @@ function Staff() {
         <p><strong>퇴사:</strong> 계정을 지우지 말고 ‘재직’ 체크를 끄세요. 결재 기록은 그대로 남고 로그인만 막힙니다.</p>
         <p><strong>연차:</strong> 비워 두면 입사일 기준 근로기준법 방식으로 자동 계산합니다. 상시 5인 미만 사업장은 법정 연차 적용 대상이 아니므로, 회사 규정이 따로 있으면 ‘연차 직접 지정’에 일수를 넣으세요.</p>
       </div>
+      <DeptOrder />
       <ErrorBox>{err}</ErrorBox>
       {msg && <p className="ok">{msg}</p>}
       <div className="table-wrap card flush">

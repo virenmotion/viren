@@ -102,6 +102,8 @@ create table public.settings (
   office_ips        cidr[] not null default '{}',
   -- true 면 사무실 밖에서는 출근을 못 찍는다. false 면 찍히되 '외부'로 표시.
   require_office_ip boolean not null default false,
+  -- 직원 목록에서 부서가 나올 순서. 여기 없는 부서는 뒤에 가나다순으로 붙는다.
+  dept_order        text[] not null default '{}',
   updated_at        timestamptz not null default now()
 );
 insert into public.settings (id) values (1);
