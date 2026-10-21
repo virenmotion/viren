@@ -154,6 +154,10 @@ create table public.doc_forms (
   guide      text not null default '',
   fields     jsonb not null default '[]'::jsonb,
   default_approvers uuid[] not null default '{}',
+  -- 이 양식이 최종 승인되면 대체휴무가 생긴다(휴일근무신청서 등).
+  -- comp_field = 며칠인지가 들어 있는 칸(날짜 여러 개)의 key.
+  grants_comp boolean not null default false,
+  comp_field  text,
   sort       int  not null default 0,
   active     boolean not null default true,
   created_at timestamptz not null default now(),

@@ -49,10 +49,24 @@ export default function ApprovalNew() {
   const [err, setErr] = useState('')
   const [leaveDocs, setLeaveDocs] = useState([])
 
+  /* 대체휴무: 남은 일수와, 연결할 수 있는 휴일근무 문서들.
+     남은 일수는 서버(comp_balance)가 센다 — 화면과 서버가 같은 값을 쓰도록. */
+  const [comp, setComp] = useState({ left: null, docs: [] })
   useEffect(() => {
     if (form !== 'leave') return
     supabase.from('approval_docs').select('form_type,status,data').eq('drafter_id', userId).eq('form_type', 'leave')
       .in('status', ['approved', 'pending']).then(({ data }) => setLeaveDocs(data || []))
+
+    Promise.all([
+      supabase.rpc('comp_balance', { p_user: userId }),
+      supabase.from('approval_docs')
+        .select('id, doc_no, title, created_at, doc_forms!inner(name, grants_comp)')
+        .eq('drafter_id', userId).eq('status', 'approved').eq('form_type', 'custom')
+        .eq('doc_forms.grants_comp', true).order('created_at', { ascending: false }),
+    ]).then(([bal, docs]) => setComp({
+      left: bal.error ? null : Number(bal.data ?? 0),
+      docs: docs.error ? [] : (docs.data || []),
+    }))
   }, [form, userId])
 
   /* 양식을 바꾸면 그 양식의 기본값과 기본 결재선을 채워 준다.
@@ -93,10 +107,20 @@ export default function ApprovalNew() {
     let data = {}
     if (form === 'leave') {
       if (!leave.dates.length) { setBusy(false); return setErr('휴가 날짜를 골라 주세요.') }
+      if (leave.kind === 'comp' && comp.left != null && days > comp.left) {
+        setBusy(false)
+        return setErr(`남은 대체휴무가 ${comp.left}일입니다. 그보다 많이 신청할 수 없습니다.`)
+      }
       /* dates 가 진짜다. start·end·days 도 같이 보내는 이유:
          서버 쪽 SQL(2026-10-20f)이 아직 안 올라간 동안에도 옛 검사식이 통과하도록.
          올라간 뒤에는 서버가 dates 로 다시 계산하므로 이 값들은 덮어쓰인다. */
       data = { kind: leave.kind, dates: leave.dates, start: leave.dates[0], end: leave.dates[leave.dates.length - 1], days }
+      /* 대휴면 어느 휴일근무로 생긴 건지 같이 남긴다. 나중에 문서만 봐도 알 수 있게
+         제목·문서번호를 함께 적어 둔다(그 문서를 못 보는 사람도 뭔지 알 수 있다). */
+      if (leave.kind === 'comp' && leave.ref) {
+        const d = comp.docs.find((x) => x.id === leave.ref)
+        if (d) data.ref_doc = { id: d.id, doc_no: d.doc_no, title: d.title }
+      }
     }
     if (form === 'expense') data = { items: items.filter((it) => it.desc.trim() || it.amount).map((it) => ({ ...it, amount: Number(it.amount) })) }
     if (form === 'custom') {
@@ -221,6 +245,19 @@ export default function ApprovalNew() {
             <span className="field-label">쉬는 날 {half ? '(반차는 하루만)' : ''}</span>
             <DatePick value={leave.dates} single={half} onChange={(dates) => setLeave({ ...leave, dates })} />
           </div>
+          {leave.kind === 'comp' && (
+            <>
+              <p className="hint">남은 대체휴무 <strong className="tnum">{comp.left == null ? '…' : `${comp.left}일`}</strong>
+                {comp.left === 0 && ' — 휴일근무신청서가 승인되면 생깁니다.'}</p>
+              <label className="field"><span>어느 휴일근무인가요 (선택)</span>
+                <select value={leave.ref || ''} onChange={(e) => setLeave({ ...leave, ref: e.target.value })}>
+                  <option value="">고르지 않음</option>
+                  {comp.docs.map((d) => <option key={d.id} value={d.id}>{d.doc_no} · {d.title}</option>)}
+                </select>
+                {!comp.docs.length && <span className="hint">승인된 휴일근무신청서가 아직 없습니다.</span>}
+              </label>
+            </>
+          )}
           <p className="hint">신청 일수 <strong className="tnum">{days}일</strong>
             {!half && leave.dates.length > 1 && ' — 고른 날만 셉니다. 사이에 낀 날은 들어가지 않습니다.'}</p>
           {['public', 'comp'].includes(leave.kind) && <p className="hint">{LEAVE_KINDS[leave.kind]}는 연차에서 빠지지 않습니다.</p>}

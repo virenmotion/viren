@@ -89,9 +89,11 @@ function FormEditor({ form, onClose, onSaved }) {
     setErr('')
     if (!f.name.trim()) return setErr('양식 이름을 넣어 주세요.')
     if (f.fields.some((x) => !String(x.label || '').trim())) return setErr('이름이 비어 있는 칸이 있습니다.')
+    if (f.grants_comp && !f.comp_field) return setErr('대체휴무 일수를 셀 칸을 골라 주세요.')
     const row = {
       name: f.name.trim(), guide: f.guide || '', fields: f.fields,
       default_approvers: f.default_approvers, active: f.active, sort: Number(f.sort) || 0,
+      grants_comp: !!f.grants_comp, comp_field: f.grants_comp ? f.comp_field : null,
     }
     setBusy(true)
     const { error } = f.id
@@ -130,6 +132,23 @@ function FormEditor({ form, onClose, onSaved }) {
         <input type="checkbox" checked={f.active} onChange={(e) => set({ active: e.target.checked })} />
         사용 (끄면 새 문서 화면에서 안 보입니다. 이미 올라간 문서는 그대로 남습니다)
       </label>
+
+      {/* 휴일근무신청서처럼 '승인되면 대체휴무가 생기는' 양식 표시 */}
+      <label className="check">
+        <input type="checkbox" checked={!!f.grants_comp} onChange={(e) => set({ grants_comp: e.target.checked })} />
+        이 양식이 <strong>최종 승인되면 대체휴무가 생깁니다</strong> (휴일근무신청서 등)
+      </label>
+      {f.grants_comp && (
+        <label className="field"><span>며칠인지가 들어 있는 칸</span>
+          <select value={f.comp_field || ''} onChange={(e) => set({ comp_field: e.target.value })}>
+            <option value="">고르세요</option>
+            {f.fields.filter((x) => x.type === 'dates').map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+          </select>
+          {!f.fields.some((x) => x.type === 'dates') && (
+            <span className="hint">먼저 아래에서 <strong>‘날짜 여러 개’</strong> 칸을 하나 넣어 주세요. 고른 날 수가 곧 대체휴무 일수가 됩니다.</span>
+          )}
+        </label>
+      )}
 
       <h3>기본 결재선</h3>
       <p className="hint">이 양식을 고르면 결재선에 미리 채워 둘 사람입니다. 쓰는 사람이 바꿀 수 있습니다.</p>

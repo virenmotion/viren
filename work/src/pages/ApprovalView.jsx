@@ -113,6 +113,10 @@ export default function ApprovalView() {
               ? doc.data.dates.map(dot).join(', ')
               : (doc.data.start === doc.data.end ? dot(doc.data.start) : `${dot(doc.data.start)} ~ ${dot(doc.data.end)}`)}</dd>
             <dt>일수</dt><dd className="tnum">{doc.data.days}일</dd>
+            {doc.data.ref_doc && (<>
+              <dt>관련 문서</dt>
+              <dd><Link to={`/approval/${doc.data.ref_doc.id}`}>{doc.data.ref_doc.doc_no} · {doc.data.ref_doc.title}</Link></dd>
+            </>)}
           </dl>
         )}
 

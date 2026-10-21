@@ -3,6 +3,7 @@ import { won } from '../lib/labels'
 import { dot } from '../lib/dates'
 import { emptyRow, emptyValue, tableTotal } from '../lib/formFields'
 import RichText, { RichTextView } from './RichText'
+import DatePick from './DatePick'
 
 /* 직접 만든 양식의 칸을 그려 준다.
    · FormInputs — 문서를 쓸 때
@@ -84,6 +85,17 @@ function FieldInput({ f, value, onChange }) {
       <div className="field">
         <span className="field-label">{label}</span>
         <RichText value={value ?? ''} onChange={onChange} />
+      </div>
+    )
+  }
+
+  if (f.type === 'dates') {
+    const picked = Array.isArray(value) ? value : []
+    return (
+      <div className="field">
+        <span className="field-label">{label}</span>
+        <DatePick value={picked} onChange={onChange} />
+        <p className="hint">고른 날 <strong className="tnum">{picked.length}일</strong></p>
       </div>
     )
   }
@@ -197,6 +209,17 @@ export function FormView({ fields, values }) {
                 </table>
               </div>
             </section>
+          )
+        }
+
+        if (f.type === 'dates') {
+          const ds = Array.isArray(v) ? v : []
+          if (!ds.length) return null
+          return (
+            <div key={f.key} className="fv-row">
+              <span className="fv-label">{f.label}</span>
+              <span className="fv-value tnum">{ds.map(dot).join(', ')} <b>({ds.length}일)</b></span>
+            </div>
           )
         }
 

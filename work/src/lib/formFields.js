@@ -13,6 +13,7 @@ export const FIELD_TYPES = {
   textarea: { label: '여러 줄 글', hint: '사유, 목적처럼 긴 글' },
   rich: { label: '본문 (편집기)', hint: '굵게·표까지 되는 본문. 기본 문구를 미리 넣어 둘 수 있다' },
   date: { label: '날짜', hint: '' },
+  dates: { label: '날짜 여러 개', hint: '달력에서 여러 날을 고른다. 휴일근무처럼 "며칠" 인지 세야 할 때' },
   datetime: { label: '날짜 + 시각', hint: '연차휴가원처럼 시각까지 받을 때' },
   number: { label: '숫자', hint: '단위를 붙일 수 있다 (예: 일, 개)' },
   money: { label: '금액', hint: '1,200,000원 처럼 보여 준다' },
@@ -39,6 +40,7 @@ export const INPUT_TYPES = Object.keys(FIELD_TYPES).filter((t) => t !== 'divider
 export function emptyValue(f) {
   if (f.type === 'table') return [emptyRow(f)]
   if (f.type === 'rich') return f.html || ''
+  if (f.type === 'dates') return []
   if (f.type === 'member' && f.multi) return []
   return ''
 }
