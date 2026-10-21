@@ -208,8 +208,12 @@ const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } })
 
 export async function onRequestPost({ request, env }) {
-  if (!env.VAPID_PRIVATE || !env.VITE_VAPID_PUBLIC || !env.SUPABASE_SERVICE_ROLE_KEY) {
-    return json({ error: '알림 설정(환경변수)이 아직 없습니다.' }, 503)
+  /* 어느 값이 비었는지 **이름만** 알려 준다. 값은 절대 내보내지 않는다.
+     "설정이 없습니다" 만으로는 넷 중 무엇을 빠뜨렸는지 알 길이 없어 한참 헤맸다. */
+  const missing = ['VITE_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'VITE_VAPID_PUBLIC', 'VAPID_PRIVATE', 'PUSH_SECRET']
+    .filter((k) => !env[k])
+  if (missing.length) {
+    return json({ error: '알림 설정이 아직 없습니다.', missing }, 503)
   }
 
   let input = {}
