@@ -151,6 +151,17 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 
 ### 끝난 일
 
+- **2026-10-21 ⚠️ 첨부파일 실물은 SQL 로 못 지운다.** 시험 문서를 치우려다 걸렸다.
+  `delete from storage.objects` → `42501 Direct deletion from storage tables is not
+  allowed. Use the Storage API instead.` Supabase 가 막아 둔 것이다(주인 없는 파일이
+  생기는 걸 막으려고).
+  · SQL Editor 는 스크립트 전체를 한 덩어리로 돌린다 → **앞 문장이 걸리면 뒤도 전부
+    되돌아간다.** 그래서 문서도 안 지워졌다. 손대기 전 상태 그대로였다.
+  · 바른 순서: ① SQL 로 문서를 지운다 → ② Storage 화면에서 `approval-files` 를
+    통째로 비운다(문서가 없으니 남은 건 전부 주인 없는 파일이다).
+  · 저장소를 건드리는 일은 **화면(Storage API)으로 해야 한다.** SQL 로 될 거라 보고
+    스크립트에 섞어 넣은 게 잘못이었다.
+
 - **2026-10-21 홈에 '남은 대체휴무' 칸.** 연차 옆에 나란히(한 줄 네 칸).
   · 숫자는 서버(`comp_balance`)가 센다. 화면이 따로 세면 휴가신청서에서 보는 값과 어긋난다.
   · 누르면 휴가신청서가 종류 '대휴' 로 미리 골라진 채 열린다(`?kind=comp`).
