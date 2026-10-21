@@ -193,6 +193,7 @@ function Staff() {
       name: r.name.trim(), dept: r.dept.trim(), position: r.position.trim(), duty: (r.duty || '').trim(), role: r.role,
       hire_date: r.hire_date || null,
       leave_override: r.leave_override === '' || r.leave_override == null ? null : Number(r.leave_override),
+      leave_used_before: Number(r.leave_used_before) || 0,
       active: r.active,
     }).eq('id', r.id)
     if (error) return setErr(errText(error))
@@ -207,12 +208,13 @@ function Staff() {
         <p><strong>직원 추가:</strong> Supabase 대시보드 → Authentication → Users → <em>Add user</em> → <em>Create new user</em>에서 회사 이메일과 임시 비밀번호를 넣고 <em>Auto Confirm User</em>를 켭니다. 그러면 이 목록에 <strong>재직이 꺼진 상태</strong>로 나타납니다. 이름·직급·입사일을 채우고 ‘재직’을 켠 뒤 저장해야 로그인할 수 있습니다. 본인에게는 첫 로그인 후 비밀번호를 바꾸라고 알려 주세요.</p>
         <p><strong>퇴사:</strong> 계정을 지우지 말고 ‘재직’ 체크를 끄세요. 결재 기록은 그대로 남고 로그인만 막힙니다.</p>
         <p><strong>연차:</strong> 비워 두면 입사일 기준 근로기준법 방식으로 자동 계산합니다. 상시 5인 미만 사업장은 법정 연차 적용 대상이 아니므로, 회사 규정이 따로 있으면 ‘연차 직접 지정’에 일수를 넣으세요.</p>
+        <p><strong>이전 사용:</strong> 카카오워크처럼 전에 쓰던 곳에서 이미 쓴 연차 일수입니다. 남은 연차에서 함께 빠집니다. <strong>연차 기간이 새로 시작되면(입사 1년마다) 0으로 되돌려 주세요.</strong></p>
       </div>
       <ErrorBox>{err}</ErrorBox>
       {msg && <p className="ok">{msg}</p>}
       <div className="table-wrap card flush">
         <table className="table staff">
-          <thead><tr><th aria-label="순서" /><th>이름</th><th>이메일</th><th>부서</th><th>직급</th><th>직책</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>권한</th><th>재직</th><th></th></tr></thead>
+          <thead><tr><th aria-label="순서" /><th>이름</th><th>이메일</th><th>부서</th><th>직급</th><th>직책</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>이전 사용</th><th>권한</th><th>재직</th><th></th></tr></thead>
           <tbody>
             {rows.map((r, i) => {
               const p = leavePeriod(r.hire_date)
@@ -255,6 +257,7 @@ function Staff() {
                   <td><input id={`h-${r.id}`} type="date" value={r.hire_date || ''} onChange={(e) => set(r.id, { hire_date: e.target.value })} /></td>
                   <td className="tnum small">{p ? `${p.legal}일` : '—'}</td>
                   <td><input id={`o-${r.id}`} className="tnum" type="number" step="0.5" min="0" value={r.leave_override ?? ''} placeholder="자동" onChange={(e) => set(r.id, { leave_override: e.target.value })} /></td>
+                  <td><input id={`b-${r.id}`} className="tnum" type="number" step="0.5" min="0" value={r.leave_used_before ?? 0} onChange={(e) => set(r.id, { leave_used_before: e.target.value })} /></td>
                   <td>
                     <select id={`r-${r.id}`} value={r.role} onChange={(e) => set(r.id, { role: e.target.value })}>
                       <option value="member">직원</option><option value="admin">관리자</option>

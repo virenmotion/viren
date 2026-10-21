@@ -36,7 +36,11 @@ export function leaveSummary(employee, docs, on = today()) {
     d.data.start >= period.start && d.data.start < period.end
   const sum = (status) =>
     docs.filter((d) => d.status === status && inPeriod(d)).reduce((a, d) => a + Number(d.data.days || 0), 0)
-  const used = sum('approved')
+  /* 이전 시스템(카카오워크)에서 쓴 연차. 우리 시스템에는 문서가 없으니 숫자로만 뺀다.
+     ⚠️ 연차 기간이 바뀌면(입사 1년마다) 이 값도 0 으로 되돌려야 한다 — 지난 기간에
+        쓴 걸 새 기간에서 계속 빼면 안 된다. 지금은 사람이 직접 고친다. */
+  const usedBefore = Number(employee.leave_used_before || 0)
+  const used = sum('approved') + usedBefore
   const pending = sum('pending')
-  return { ...period, entitled, overridden: override != null, used, pending, remaining: entitled - used }
+  return { ...period, entitled, overridden: override != null, used, usedBefore, pending, remaining: entitled - used }
 }

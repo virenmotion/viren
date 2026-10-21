@@ -34,6 +34,9 @@ create table public.employees (
   hire_date      date,
   -- 연차 일수를 직접 정할 때만 넣는다. 비어 있으면 입사일 기준으로 자동 계산.
   leave_override numeric(4,1) check (leave_override is null or leave_override >= 0),
+  -- 이전 시스템(카카오워크)에서 이미 쓴 연차. 남은 연차에서 같이 뺀다.
+  -- 연차 기간이 새로 시작되면 0 으로 되돌린다.
+  leave_used_before numeric(4,1) not null default 0 check (leave_used_before >= 0),
   active         boolean not null default true,
   created_at     timestamptz not null default now()
 );

@@ -226,7 +226,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .table .title-cell a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .table.compact th, .table.compact td { padding: 7px 8px; }
 .table.compact input { padding: 7px 9px; }
-.table.staff { min-width: 1180px; }
+.table.staff { min-width: 1280px; }
 .table.staff input, .table.staff select { padding: 6px 8px; }
 .table.staff td { padding: 7px 8px; }
 .table.staff select { min-width: 92px; }
