@@ -627,3 +627,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   .cal-bar { font-size: .58rem; line-height: 14px; padding: 0 3px; margin: 0 2px; border-left-width: 2px; }
 }
 .dept-name { flex: 1; min-width: 0; font-weight: 600; }
+
+/* 직원 줄 끌어서 순서 바꾸기 */
+.ord-cell { white-space: nowrap; }
+.ord-cell .drag-handle { margin-right: 4px; }
+.table tr.dragging { opacity: .45; }

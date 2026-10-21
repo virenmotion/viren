@@ -8,7 +8,7 @@ import { downloadBlob } from '../lib/csv'
 import { ErrorBox } from '../components/ui'
 import AdminForms from './AdminForms'
 
-const TABS = [['staff', '직원'], ['dept', '부서'], ['settings', '출근 설정'], ['forms', '양식'], ['cats', '일정 분류'], ['backup', '백업']]
+const TABS = [['staff', '직원'], ['settings', '출근 설정'], ['forms', '양식'], ['cats', '일정 분류'], ['backup', '백업']]
 
 export default function Admin() {
   const [tab, setTab] = useState('staff')
@@ -19,7 +19,6 @@ export default function Admin() {
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}
       </div>
       {tab === 'staff' && <Staff />}
-      {tab === 'dept' && <DeptOrder />}
       {tab === 'settings' && <Settings />}
       {tab === 'forms' && <AdminForms />}
       {tab === 'cats' && <Categories />}
@@ -50,6 +49,29 @@ function Categories() {
   useEffect(() => { load() }, [])
 
   const set = (id, patch) => setRows(rows.map((r) => (r.id === id ? { ...r, ...patch, _dirty: true } : r)))
+
+  /* 줄을 끌어 순서 바꾸기 — 일정 분류와 같은 방식. 놓으면 바로 저장된다.
+     ⚠️ 끌기는 터치 화면에서 안 되므로 ↑↓ 도 같이 둔다. */
+  async function reorder(from, to) {
+    if (from == null || to == null || from === to || to < 0 || to >= rows.length) return
+    const next = [...rows]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    const renumbered = next.map((r, i) => ({ ...r, sort: i + 1 }))
+    setRows(renumbered)
+    setErr(''); setMsg('')
+    const before = new Map(rows.map((r) => [r.id, r.sort]))
+    for (const r of renumbered.filter((r) => before.get(r.id) !== r.sort)) {
+      const { error } = await supabase.from('employees').update({ sort: r.sort }).eq('id', r.id)
+      if (error) {
+        return setErr(/sort/i.test(error.message)
+          ? '아직 데이터베이스 설정 전입니다. work/supabase/migrations 의 직원 순서 SQL 을 한 번 실행해 주세요.'
+          : errText(error))
+      }
+    }
+    setMsg('순서를 바꿨습니다.')
+    reloadEmployees()
+  }
 
   async function save(r) {
     setErr(''); setMsg('')
@@ -148,83 +170,16 @@ function Categories() {
   )
 }
 
-/* 부서 순서 — 직원 목록이 어떤 부서부터 나올지 정한다.
-   settings.dept_order 에 배열로 담는다(새 표를 만들 만큼 큰 일이 아니다). */
-function DeptOrder() {
-  const { employees, deptOrder, reloadEmployees } = useSession()
-  const [list, setList] = useState([])
-  const [dragFrom, setDragFrom] = useState(null)
-  const [canDrag, setCanDrag] = useState(null)
-  const [msg, setMsg] = useState('')
-  const [err, setErr] = useState('')
-
-  useEffect(() => {
-    /* 저장된 순서 + 아직 순서에 없는 부서(뒤에 붙임) */
-    const used = [...new Set(employees.map((e) => (e.dept || '').trim()).filter(Boolean))]
-    const kept = deptOrder.filter((d) => used.includes(d))
-    setList([...kept, ...used.filter((d) => !kept.includes(d)).sort((a, b) => a.localeCompare(b, 'ko'))])
-  }, [employees, deptOrder])
-
-  /* 순서 바꾸기 — 화면을 먼저 바꾸고 바로 저장한다 (일정 분류와 같은 방식) */
-  async function reorder(from, to) {
-    if (from == null || to == null || from === to || to < 0 || to >= list.length) return
-    const next = [...list]
-    const [moved] = next.splice(from, 1)
-    next.splice(to, 0, moved)
-    setList(next)
-    setErr(''); setMsg('')
-    const { error } = await supabase.from('settings')
-      .update({ dept_order: next, updated_at: new Date().toISOString() }).eq('id', 1)
-    if (error) {
-      return setErr(/dept_order|column/i.test(error.message)
-        ? '아직 데이터베이스 설정 전입니다. work/supabase/migrations 의 부서 순서 SQL 을 한 번 실행해 주세요.'
-        : errText(error))
-    }
-    setMsg('순서를 바꿨습니다.')
-    reloadEmployees()
-  }
-
-  return (
-    <section className="card stack-sm narrow-form">
-      <h2>부서 순서</h2>
-      <p className="hint">직원 목록이 이 순서대로 나옵니다. 같은 부서 안에서는 직급(대표→사원) 순입니다.
-        <strong>왼쪽 손잡이(⠿)를 끌어</strong> 바꾸세요. 바꾸면 바로 저장됩니다.</p>
-      <p className="hint">부서 이름은 <strong>직원</strong> 탭에서 각자의 부서 칸을 고쳐 바꿉니다.
-        여기에는 지금 쓰이는 부서만 나옵니다.</p>
-
-      {!list.length && <p className="muted">아직 부서가 없습니다. 직원 탭에서 부서를 넣어 주세요.</p>}
-      <ul className="cat-list">
-        {list.map((d, i) => (
-          <li
-            key={d}
-            className={`cat-row${dragFrom === i ? ' dragging' : ''}`}
-            draggable={canDrag === d}
-            onDragStart={() => setDragFrom(i)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => { e.preventDefault(); reorder(dragFrom, i); setDragFrom(null); setCanDrag(null) }}
-            onDragEnd={() => { setDragFrom(null); setCanDrag(null) }}
-          >
-            <span
-              className="drag-handle" aria-hidden="true" title="끌어서 순서 바꾸기"
-              onMouseDown={() => setCanDrag(d)} onMouseUp={() => setCanDrag(null)}
-            >⠿</span>
-            <span className="dept-name">{d}</span>
-            <span className="ord-btns">
-              <button className="icon" aria-label={`${d} 위로`} disabled={i === 0} onClick={() => reorder(i, i - 1)}>↑</button>
-              <button className="icon" aria-label={`${d} 아래로`} disabled={i === list.length - 1} onClick={() => reorder(i, i + 1)}>↓</button>
-            </span>
-          </li>
-        ))}
-      </ul>
-      <ErrorBox>{err}</ErrorBox>
-      {msg && <p className="ok">{msg}</p>}
-    </section>
-  )
-}
-
+/* 직원 — 정보 수정과 **순서 정하기**.
+   순서는 employees.sort 하나로 정한다. 줄을 끌어 옮기면 바로 저장되고,
+   결재자 고르기 등 직원 목록이 쓰이는 모든 곳이 이 순서를 따른다.
+   (2026-10-21 전에는 settings.dept_order 로 부서 순서만 정했다. 그 칸은
+    더 이상 쓰지 않는다 — 지우지는 않았다.) */
 function Staff() {
   const { employees, reloadEmployees, userId } = useSession()
   const [rows, setRows] = useState(employees)
+  const [dragFrom, setDragFrom] = useState(null)
+  const [canDrag, setCanDrag] = useState(null)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   useEffect(() => setRows(employees), [employees])
@@ -247,6 +202,7 @@ function Staff() {
   return (
     <section className="stack-sm">
       <div className="card info">
+        <p><strong>순서:</strong> 왼쪽 손잡이(⠿)를 끌어 직원 순서를 바꿉니다. 이 순서가 결재자 고르기 등 직원 목록이 쓰이는 모든 곳에 적용됩니다.</p>
         <p><strong>직원 추가:</strong> Supabase 대시보드 → Authentication → Users → <em>Add user</em> → <em>Create new user</em>에서 회사 이메일과 임시 비밀번호를 넣고 <em>Auto Confirm User</em>를 켭니다. 그러면 이 목록에 <strong>재직이 꺼진 상태</strong>로 나타납니다. 이름·직급·입사일을 채우고 ‘재직’을 켠 뒤 저장해야 로그인할 수 있습니다. 본인에게는 첫 로그인 후 비밀번호를 바꾸라고 알려 주세요.</p>
         <p><strong>퇴사:</strong> 계정을 지우지 말고 ‘재직’ 체크를 끄세요. 결재 기록은 그대로 남고 로그인만 막힙니다.</p>
         <p><strong>연차:</strong> 비워 두면 입사일 기준 근로기준법 방식으로 자동 계산합니다. 상시 5인 미만 사업장은 법정 연차 적용 대상이 아니므로, 회사 규정이 따로 있으면 ‘연차 직접 지정’에 일수를 넣으세요.</p>
@@ -255,12 +211,28 @@ function Staff() {
       {msg && <p className="ok">{msg}</p>}
       <div className="table-wrap card flush">
         <table className="table staff">
-          <thead><tr><th>이름</th><th>이메일</th><th>부서</th><th>직급</th><th>직책</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>권한</th><th>재직</th><th></th></tr></thead>
+          <thead><tr><th aria-label="순서" /><th>이름</th><th>이메일</th><th>부서</th><th>직급</th><th>직책</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>권한</th><th>재직</th><th></th></tr></thead>
           <tbody>
-            {rows.map((r) => {
+            {rows.map((r, i) => {
               const p = leavePeriod(r.hire_date)
               return (
-                <tr key={r.id} className={r.active ? '' : 'inactive'}>
+                <tr
+                  key={r.id}
+                  className={`${r.active ? '' : 'inactive'}${dragFrom === i ? ' dragging' : ''}`}
+                  draggable={canDrag === r.id}
+                  onDragStart={() => setDragFrom(i)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); reorder(dragFrom, i); setDragFrom(null); setCanDrag(null) }}
+                  onDragEnd={() => { setDragFrom(null); setCanDrag(null) }}
+                >
+                  <td className="ord-cell">
+                    <span className="drag-handle" aria-hidden="true" title="끌어서 순서 바꾸기"
+                      onMouseDown={() => setCanDrag(r.id)} onMouseUp={() => setCanDrag(null)}>⠿</span>
+                    <span className="ord-btns">
+                      <button className="icon" aria-label={`${r.name} 위로`} disabled={i === 0} onClick={() => reorder(i, i - 1)}>↑</button>
+                      <button className="icon" aria-label={`${r.name} 아래로`} disabled={i === rows.length - 1} onClick={() => reorder(i, i + 1)}>↓</button>
+                    </span>
+                  </td>
                   <td><input id={`n-${r.id}`} value={r.name} onChange={(e) => set(r.id, { name: e.target.value })} /></td>
                   <td className="small">{r.email}</td>
                   <td><input id={`d-${r.id}`} value={r.dept} onChange={(e) => set(r.id, { dept: e.target.value })} /></td>

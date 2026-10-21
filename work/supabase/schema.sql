@@ -28,6 +28,8 @@ create table public.employees (
   position       text not null default '',
   -- 직책(CEO·Director·leader·PM). 직급은 위 position. 고를 값은 src/lib/labels.js
   duty           text not null default '',
+  -- 직원 목록에 나올 순서. 관리 → 직원에서 줄을 끌어 정한다.
+  sort           int not null default 0,
   role           text not null default 'member' check (role in ('admin', 'member')),
   hire_date      date,
   -- 연차 일수를 직접 정할 때만 넣는다. 비어 있으면 입사일 기준으로 자동 계산.
