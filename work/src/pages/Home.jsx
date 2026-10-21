@@ -6,6 +6,7 @@ import { dot, hm, hoursText, minutesBetween, parse, today, weekday } from '../li
 import { leaveSummary } from '../lib/leave'
 import { formName } from '../lib/labels'
 import { Empty, ErrorBox, StatusPill } from '../components/ui'
+import Shortcuts from '../components/Shortcuts'
 
 /* 화면에 띄워 둔 동안 시계·근무시간이 흘러가도록 20초마다 다시 그린다 */
 function useNow(ms = 20000) {
@@ -65,6 +66,8 @@ export default function Home() {
 
   return (
     <div className="stack home">
+      <Shortcuts />
+
       <header className="home-head">
         <p className="eyebrow">{m}월 {day}일 {weekday(d)}요일</p>
         <h1>{me.name}님, {greet}</h1>

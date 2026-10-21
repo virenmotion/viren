@@ -192,6 +192,15 @@ export default function ApprovalView() {
           )}
         </div>
       )}
+
+      {/* 회수한 내 문서는 고쳐서 다시 올릴 수 있다 (지은님 2026-10-21).
+          새 문서가 아니라 같은 문서를 다시 올리는 것이라 문서번호·첨부가 그대로다. */}
+      {doc.status === 'withdrawn' && doc.drafter_id === userId && (
+        <div className="actions no-print">
+          <span className="small">회수한 문서입니다. 고쳐서 다시 올릴 수 있어요.</span>
+          <Link className="btn primary" to={`/approval/new?from=${doc.id}`}>고쳐서 다시 올리기</Link>
+        </div>
+      )}
     </div>
   )
 }

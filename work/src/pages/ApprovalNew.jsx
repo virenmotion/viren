@@ -35,6 +35,13 @@ export default function ApprovalNew() {
   const form = customForm ? 'custom' : (FORMS[picked] ? picked : 'general')
   const [fieldValues, setFieldValues] = useState({})
 
+  /* 회수한 문서를 고쳐서 다시 올리기 (지은님 2026-10-21).
+     **새 문서를 만드는 게 아니다.** 같은 문서(같은 문서번호·첨부)를 고쳐서 다시 올린다.
+     그래서 양식은 바꿀 수 없다 — 바꾸려면 새로 쓰는 게 맞다. */
+  const againId = params.get('from')
+  const [again, setAgain] = useState(null)
+  const [againErr, setAgainErr] = useState('')
+
   const others = activeEmployees.filter((e) => e.id !== userId)
   const valid = (ids) => ids.filter((id) => others.some((e) => e.id === id))
   const [approvers, setApprovers] = useState(() => valid(loadLastLine().approvers))
@@ -69,10 +76,44 @@ export default function ApprovalNew() {
     }))
   }, [form, userId])
 
-  /* 양식을 바꾸면 그 양식의 기본값과 기본 결재선을 채워 준다.
-     결재선은 **비어 있을 때만** 덮는다 — 사용자가 이미 고른 걸 지우면 곤란하다. */
+  /* 회수한 문서 불러오기 — 제목·본문·결재선·내용을 그대로 채운다. */
   useEffect(() => {
-    if (!customForm) return
+    if (!againId) return
+    let gone = false
+    ;(async () => {
+      const { data: doc } = await supabase.from('approval_docs').select('*').eq('id', againId).maybeSingle()
+      if (gone) return
+      if (!doc) return setAgainErr('문서를 불러오지 못했습니다.')
+      if (doc.drafter_id !== userId) return setAgainErr('내가 올린 문서만 다시 올릴 수 있습니다.')
+      if (doc.status !== 'withdrawn') return setAgainErr('회수한 문서만 다시 올릴 수 있습니다.')
+
+      const [{ data: steps }, { data: rf }] = await Promise.all([
+        supabase.from('approval_steps').select('approver_id, step').eq('doc_id', againId).order('step'),
+        supabase.from('approval_refs').select('user_id').eq('doc_id', againId),
+      ])
+      if (gone) return
+
+      setTitle(doc.title)
+      setContent(doc.content || '')
+      setApprovers((steps || []).map((s) => s.approver_id))
+      setRefs((rf || []).map((r) => r.user_id))
+      const d = doc.data || {}
+      if (doc.form_type === 'leave') setLeave({ kind: d.kind || 'annual', half: d.half || '', dates: d.dates || [d.start || today()], ref: d.ref_doc?.id || '' })
+      if (doc.form_type === 'expense') setItems(d.items?.length ? d.items.map((it) => ({ ...it, amount: String(it.amount ?? '') })) : [{ date: today(), desc: '', amount: '' }])
+      if (doc.form_type === 'custom') setFieldValues(d.fields || {})
+      setAgain(doc)
+      /* 양식 탭을 문서의 양식에 맞춘다(뒤로 가기 기록은 남기지 않는다) */
+      setParams({ form: doc.form_type === 'custom' ? doc.form_id : doc.form_type, from: againId }, { replace: true })
+    })()
+    return () => { gone = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [againId, userId])
+
+  /* 양식을 바꾸면 그 양식의 기본값과 기본 결재선을 채워 준다.
+     결재선은 **비어 있을 때만** 덮는다 — 사용자가 이미 고른 걸 지우면 곤란하다.
+     ⚠️ 다시 올리는 중이면 건드리지 않는다. 불러온 내용을 지워 버린다. */
+  useEffect(() => {
+    if (!customForm || againId) return
     setFieldValues(Object.fromEntries((customForm.fields || []).map((x) => [x.key, emptyValue(x)])))
     const pre = valid(customForm.default_approvers || [])
     if (pre.length) setApprovers(pre)
@@ -131,10 +172,15 @@ export default function ApprovalNew() {
     }
 
     setBusy(true)
-    const { data: id, error } = await supabase.rpc('submit_doc', {
-      p_form_type: form, p_title: t, p_content: content, p_data: data, p_approvers: approvers, p_refs: refs,
-      p_form_id: customForm?.id || null,
-    })
+    /* 다시 올리는 문서는 같은 문서를 고치는 것이라 함수가 다르다. 문서번호도 그대로. */
+    const { data: id, error } = again
+      ? await supabase.rpc('resubmit_doc', {
+        p_doc: again.id, p_title: t, p_content: content, p_data: data, p_approvers: approvers, p_refs: refs,
+      })
+      : await supabase.rpc('submit_doc', {
+        p_form_type: form, p_title: t, p_content: content, p_data: data, p_approvers: approvers, p_refs: refs,
+        p_form_id: customForm?.id || null,
+      })
     if (error) { setBusy(false); return setErr(errText(error)) }
 
     try { localStorage.setItem(LINE_KEY, JSON.stringify({ approvers, refs })) } catch { /* 저장 안 돼도 그만 */ }
@@ -149,6 +195,14 @@ export default function ApprovalNew() {
     }
     setBusy(false)
     nav(`/approval/${id}`, { replace: true, state: failed.length ? { uploadFailed: failed } : null })
+  }
+
+  /* 다시 올릴 문서를 불러오는 중 · 못 불러왔을 때 */
+  if (againId && againErr) {
+    return <div className="stack"><h1>다시 올리기</h1><ErrorBox>{againErr}</ErrorBox></div>
+  }
+  if (againId && !again) {
+    return <div className="stack"><h1>다시 올리기</h1><p className="hint">문서를 불러오는 중…</p></div>
   }
 
   /* 양식을 아직 안 골랐으면 고르는 화면부터 */
@@ -188,8 +242,14 @@ export default function ApprovalNew() {
     <form className="stack" onSubmit={submit}>
       <div className="row-between">
         <h1>{customForm ? customForm.name : FORMS[form]}</h1>
-        <button type="button" className="btn small-btn" onClick={() => setParams({})}>← 양식 다시 고르기</button>
+        {again
+          ? <span className="tag">{again.doc_no} · 다시 올리기</span>
+          : <button type="button" className="btn small-btn" onClick={() => setParams({})}>← 양식 다시 고르기</button>}
       </div>
+      {again && (
+        <p className="hint">회수한 문서를 고쳐서 다시 올립니다. <strong>문서번호와 이미 올린 첨부파일은 그대로</strong>이고,
+          결재는 처음부터 다시 시작합니다. 양식은 바꿀 수 없어요 — 바꾸려면 새 문서를 쓰세요.</p>
+      )}
 
       <section className="card stack-sm">
         <h2>결재선</h2>
@@ -311,7 +371,8 @@ export default function ApprovalNew() {
 
       <ErrorBox>{err}</ErrorBox>
       <div className="actions">
-        <button className="btn primary big" disabled={busy}>{busy ? '올리는 중…' : '결재 올리기'}</button>
+        <button className="btn primary big" disabled={busy}>
+          {busy ? '올리는 중…' : again ? '고쳐서 다시 올리기' : '결재 올리기'}</button>
       </div>
     </form>
   )

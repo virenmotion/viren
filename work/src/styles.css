@@ -251,6 +251,33 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .home { gap: 22px; }
 .home-head { display: grid; gap: 2px; }
 
+/* 바로가기 줄 — 바이렌 바깥 페이지로 나가는 길. 화면이 좁으면 옆으로 민다. */
+.shortcuts {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: -6px;
+}
+.shortcuts .sc {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 13px 7px 11px; border-radius: 99px;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink-2); font-size: .85rem; font-weight: 600; text-decoration: none;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.shortcuts .sc svg { width: 16px; height: 16px; flex: none; }
+.shortcuts .sc:hover { border-color: var(--ink); color: var(--ink); background: var(--surface-2); }
+.shortcuts .sc.doc { background: var(--accent-soft); border-color: #f0dfa4; color: var(--accent-ink); }
+.shortcuts .sc.doc:hover { background: #ffeeb8; border-color: var(--accent); color: var(--accent-ink); }
+
+@media (max-width: 640px) {
+  /* 줄바꿈 대신 가로 스크롤 — 한 줄로 두어 화면 위를 덜 먹는다 */
+  .shortcuts {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    margin-inline: -16px; padding-inline: 16px;
+  }
+  .shortcuts::-webkit-scrollbar { display: none; }
+  .shortcuts .sc { flex: none; }
+}
+
 .punch {
   background: var(--brand); color: var(--on-brand); border-radius: 16px; padding: 26px 28px;
   display: grid; grid-template-columns: 1fr auto; grid-template-areas: "clock btn" "times btn" "note note";
