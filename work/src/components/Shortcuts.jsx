@@ -46,7 +46,7 @@ export default function Shortcuts() {
           <span>{s.label}</span>
         </a>
       ))}
-      <a className="sc doc" href={PROFILE_PDF} target="_blank" rel="noopener noreferrer">
+      <a className="sc sc-pdf" href={PROFILE_PDF} target="_blank" rel="noopener noreferrer">
         <svg viewBox="0 0 24 24" aria-hidden="true">{DOC_ICON}</svg>
         <span>회사소개서</span>
       </a>

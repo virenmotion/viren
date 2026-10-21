@@ -265,8 +265,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 }
 .shortcuts .sc svg { width: 16px; height: 16px; flex: none; }
 .shortcuts .sc:hover { border-color: var(--ink); color: var(--ink); background: var(--surface-2); }
-.shortcuts .sc.doc { background: var(--accent-soft); border-color: #f0dfa4; color: var(--accent-ink); }
-.shortcuts .sc.doc:hover { background: #ffeeb8; border-color: var(--accent); color: var(--accent-ink); }
+.shortcuts .sc-pdf { background: var(--accent-soft); border-color: #f0dfa4; color: var(--accent-ink); }
+.shortcuts .sc-pdf:hover { background: #ffeeb8; border-color: var(--accent); color: var(--accent-ink); }
 
 @media (max-width: 640px) {
   /* 줄바꿈 대신 가로 스크롤 — 한 줄로 두어 화면 위를 덜 먹는다 */
