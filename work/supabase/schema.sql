@@ -1229,17 +1229,11 @@ $$;
 grant execute on function public.storage_usage() to authenticated;
 
 -- ⑤ 매일 새벽 3시(한국) ---------------------------------------------------
-create extension if not exists pg_cron;
-
--- 같은 이름으로 다시 걸면 먼저 걷어낸다(두 번 돌지 않게).
-do $$
-begin
-  perform cron.unschedule('viren-chat-cleanup');
-exception when others then null;
-end $$;
-
--- 18:00 UTC = 03:00 한국. 아무도 안 쓰는 시간에.
-select cron.schedule('viren-chat-cleanup', '0 18 * * *', $$select public.run_chat_cleanup()$$);
+-- ⚠️ 예약(pg_cron)은 **설치 맨 끝에 따로** 돌린다. Supabase 쪽 설정에 따라
+--    실패할 수 있고, 한 덩어리로 돌리면 앞의 것까지 되돌아간다.
+--    supabase/migrations/2026-10-21l-cron.sql 참고.
+--      create extension if not exists pg_cron;
+--      select cron.schedule('viren-chat-cleanup', '0 18 * * *', $x$select public.run_chat_cleanup()$x$);
 
 -- ---------------------------------------------------------------------
 -- 권한 정리: 로그인 안 한 사람(anon)은 아무것도 못 한다.

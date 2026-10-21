@@ -1,23 +1,25 @@
 -- =====================================================================
--- VIREN WORK — 대화에 붙인 사진·파일을 60일 뒤 스스로 지운다.  2026-10-21
+-- VIREN WORK — 대화 파일 정리 ① 준비.  2026-10-21
 --
 -- Supabase → SQL Editor 에 붙여넣고 Run 한 번.
 -- ⚠️ 2026-10-21i(메신저) 를 먼저 실행한 뒤에 하세요.
+-- ⚠️ 매일 새벽 자동 실행은 **다음 파일(2026-10-21l-cron.sql)** 에 따로 뒀습니다.
+--    예약(pg_cron)은 Supabase 쪽 사정으로 실패할 수 있어서, 그것 때문에 이 준비까지
+--    같이 되돌아가지 않도록 갈라 놓았습니다.
 --
 -- 왜
 --   무료 저장소가 1GB 다. 휴대폰 사진 한 장이 10MB 쯤 되니 90장이면 찬다.
 --   차면 **업로드가 조용히 멈춘다**(지은님 2026-10-21 결정: 60일).
 --
--- 누가 지우나
---   **사람이 아니라 서버가 한다.** 매일 새벽 3시(한국)에 pg_cron 이 깨워서
---   work.viren.kr/api/cleanup 을 부른다. 아무도 컴퓨터를 켜 두지 않아도 돈다.
---   ⚠️ 저장소 파일은 SQL 로 못 지운다(42501). 반드시 Storage API 를 거쳐야 해서
---      알림과 같은 길(pg_net → Cloudflare 함수)을 쓴다.
---
 -- 글은 남는다
 --   사진만 사라지고 그 자리에 '기간이 지나 사라진 파일' 이라고 뜬다.
 --   messages.file 에 { name, size, type, gone: true } 만 남긴다.
 -- =====================================================================
+
+-- 0) 먼저 있어야 할 표가 있는지 (없으면 앞 단계를 안 돌린 것)
+select to_regclass('public.settings')    as settings표,
+       to_regclass('public.push_config') as push_config표,
+       to_regclass('public.messages')    as messages표;
 
 -- ① 며칠 두고 지울지 ----------------------------------------------------
 -- settings 에 둔다. 비밀이 아니고, 나중에 관리 화면에서 바꿀 값이다.
@@ -74,21 +76,7 @@ $$;
 
 grant execute on function public.storage_usage() to authenticated;
 
--- ⑤ 매일 새벽 3시(한국) ---------------------------------------------------
-create extension if not exists pg_cron;
-
--- 같은 이름으로 다시 걸면 먼저 걷어낸다(두 번 돌지 않게).
-do $$
-begin
-  perform cron.unschedule('viren-chat-cleanup');
-exception when others then null;
-end $$;
-
--- 18:00 UTC = 03:00 한국. 아무도 안 쓰는 시간에.
-select cron.schedule('viren-chat-cleanup', '0 18 * * *', $$select public.run_chat_cleanup()$$);
-
 -- 결과 확인
 select
   (select chat_file_days from public.settings where id = 1) as 보관일수,
-  (select cleanup_url is not null from public.push_config where id = 1) as 주소있음,
-  (select count(*) from cron.job where jobname = 'viren-chat-cleanup') as 예약됨;
+  (select cleanup_url is not null from public.push_config where id = 1) as 주소있음;
