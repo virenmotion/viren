@@ -194,6 +194,9 @@ function Staff() {
       hire_date: r.hire_date || null,
       leave_override: r.leave_override === '' || r.leave_override == null ? null : Number(r.leave_override),
       leave_used_before: Number(r.leave_used_before) || 0,
+      /* 어느 연차 기간의 숫자인지 알 수 있게 적어 넣은 날짜를 같이 남긴다.
+         0 으로 되돌리면 날짜도 지운다. */
+      leave_used_before_at: Number(r.leave_used_before) > 0 ? ymd() : null,
       active: r.active,
     }).eq('id', r.id)
     if (error) return setErr(errText(error))
@@ -208,7 +211,7 @@ function Staff() {
         <p><strong>직원 추가:</strong> Supabase 대시보드 → Authentication → Users → <em>Add user</em> → <em>Create new user</em>에서 회사 이메일과 임시 비밀번호를 넣고 <em>Auto Confirm User</em>를 켭니다. 그러면 이 목록에 <strong>재직이 꺼진 상태</strong>로 나타납니다. 이름·직급·입사일을 채우고 ‘재직’을 켠 뒤 저장해야 로그인할 수 있습니다. 본인에게는 첫 로그인 후 비밀번호를 바꾸라고 알려 주세요.</p>
         <p><strong>퇴사:</strong> 계정을 지우지 말고 ‘재직’ 체크를 끄세요. 결재 기록은 그대로 남고 로그인만 막힙니다.</p>
         <p><strong>연차:</strong> 비워 두면 입사일 기준 근로기준법 방식으로 자동 계산합니다. 상시 5인 미만 사업장은 법정 연차 적용 대상이 아니므로, 회사 규정이 따로 있으면 ‘연차 직접 지정’에 일수를 넣으세요.</p>
-        <p><strong>이전 사용:</strong> 카카오워크처럼 전에 쓰던 곳에서 이미 쓴 연차 일수입니다. 남은 연차에서 함께 빠집니다. <strong>연차 기간이 새로 시작되면(입사 1년마다) 0으로 되돌려 주세요.</strong></p>
+        <p><strong>이전 사용:</strong> 카카오워크처럼 전에 쓰던 곳에서 이미 쓴 연차 일수입니다. 남은 연차에서 함께 빠집니다. <strong>입사 1주년이 지나 연차가 새로 생기면 저절로 빠지지 않게 되므로, 따로 지우실 필요 없습니다.</strong></p>
       </div>
       <ErrorBox>{err}</ErrorBox>
       {msg && <p className="ok">{msg}</p>}
