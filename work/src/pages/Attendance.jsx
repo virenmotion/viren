@@ -219,12 +219,15 @@ function AttCalendar({ ym, data, target, isAdmin, onPick }) {
               </span>
               {!out && (
                 <>
-                  <WorkRing minutes={min} />
-                  {/* 도표 밑에 출근·퇴근 시각을 늘 보여 준다(지은님 2026-10-21).
-                      기록이 없으면 '—'. 빈칸으로 두면 자리가 비어 허전하다. */}
-                  <span className="att-times">
-                    <span className="att-t"><i>출근</i><b className="tnum">{hm(r?.check_in) || '—'}</b></span>
-                    <span className="att-t"><i>퇴근</i><b className="tnum">{hm(r?.check_out) || '—'}</b></span>
+                  {/* 시각은 왼쪽, 동그라미는 오른쪽 (지은님 2026-10-21).
+                      기록이 없으면 '—'. 빈칸으로 두면 자리가 비어 허전하다.
+                      좁은 화면에서는 CSS 가 위아래로 쌓는다. */}
+                  <span className="att-body">
+                    <span className="att-times">
+                      <span className="att-t"><i>출근</i><b className="tnum">{hm(r?.check_in) || '—'}</b></span>
+                      <span className="att-t"><i>퇴근</i><b className="tnum">{hm(r?.check_out) || '—'}</b></span>
+                    </span>
+                    <WorkRing minutes={min} size={64} />
                   </span>
                   <span className="att-tags">
                     {lv && <span className="tag leave">{LEAVE_KINDS[lv.data.kind]}</span>}
