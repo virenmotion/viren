@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from './supabase'
+import { rankOrder } from './labels'
 
 const Ctx = createContext(null)
 
@@ -21,7 +22,15 @@ export function SessionProvider({ children }) {
     if (!userId) { setEmployees([]); return }
     const { data, error } = await supabase.from('employees').select('*').order('name')
     if (error) setLoadError(error.message)
-    else { setLoadError(''); setEmployees(data) }
+    else {
+      setLoadError('')
+      /* 1차 부서, 2차 직급(대표→사원), 3차 이름 (지은님 2026-10-21).
+         직급은 글자 순서가 아니라 **RANKS 에 적은 순서**를 따른다. */
+      setEmployees([...data].sort((a, b) =>
+        (a.dept || '').localeCompare(b.dept || '', 'ko')
+        || rankOrder(a.position) - rankOrder(b.position)
+        || (a.name || '').localeCompare(b.name || '', 'ko')))
+    }
     setLoadedFor(userId)
   }, [userId])
 

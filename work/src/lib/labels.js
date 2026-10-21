@@ -56,6 +56,19 @@ export const LEAVE_SHORT = {
   comp: '대휴',
 }
 
+/* 직급과 직책 (지은님 2026-10-21).
+   · 직급(DB 칸 이름은 position) — 위에서 아래 순서가 곧 정렬 순서다.
+   · 직책(DB 칸 duty)
+   값을 늘리거나 바꾸려면 **여기만** 고치면 된다. DB 는 글자만 담고 제한하지 않는다. */
+export const RANKS = ['대표', '실장', '팀장', '과장', '대리', '주임', '사원']
+export const DUTIES = ['CEO', 'Director', 'leader', 'PM']
+
+/* 정렬용 순번. 목록에 없는 값(옛 데이터 등)은 맨 뒤로. */
+export const rankOrder = (p) => {
+  const i = RANKS.indexOf(String(p || '').trim())
+  return i < 0 ? RANKS.length : i
+}
+
 /* 목록·문서에 뜨는 양식 이름. 직접 만든 양식(form_type = 'custom')은 join 해 온
    doc_forms.name 을 쓴다. 양식이 지워졌으면 '문서'. */
 export const formName = (d) => d?.doc_forms?.name || FORMS[d?.form_type] || '문서'

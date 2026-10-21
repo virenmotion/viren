@@ -29,7 +29,8 @@ export default function Me() {
           <dt>이름</dt><dd>{me.name}</dd>
           <dt>이메일</dt><dd>{me.email}</dd>
           <dt>부서</dt><dd>{me.dept || '—'}</dd>
-          <dt>직위</dt><dd>{me.position || '—'}</dd>
+          <dt>직급</dt><dd>{me.position || '—'}</dd>
+          <dt>직책</dt><dd>{me.duty || '—'}</dd>
           <dt>입사일</dt><dd>{me.hire_date ? dot(me.hire_date) : '미등록'}</dd>
         </dl>
         <p className="hint">정보가 틀렸다면 관리자에게 수정을 요청해 주세요.</p>

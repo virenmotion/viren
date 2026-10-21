@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { errText, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { leavePeriod } from '../lib/leave'
+import { DUTIES, RANKS } from '../lib/labels'
 import { ymd } from '../lib/dates'
 import { downloadBlob } from '../lib/csv'
 import { ErrorBox } from '../components/ui'
@@ -120,7 +121,7 @@ function Staff() {
   async function save(r) {
     setErr(''); setMsg('')
     const { error } = await supabase.from('employees').update({
-      name: r.name.trim(), dept: r.dept.trim(), position: r.position.trim(), role: r.role,
+      name: r.name.trim(), dept: r.dept.trim(), position: r.position.trim(), duty: (r.duty || '').trim(), role: r.role,
       hire_date: r.hire_date || null,
       leave_override: r.leave_override === '' || r.leave_override == null ? null : Number(r.leave_override),
       active: r.active,
@@ -133,7 +134,7 @@ function Staff() {
   return (
     <section className="stack-sm">
       <div className="card info">
-        <p><strong>직원 추가:</strong> Supabase 대시보드 → Authentication → Users → <em>Add user</em> → <em>Create new user</em>에서 회사 이메일과 임시 비밀번호를 넣고 <em>Auto Confirm User</em>를 켭니다. 그러면 이 목록에 <strong>재직이 꺼진 상태</strong>로 나타납니다. 이름·직위·입사일을 채우고 ‘재직’을 켠 뒤 저장해야 로그인할 수 있습니다. 본인에게는 첫 로그인 후 비밀번호를 바꾸라고 알려 주세요.</p>
+        <p><strong>직원 추가:</strong> Supabase 대시보드 → Authentication → Users → <em>Add user</em> → <em>Create new user</em>에서 회사 이메일과 임시 비밀번호를 넣고 <em>Auto Confirm User</em>를 켭니다. 그러면 이 목록에 <strong>재직이 꺼진 상태</strong>로 나타납니다. 이름·직급·입사일을 채우고 ‘재직’을 켠 뒤 저장해야 로그인할 수 있습니다. 본인에게는 첫 로그인 후 비밀번호를 바꾸라고 알려 주세요.</p>
         <p><strong>퇴사:</strong> 계정을 지우지 말고 ‘재직’ 체크를 끄세요. 결재 기록은 그대로 남고 로그인만 막힙니다.</p>
         <p><strong>연차:</strong> 비워 두면 입사일 기준 근로기준법 방식으로 자동 계산합니다. 상시 5인 미만 사업장은 법정 연차 적용 대상이 아니므로, 회사 규정이 따로 있으면 ‘연차 직접 지정’에 일수를 넣으세요.</p>
       </div>
@@ -141,7 +142,7 @@ function Staff() {
       {msg && <p className="ok">{msg}</p>}
       <div className="table-wrap card flush">
         <table className="table staff">
-          <thead><tr><th>이름</th><th>이메일</th><th>부서</th><th>직위</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>권한</th><th>재직</th><th></th></tr></thead>
+          <thead><tr><th>이름</th><th>이메일</th><th>부서</th><th>직급</th><th>직책</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>권한</th><th>재직</th><th></th></tr></thead>
           <tbody>
             {rows.map((r) => {
               const p = leavePeriod(r.hire_date)
@@ -150,7 +151,21 @@ function Staff() {
                   <td><input id={`n-${r.id}`} value={r.name} onChange={(e) => set(r.id, { name: e.target.value })} /></td>
                   <td className="small">{r.email}</td>
                   <td><input id={`d-${r.id}`} value={r.dept} onChange={(e) => set(r.id, { dept: e.target.value })} /></td>
-                  <td><input id={`p-${r.id}`} value={r.position} placeholder="예: 대표" onChange={(e) => set(r.id, { position: e.target.value })} /></td>
+                  <td>
+                    <select id={`p-${r.id}`} value={r.position || ''} onChange={(e) => set(r.id, { position: e.target.value })}>
+                      <option value="">—</option>
+                      {RANKS.map((x) => <option key={x} value={x}>{x}</option>)}
+                      {/* 목록에 없는 옛 값이 들어 있어도 지워지지 않게 */}
+                      {r.position && !RANKS.includes(r.position) && <option value={r.position}>{r.position}</option>}
+                    </select>
+                  </td>
+                  <td>
+                    <select id={`u-${r.id}`} value={r.duty || ''} onChange={(e) => set(r.id, { duty: e.target.value })}>
+                      <option value="">—</option>
+                      {DUTIES.map((x) => <option key={x} value={x}>{x}</option>)}
+                      {r.duty && !DUTIES.includes(r.duty) && <option value={r.duty}>{r.duty}</option>}
+                    </select>
+                  </td>
                   <td><input id={`h-${r.id}`} type="date" value={r.hire_date || ''} onChange={(e) => set(r.id, { hire_date: e.target.value })} /></td>
                   <td className="tnum small">{p ? `${p.legal}일` : '—'}</td>
                   <td><input id={`o-${r.id}`} className="tnum" type="number" step="0.5" min="0" value={r.leave_override ?? ''} placeholder="자동" onChange={(e) => set(r.id, { leave_override: e.target.value })} /></td>
