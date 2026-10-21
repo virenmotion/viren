@@ -125,8 +125,11 @@ function db(env) {
 const FORM_NAME = { general: '품의서', leave: '휴가신청서', expense: '지출결의서' }
 
 /* ── 누구에게 무슨 말을 보낼지 ─────────────────────────────────────── */
-async function messageFor(env, docId) {
+/* kind 'doc' = 결재, 'chat' = 메신저. 누구에게 무슨 말을 보낼지 여기서만 정한다. */
+async function messageFor(env, kind, id) {
   const d = db(env)
+  if (kind === 'chat') return chatMessage(d, id)
+  const docId = id
   const [doc] = await d.get(`approval_docs?id=eq.${docId}&select=id,doc_no,title,status,form_type,drafter_id,doc_forms(name)`)
   if (!doc) return null
 
@@ -169,13 +172,35 @@ async function messageFor(env, docId) {
   return null
 }
 
+/* 메신저 — 보낸 사람만 빼고 그 방 사람 모두에게. */
+async function chatMessage(d, id) {
+  const [m] = await d.get(`messages?id=eq.${id}&select=id,room_id,sender_id,text,file`)
+  if (!m) return null
+  const [room] = await d.get(`rooms?id=eq.${m.room_id}&select=id,kind,name`)
+  const members = await d.get(`room_members?room_id=eq.${m.room_id}&select=user_id`)
+  const [who] = await d.get(`employees?id=eq.${m.sender_id}&select=name,position`)
+
+  const from = who ? `${who.name}${who.position || ''}` : '직원'
+  const body = (m.text || '').trim() || (m.file ? '사진·파일을 보냈어요' : '')
+  const group = room?.kind === 'group'
+  return {
+    users: members.map((x) => x.user_id).filter((u) => u !== m.sender_id),
+    title: group ? (room.name || '단체 대화') : from,
+    body: group ? `${from}: ${body}` : body,
+    url: `/chat/${m.room_id}`,
+    // 같은 방 알림은 쌓이지 않고 덮어쓴다. 대화는 금방 여러 개가 온다.
+    tag: `room-${m.room_id}`,
+    quiet: true,
+  }
+}
+
 async function sendTo(env, msg) {
   const d = db(env)
   const ids = [...new Set(msg.users)].filter(Boolean)
   if (!ids.length) return { sent: 0, gone: 0 }
 
   const subs = await d.get(`push_subs?user_id=in.(${ids.join(',')})&select=id,endpoint,p256dh,auth`)
-  const payload = JSON.stringify({ title: msg.title, body: msg.body, url: msg.url, tag: msg.tag })
+  const payload = JSON.stringify({ title: msg.title, body: msg.body, url: msg.url, tag: msg.tag, renotify: !msg.quiet })
   let sent = 0, gone = 0
 
   for (const sub of subs) {
@@ -239,9 +264,11 @@ export async function onRequestPost({ request, env }) {
   if (!sameSecret(request.headers.get('x-push-secret') || '', env.PUSH_SECRET || '\0')) {
     return json({ error: 'no' }, 401)
   }
-  if (!input.doc) return json({ error: 'doc 없음' }, 400)
+  const kind = input.kind || 'doc'
+  const id = input.id || input.doc
+  if (!id) return json({ error: 'id 없음' }, 400)
 
-  const msg = await messageFor(env, input.doc)
+  const msg = await messageFor(env, kind, id)
   if (!msg) return json({ sent: 0, skip: true })
   return json(await sendTo(env, msg))
 }

@@ -16,7 +16,7 @@ self.addEventListener('push', (e) => {
     icon: '/icon-192.png',
     badge: '/icon-192.png',
     tag: d.tag || 'viren-work',
-    renotify: true,
+    renotify: d.renotify !== false,
     data: { url: d.url || '/' },
   }))
 })

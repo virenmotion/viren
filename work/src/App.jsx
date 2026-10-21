@@ -9,6 +9,8 @@ import ApprovalNew from './pages/ApprovalNew'
 import ApprovalView from './pages/ApprovalView'
 import Attendance from './pages/Attendance'
 import Calendar from './pages/Calendar'
+import Chat from './pages/Chat'
+import ChatRoom from './pages/ChatRoom'
 import Admin from './pages/Admin'
 import Me from './pages/Me'
 
@@ -54,6 +56,8 @@ function Gate() {
         <Route path="approval/:id" element={<ApprovalView />} />
         <Route path="attendance" element={<Attendance />} />
         <Route path="calendar" element={<Calendar />} />
+        <Route path="chat" element={<Chat />} />
+        <Route path="chat/:id" element={<ChatRoom />} />
         <Route path="me" element={<Me />} />
         <Route path="admin" element={<AdminOnly />} />
         <Route path="*" element={<Navigate to="/" replace />} />

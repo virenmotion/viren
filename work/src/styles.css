@@ -728,3 +728,79 @@ button.att-day:hover { background: var(--accent-soft); }
   .att-t { gap: 3px; justify-content: center; }
   .att-tags .tag { font-size: .6rem; padding: 0 4px; }
 }
+
+/* ── 메신저 (지은님 2026-10-21) ─────────────────────────────────── */
+.roomlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.roomlist a {
+  display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px;
+}
+.roomlist a:hover { border-color: var(--line-2); background: var(--surface-2); }
+.room-ava {
+  width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  background: var(--brand); color: var(--on-brand); font-weight: 700; font-size: .95rem;
+}
+.room-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.room-main strong { display: flex; align-items: center; gap: 6px; font-size: .97rem; }
+.room-n { font-style: normal; font-size: .76rem; color: var(--muted); font-weight: 600; }
+.room-last { color: var(--muted); font-size: .86rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.room-side { display: grid; justify-items: end; gap: 5px; flex: none; }
+.room-time { color: var(--muted); font-size: .76rem; }
+
+.people-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.person-chip {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px 6px 6px;
+  border-radius: 99px; border: 1px solid var(--line); background: var(--surface);
+  font-size: .87rem; font-weight: 600; color: var(--ink-2); cursor: pointer;
+}
+.person-chip:hover { border-color: var(--ink); color: var(--ink); }
+.person-chip.on { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.person-chip .avatar { width: 24px; height: 24px; font-size: .75rem; }
+
+/* 대화 화면 — 글 목록이 늘어나도 보내는 칸은 늘 아래에 */
+.chat-page { gap: 14px; }
+.chat-top h1 { font-size: 1.3rem; margin: 2px 0 0; }
+.chat-log {
+  display: grid; gap: 3px; align-content: start;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px; min-height: 45vh; max-height: 62vh; overflow-y: auto;
+}
+.chat-day { text-align: center; color: var(--muted); font-size: .78rem; margin: 14px 0 10px; }
+.bubble-row { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; }
+.bubble-row.run { margin-top: 2px; }
+.bubble-row.mine { flex-direction: row-reverse; }
+.bubble-row.run:not(.mine) .bubble-wrap { margin-left: 36px; }
+.avatar.sm { width: 28px; height: 28px; font-size: .78rem; flex: none; }
+.bubble-wrap { max-width: min(560px, 76%); display: grid; gap: 3px; }
+.bubble-row.mine .bubble-wrap { justify-items: end; }
+.bubble-who { font-size: .78rem; color: var(--muted); font-weight: 600; }
+.bubble-line { display: flex; align-items: flex-end; gap: 6px; }
+.bubble-row.mine .bubble-line { flex-direction: row-reverse; }
+.bubble {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 9px 13px; font-size: .93rem; line-height: 1.55; white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bubble-row.mine .bubble { background: var(--accent-soft); border-color: #f0dfa4; }
+.bubble-time { font-size: .72rem; color: var(--muted); flex: none; padding-bottom: 2px; }
+.bubble-del {
+  border: 0; background: none; color: var(--muted); cursor: pointer; font-size: .8rem;
+  opacity: 0; transition: opacity .12s; padding: 0 2px;
+}
+.bubble-line:hover .bubble-del { opacity: 1; }
+.chat-img { max-width: 260px; max-height: 260px; border-radius: 10px; display: block; }
+.chat-file { color: var(--ink); text-decoration: underline; }
+
+.chat-send { display: flex; gap: 8px; align-items: flex-end; }
+.chat-send textarea {
+  flex: 1; resize: none; min-height: 44px; max-height: 160px; padding: 11px 14px;
+  border-radius: 12px; line-height: 1.5;
+}
+.icon-btn { flex: none; width: 44px; padding: 0; font-size: 1.2rem; }
+.small-sel { padding: 6px 10px; border-radius: 9px; font-size: .85rem; }
+
+@media (max-width: 640px) {
+  .chat-log { max-height: 56vh; padding: 12px; }
+  .bubble-wrap { max-width: 82%; }
+  .chat-img { max-width: 200px; max-height: 200px; }
+}
