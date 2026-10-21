@@ -4,6 +4,7 @@ import { useSession } from '../lib/session'
 import { dot } from '../lib/dates'
 import { ErrorBox } from '../components/ui'
 import PushCard from '../components/PushCard'
+import InstallCard from '../components/InstallCard'
 
 export default function Me() {
   const { me } = useSession()
@@ -36,6 +37,8 @@ export default function Me() {
         </dl>
         <p className="hint">정보가 틀렸다면 관리자에게 수정을 요청해 주세요.</p>
       </section>
+      <InstallCard />
+
       <PushCard />
 
       <form className="card narrow-form" onSubmit={change}>

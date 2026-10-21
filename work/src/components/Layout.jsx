@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
+import { setBadge } from '../lib/install'
 
 /* 내 결재 차례인 문서 수. 화면을 옮길 때마다 다시 센다. */
 function useTodoCount() {
@@ -57,6 +58,9 @@ export default function Layout() {
   const chat = useChatCount()
   const { pathname } = useLocation()
   useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+
+  /* 앱으로 설치했을 때 작업표시줄·독 아이콘에 뜨는 숫자 */
+  useEffect(() => { setBadge(todo + chat) }, [todo, chat])
 
   const items = [
     { to: '/', end: true, label: '홈', icon: 'home' },

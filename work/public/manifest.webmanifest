@@ -1,17 +1,23 @@
 {
+  "id": "/",
   "name": "VIREN WORK",
   "short_name": "VIREN WORK",
-  "description": "바이렌 사내 전자결재 · 근태관리",
+  "description": "바이렌 사내 전자결재 · 근태 · 캘린더 · 메신저",
   "lang": "ko",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
+  "categories": ["business", "productivity"],
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
     { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "메신저", "short_name": "메신저", "url": "/chat", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "전자결재", "short_name": "결재", "url": "/approval", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "근태", "short_name": "근태", "url": "/attendance", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
   ]
 }
