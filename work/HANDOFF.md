@@ -126,7 +126,7 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 | `pages/ApprovalNew.jsx` | 양식 3종 작성, 결재선 순서 편집, 마지막 결재선 localStorage 기억 |
 | `pages/ApprovalView.jsx` | 문서(종이 서류 느낌, 결재란), 승인/반려/회수, 첨부 서명URL 다운로드, 인쇄 |
 | `pages/Attendance.jsx` | 월별 근태표, 관리자 직원 선택·보정, CSV(BOM 포함) |
-| `components/WorkRing.jsx` | 하루 근무량 동그라미. **100% = 8시간** |
+| `components/WorkRing.jsx` | 하루 근무량 동그라미. **100% = 9시간**(점심 1시간 포함) |
 | `pages/Calendar.jsx` | 회사 공용 달력. 월 격자 + 고른 날 목록 + 일정 쓰기 창. 휴대폰은 칸 안을 색 막대로 |
 | `lib/holidays.js` | 공휴일 표. 음력이라 **해마다 손으로 적는다.** 없는 해는 공휴일이 안 뜬다 |
 | `pages/Admin.jsx` 의 `Categories` | 일정 분류(이름 + 색) 만들기. 달력 색 구분이 이걸 따른다 |
@@ -166,7 +166,7 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
     날짜를 바꿔 가며 계산 함수를 직접 돌려 봤다.
 
 - **2026-10-21 근태를 달력 + 동그란 그래프로.** 지은님 요청(참고 이미지: 도넛 그래프).
-  · 하루 근무량을 동그라미로. **100% = 8시간**(`components/WorkRing.jsx` 의 `FULL_MIN`).
+  · 하루 근무량을 동그라미로. **100% = 9시간**(점심 1시간 포함)(`components/WorkRing.jsx` 의 `FULL_MIN`).
     8시간을 채우면 초록, 모자라면 노랑, 넘으면 가득 찬 초록 + 실제 퍼센트(113% 처럼).
   · **표도 그대로 뒀다.** 오른쪽 위에서 달력 / 표를 고른다. 표는 자세히 보거나
     CSV 받을 때 쓴다 — 없애면 관리자 보정이 불편해진다.

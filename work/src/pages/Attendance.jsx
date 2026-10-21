@@ -236,7 +236,7 @@ function AttCalendar({ ym, data, target, isAdmin, onPick }) {
           )
         })}
       </div>
-      <p className="hint att-legend">동그라미가 가득 차면 <strong>8시간</strong>입니다.
+      <p className="hint att-legend">동그라미가 가득 차면 <strong>9시간</strong>입니다(점심 1시간 포함).
         {isAdmin && ' 날짜를 누르면 출퇴근 시각을 고칠 수 있습니다.'}</p>
     </div>
   )
