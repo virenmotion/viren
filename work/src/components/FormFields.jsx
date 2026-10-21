@@ -94,7 +94,8 @@ function FieldInput({ f, value, onChange }) {
     return (
       <div className="field">
         <span className="field-label">{label}</span>
-        <DatePick value={picked} onChange={onChange} />
+        <DatePick value={picked} onChange={onChange}
+          hint="해당하는 날을 모두 눌러 고르세요. 붙어 있지 않아도 됩니다. 다시 누르면 빠집니다." />
         <p className="hint">고른 날 <strong className="tnum">{picked.length}일</strong></p>
       </div>
     )

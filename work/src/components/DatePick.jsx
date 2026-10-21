@@ -16,7 +16,7 @@ const lastOf = (m) => {
 const gridStart = (m) => addDays(firstOf(m), -parse(firstOf(m)).getUTCDay())
 const gridEnd = (m) => addDays(lastOf(m), 6 - parse(lastOf(m)).getUTCDay())
 
-export default function DatePick({ value = [], onChange, single = false }) {
+export default function DatePick({ value = [], onChange, single = false, hint }) {
   const [month, setMonth] = useState(() => ym(value[0] || today()))
   const picked = useMemo(() => new Set(value), [value])
 
@@ -65,8 +65,8 @@ export default function DatePick({ value = [], onChange, single = false }) {
         })}
       </div>
 
-      <p className="hint">쉬는 날을 눌러 고르세요. 붙어 있지 않아도 됩니다. 다시 누르면 빠집니다.
-        {!single && ' 빨간 날(주말·공휴일)은 보통 고르지 않습니다.'}</p>
+      {/* 고르는 날의 뜻은 쓰는 쪽마다 다르다(휴가 vs 휴일근무). 그래서 문구를 넘겨받는다. */}
+      <p className="hint">{hint || '날짜를 눌러 고르세요. 붙어 있지 않아도 됩니다. 다시 누르면 빠집니다.'}</p>
 
       {value.length > 0 && (
         <div className="dp-picked">

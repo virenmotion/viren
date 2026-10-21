@@ -243,7 +243,11 @@ export default function ApprovalNew() {
 
           <div className="field">
             <span className="field-label">쉬는 날 {half ? '(반차는 하루만)' : ''}</span>
-            <DatePick value={leave.dates} single={half} onChange={(dates) => setLeave({ ...leave, dates })} />
+            <DatePick
+              value={leave.dates} single={half}
+              onChange={(dates) => setLeave({ ...leave, dates })}
+              hint={`쉬는 날을 눌러 고르세요. 다시 누르면 빠집니다.${half ? '' : ' 붙어 있지 않아도 되고, 빨간 날(주말·공휴일)은 보통 고르지 않습니다.'}`}
+            />
           </div>
           {leave.kind === 'comp' && (
             <>
