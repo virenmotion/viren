@@ -597,7 +597,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 
 /* ── 여러 날 일정을 띠로 잇기 (지은님 2026-10-21) ─────────────────── */
 /* 날짜 칸 높이 = 숫자줄 + 띠 줄 수만큼. 띠가 많은 주는 저절로 길어진다. */
-.cal-wk .cal-day { min-height: calc(28px + var(--lanes, 2) * 20px + 10px); }
+/* 칸을 정사각형으로(지은님 2026-10-21). 다만 일정 띠가 많아 넘칠 때는
+   정사각형보다 길어져야 하므로 min-height 를 바닥값으로 같이 둔다. */
+.cal-wk .cal-day { aspect-ratio: 1; min-height: calc(28px + var(--lanes, 2) * 20px + 10px); }
 .cal-bars {
   position: absolute; left: 0; right: 0; top: 28px;
   display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -614,7 +616,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .cal-bar.cut-r { margin-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
 
 @media (max-width: 760px) {
-  .cal-wk .cal-day { min-height: calc(24px + var(--lanes, 2) * 15px + 8px); }
+  /* 휴대폰은 칸이 좁아 정사각형이면 너무 납작하다. 높이만 쓴다. */
+  .cal-wk .cal-day { aspect-ratio: auto; min-height: calc(24px + var(--lanes, 2) * 15px + 8px); }
   .cal-bars { top: 24px; grid-auto-rows: 14px; }
   .cal-bar { font-size: .58rem; line-height: 14px; padding: 0 3px; margin: 0 2px; border-left-width: 2px; }
 }
