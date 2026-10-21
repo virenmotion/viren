@@ -220,8 +220,11 @@ function AttCalendar({ ym, data, target, isAdmin, onPick }) {
               {!out && (
                 <>
                   <WorkRing minutes={min} />
-                  <span className="att-time tnum">
-                    {r?.check_in ? `${hm(r.check_in)}~${hm(r.check_out) || ''}` : ''}
+                  {/* 도표 밑에 출근·퇴근 시각을 늘 보여 준다(지은님 2026-10-21).
+                      기록이 없으면 '—'. 빈칸으로 두면 자리가 비어 허전하다. */}
+                  <span className="att-times">
+                    <span className="att-t"><i>출근</i><b className="tnum">{hm(r?.check_in) || '—'}</b></span>
+                    <span className="att-t"><i>퇴근</i><b className="tnum">{hm(r?.check_out) || '—'}</b></span>
                   </span>
                   <span className="att-tags">
                     {lv && <span className="tag leave">{LEAVE_KINDS[lv.data.kind]}</span>}

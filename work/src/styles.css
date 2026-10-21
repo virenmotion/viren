@@ -657,7 +657,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 button.att-day { cursor: pointer; }
 button.att-day:hover { background: var(--accent-soft); }
 .att-top { display: flex; align-items: center; gap: 5px; align-self: flex-start; min-width: 0; max-width: 100%; }
-.att-time { font-size: .7rem; color: var(--muted); }
+.att-times { display: grid; gap: 1px; font-size: .7rem; line-height: 1.35; }
+.att-t { display: flex; gap: 5px; justify-content: center; align-items: baseline; }
+.att-t i { font-style: normal; color: var(--muted); }
+.att-t b { font-weight: 600; color: var(--ink-2); }
 .att-tags { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
 .att-tags .tag { font-size: .68rem; padding: 1px 6px; }
 .att-legend { padding: 10px 14px; margin: 0; border-top: 1px solid var(--line); }
@@ -677,6 +680,7 @@ button.att-day:hover { background: var(--accent-soft); }
 
 @media (max-width: 760px) {
   .att-day { min-height: 104px; padding: 6px 3px 8px; }
-  .att-time { font-size: .6rem; }
+  .att-times { font-size: .6rem; }
+  .att-t { gap: 3px; }
   .att-tags .tag { font-size: .6rem; padding: 0 4px; }
 }
