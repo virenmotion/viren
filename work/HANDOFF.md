@@ -174,6 +174,12 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
     화면에서 이걸 안내하지 않으면 '안 되는 앱' 이 된다 → `PushCard.jsx` 가 안내한다.
   · 환경변수(Cloudflare Pages): `VITE_VAPID_PUBLIC` · `VAPID_PRIVATE` ·
     `SUPABASE_SERVICE_ROLE_KEY` · `PUSH_SECRET`. **개인키는 저장소에 없다.**
+    `SUPABASE_SERVICE_ROLE_KEY` 에는 **새 방식 비밀키(`sb_secret_...`)** 를 넣었다.
+    옛 service_role JWT 는 Supabase 화면에서 끌 수 있어서(그 버튼이 바로 옆에 있다)
+    언젠가 알림만 조용히 멈출 수 있다.
+  · 2026-10-21 서버 쪽 확인 끝: 암호 틀리면 거절 / 없는 문서는 건너뜀 /
+    승인된 문서는 `{sent:0}`(등록된 기기가 아직 없음). **기기 등록과 실제 수신만 남았다.**
+    ⚠️ 환경변수를 넣어도 **이미 돌고 있는 배포에는 안 들어간다.** Retry deployment 필수.
 
 - **2026-10-21 회수한 문서를 고쳐서 다시 올린다.** (`2026-10-21g-resubmit.sql`)
   지은님 요청. 회수하면 끝이라 오타 하나에 처음부터 다시 써야 했다.
