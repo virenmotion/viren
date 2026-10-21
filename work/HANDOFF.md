@@ -151,6 +151,24 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 
 ### 끝난 일
 
+- **2026-10-21 사내 메신저.** (`2026-10-21i-chat.sql` + `pages/Chat.jsx`·`ChatRoom.jsx`)
+  지은님이 "알림 먼저, 그다음 메신저" 를 골랐고 알림이 끝나서 이어 만들었다.
+  · 표는 셋뿐 — `rooms` · `room_members` · `messages`.
+  · **읽음은 '읽은 시각'(`last_read_at`) 하나로 센다.** 메시지마다 읽음 줄을 남기면
+    사람 수 × 글 수 만큼 쌓인다. 6명 회사에 그건 과하다.
+  · **1:1 방에는 이름을 두지 않는다.** 보는 사람에 따라 이름이 달라야 하기 때문
+    (지은님에겐 '백승민 대표' 방, 백대표님에겐 '박지은 팀장' 방) → `roomTitle()` 이 화면에서 만든다.
+  · ⚠️ `in_room()` 은 **security definer 여야 한다.** 아니면 room_members 정책이
+    room_members 를 다시 보며 무한 재귀에 빠진다. RLS 정책 안에서 같은 표를 볼 때의 정석.
+  · 방 만들기·초대·나가기는 함수로만 한다(정책으로는 남의 줄을 넣을 수 없다).
+  · 새 글은 Realtime(`postgres_changes`)으로 바로 뜬다.
+    ⚠️ `alter publication supabase_realtime add table messages` 가 없으면 새로고침해야 보인다.
+  · 알림은 결재 때 만든 틀을 그대로 썼다 — `notify_push(kind, id)` 로 넓히고
+    옛 1인자 이름은 'doc' 으로 넘기게 뒀다(결재 트리거가 쓰고 있어서).
+    같은 방 알림은 `tag` 로 덮어쓰고 `renotify` 를 끈다. 대화는 금방 여러 개가 온다.
+  · 사진·파일은 `chat-files` 버킷. 경로 첫 칸이 방 id — 결재 첨부와 같은 방식.
+  · 남은 것: 지난 글 더 불러오기(지금 최근 500개), 답글·이모지, 공지 고정.
+
 - **2026-10-21 결재 알림을 휴대폰으로 (웹 푸시).** (`2026-10-21h-push.sql` + `work/functions/`)
   지은님이 메일 대신 휴대폰 알림을 골랐다.
   · **DB 는 "이 문서에 알릴 일이 생겼다" 만 알린다**(`notify_push` → pg_net).
