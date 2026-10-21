@@ -147,6 +147,7 @@ export default function Calendar() {
   /* 달력에서 날짜를 누르면 그 날로 바로 쓰기 창을 연다.
      아래 '고른 날' 목록도 같이 그 날로 옮긴다(창을 닫으면 보인다). */
   const openOn = (d) => { setPicked(d); setForm({ ...EMPTY, start_date: d, end_date: d }) }
+  const openEdit = (ev) => setForm({ ...ev, start_time: ev.start_time || '', end_time: ev.end_time || '', category_id: ev.category_id || '' })
 
   async function remove(ev) {
     if (!window.confirm(`${ev.title} 일정을 지울까요? 되돌릴 수 없습니다.`)) return
@@ -168,7 +169,7 @@ export default function Calendar() {
           <button className="icon" aria-label="다음달" onClick={() => setMonth(ym(addMonths(firstOf(month), 1)))}>›</button>
           <button className="btn small-btn" onClick={() => { setMonth(ym(today())); setPicked(today()) }}>오늘</button>
         </div>
-        <span className="muted small">날짜를 누르면 그 날 일정을 쓸 수 있습니다.</span>
+        <span className="muted small">빈 곳을 누르면 새 일정, 일정을 누르면 고치기입니다.</span>
       </div>
 
       {err && <p className="error">{err}</p>}
@@ -203,17 +204,24 @@ export default function Calendar() {
                   )
                 })}
               </div>
-              {/* 띠는 칸 위에 얹는다. 눌림은 아래 날짜 칸이 받도록 pointer-events 를 끈다. */}
-              <div className="cal-bars" aria-hidden="true">
-                {wk.spans.map((sp, i) => (
-                  <span
-                    key={i}
-                    className={`cal-bar${sp.cutL ? ' cut-l' : ''}${sp.cutR ? ' cut-r' : ''}`}
-                    style={{ gridColumn: `${sp.col} / span ${sp.len}`, gridRow: sp.lane + 1, background: `${sp.color}22`, borderLeftColor: sp.color }}
-                  >
-                    {sp.cutL && '‹ '}{sp.label}{sp.cutR && ' ›'}
-                  </span>
-                ))}
+              {/* 띠는 칸 위에 얹는다. 띠 사이 빈 곳은 pointer-events 를 꺼서
+                  아래 날짜 칸이 눌림을 받는다(= 빈 곳을 누르면 새 일정).
+                  띠 자체는 눌러서 **그 일정을 고친다**(지은님 2026-10-21). */}
+              <div className="cal-bars">
+                {wk.spans.map((sp, i) => {
+                  const editable = sp.kind === 'event' && canEdit(sp.row)
+                  return (
+                    <button
+                      type="button" key={i}
+                      className={`cal-bar${sp.cutL ? ' cut-l' : ''}${sp.cutR ? ' cut-r' : ''}${editable ? ' editable' : ''}`}
+                      style={{ gridColumn: `${sp.col} / span ${sp.len}`, gridRow: sp.lane + 1, background: `${sp.color}22`, borderLeftColor: sp.color }}
+                      title={editable ? `${sp.label} — 눌러서 고치기` : sp.label}
+                      onClick={() => (editable ? openEdit(sp.row) : setPicked(sp.s < wk.days[0] ? wk.days[0] : sp.s))}
+                    >
+                      {sp.cutL && '‹ '}{sp.label}{sp.cutR && ' ›'}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           ))}
