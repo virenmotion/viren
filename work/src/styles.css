@@ -810,3 +810,35 @@ button.att-day:hover { background: var(--accent-soft); }
 .bar span { display: block; height: 100%; background: var(--ok); border-radius: 99px; }
 .bar span.hot { background: var(--bad); }
 .gone { color: var(--muted); font-size: .88rem; }
+
+/* ── 인사기록카드 (노션 직원현황관리 이전, 2026-10-22) ──────────── */
+.hr-card { border: 2px solid var(--ink); }
+.hr-sub { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--line); font-size: 1.05rem; }
+.hr-sum {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;
+}
+.hr-sum > div {
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; display: grid; gap: 2px;
+}
+.hr-sum > div.hot { background: var(--accent-soft); border-color: #f0dfa4; }
+.hr-sum span { font-size: .78rem; color: var(--muted); }
+.hr-sum strong { font-size: 1.05rem; }
+.print-only { display: none; }
+
+@media (max-width: 640px) {
+  .hr-sum { grid-template-columns: 1fr 1fr; }
+}
+
+/* 인쇄: 인사기록카드만 남긴다 */
+@media print {
+  .print-only { display: block; }
+  .shell:has(.hr-card) .topbar,
+  .shell:has(.hr-card) .tabbar,
+  .shell:has(.hr-card) .page > .stack > h1,
+  .shell:has(.hr-card) .tabs,
+  .shell:has(.hr-card) .card.info,
+  .shell:has(.hr-card) .table-wrap.card.flush { display: none; }
+  .hr-card { border: 0; padding: 0; box-shadow: none; }
+  .no-print { display: none !important; }
+}

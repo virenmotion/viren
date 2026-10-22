@@ -8,6 +8,7 @@ import { downloadBlob } from '../lib/csv'
 import { ErrorBox } from '../components/ui'
 import AdminForms from './AdminForms'
 import StorageCard from '../components/StorageCard'
+import StaffCard from '../components/StaffCard'
 
 const TABS = [['staff', '직원'], ['settings', '출근 설정'], ['forms', '양식'], ['cats', '일정 분류'], ['storage', '저장소'], ['backup', '백업']]
 
@@ -157,6 +158,8 @@ function Categories() {
 function Staff() {
   const { employees, reloadEmployees, userId } = useSession()
   const [rows, setRows] = useState(employees)
+  /* 인사기록카드를 열어 둔 직원 (노션 직원현황관리를 옮긴 화면, 2026-10-22) */
+  const [cardOf, setCardOf] = useState(null)
   const [dragFrom, setDragFrom] = useState(null)
   const [canDrag, setCanDrag] = useState(null)
   const [msg, setMsg] = useState('')
@@ -219,7 +222,7 @@ function Staff() {
       {msg && <p className="ok">{msg}</p>}
       <div className="table-wrap card flush">
         <table className="table staff">
-          <thead><tr><th aria-label="순서" /><th>이름</th><th>이메일</th><th>부서</th><th>직급</th><th>직책</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>이전 사용</th><th>권한</th><th>재직</th><th></th></tr></thead>
+          <thead><tr><th aria-label="순서" /><th>이름</th><th>이메일</th><th>부서</th><th>직급</th><th>직책</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>이전 사용</th><th>권한</th><th>재직</th><th aria-label="인사기록" /><th></th></tr></thead>
           <tbody>
             {rows.map((r, i) => {
               const p = leavePeriod(r.hire_date)
@@ -269,6 +272,7 @@ function Staff() {
                     </select>
                   </td>
                   <td><input id={`a-${r.id}`} type="checkbox" checked={r.active} disabled={r.id === userId} onChange={(e) => set(r.id, { active: e.target.checked })} aria-label="재직" /></td>
+                  <td><button className="btn small-btn" onClick={() => setCardOf(r)}>인사기록</button></td>
                   <td><button className="btn small-btn primary" disabled={!r._dirty} onClick={() => save(r)}>저장</button></td>
                 </tr>
               )
@@ -276,6 +280,14 @@ function Staff() {
           </tbody>
         </table>
       </div>
+
+      {cardOf && (
+        <StaffCard
+          key={cardOf.id}
+          emp={rows.find((r) => r.id === cardOf.id) || cardOf}
+          onClose={() => setCardOf(null)}
+        />
+      )}
     </section>
   )
 }
