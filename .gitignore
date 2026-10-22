@@ -42,3 +42,6 @@ dist-ssr
 # 같은 스킬이 계정 전체(~/.claude/skills)에도 설치돼 있다. 파일은 지우지 말 것.
 /.agents/
 /skills-lock.json
+
+# 디자인 인계 패키지 — public/ 에 두면 홈페이지에 그대로 공개된다. 올리지 않는다.
+public/design guide/
