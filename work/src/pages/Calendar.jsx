@@ -163,19 +163,23 @@ export default function Calendar() {
 
   return (
     <div className="stack">
-      <div className="row-between cal-head">
-        <div className="cal-nav">
-          <button className="icon" aria-label="지난달" onClick={() => setMonth(ym(addMonths(firstOf(month), -1)))}>‹</button>
-          <strong className="cal-month tnum">{month.replace('-', '년 ')}월</strong>
-          <button className="icon" aria-label="다음달" onClick={() => setMonth(ym(addMonths(firstOf(month), 1)))}>›</button>
-          <button className="btn small-btn" onClick={() => { setMonth(ym(today())); setPicked(today()) }}>오늘</button>
-        </div>
-        <span className="muted small">빈 곳을 누르면 새 일정, 일정을 누르면 고치기입니다.</span>
-      </div>
+      <header className="page-head">
+        <div><h1>캘린더</h1></div>
+      </header>
 
       {err && <p className="error">{err}</p>}
 
+      <div className="cal-layout">
       <div className={`cal card${loading ? ' cal-loading' : ''}`}>
+        <div className="row-between cal-head">
+          <div className="cal-nav">
+            <button className="icon" aria-label="지난달" onClick={() => setMonth(ym(addMonths(firstOf(month), -1)))}>‹</button>
+            <strong className="cal-month tnum">{month.replace('-', '년 ')}월</strong>
+            <button className="icon" aria-label="다음달" onClick={() => setMonth(ym(addMonths(firstOf(month), 1)))}>›</button>
+            <button className="btn small-btn" onClick={() => { setMonth(ym(today())); setPicked(today()) }}>오늘</button>
+          </div>
+          <button className="btn primary small-btn" onClick={openNew}>+ 일정</button>
+        </div>
         <div className="cal-week">
           {WEEK.map((w, i) => <div key={w} className={i === 0 ? 'sun' : i === 6 ? 'sat' : ''}>{w}</div>)}
         </div>
@@ -227,25 +231,20 @@ export default function Calendar() {
             </div>
           ))}
         </div>
+        <p className="hint cal-foot">빈 곳을 누르면 새 일정, 일정을 누르면 고치기입니다.</p>
       </div>
 
-      {(cats.length > 0 || leaves.length > 0) && (
-        <div className="cal-legend">
-          {cats.map((c) => (
-            <span key={c.id} className="cal-leg"><i style={{ background: c.color }} />{c.name}</span>
-          ))}
-          {leaves.length > 0 && <span className="cal-leg"><i style={{ background: LEAVE_COLOR }} />휴가</span>}
-        </div>
-      )}
-
+      <aside className="cal-side">
       <section className="card stack-sm">
         <div className="row-between">
-          <h2 className="cal-picked">
-            {dot(picked)} ({WEEK[parse(picked).getUTCDay()]})
-            {pickedHol && <span className="cal-hol-tag">{pickedHol}</span>}
-          </h2>
+          <p className="eyebrow">선택한 날짜</p>
           <button className="btn small-btn" onClick={openNew}>+ 이 날 일정</button>
         </div>
+        <h2 className="cal-picked">
+          {dot(picked)} ({WEEK[parse(picked).getUTCDay()]})
+          {pickedHol && <span className="cal-hol-tag">{pickedHol}</span>}
+        </h2>
+        <p className="muted small">일정 {pickedItems.length}건</p>
         {!pickedItems.length && <p className="muted">일정이 없습니다.</p>}
         <ul className="cal-list">
           {pickedItems.map((it, i) => it.kind === 'leave' ? (
@@ -274,6 +273,22 @@ export default function Calendar() {
           ))}
         </ul>
       </section>
+
+      {/* 범례 — 색만으로는 뜻을 모른다. 이름을 꼭 같이 둔다. */}
+      {(cats.length > 0 || leaves.length > 0) && (
+        <section className="card stack-sm">
+          <h2>분류</h2>
+          <ul className="cal-legend">
+            {cats.map((c) => (
+              <li key={c.id} className="cal-leg"><i style={{ background: c.color }} />{c.name}</li>
+            ))}
+            {leaves.length > 0 && <li className="cal-leg"><i style={{ background: LEAVE_COLOR }} />휴가</li>}
+          </ul>
+          <p className="hint">분류와 색은 관리 → 일정 분류에서 정합니다.</p>
+        </section>
+      )}
+      </aside>
+      </div>
 
       {form && <EventForm form={form} setForm={setForm} cats={cats} userId={userId} onDone={() => { setForm(null); load() }} />}
     </div>

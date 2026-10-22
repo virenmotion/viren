@@ -613,7 +613,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 }
 
 /* ── 캘린더 ───────────────────────────────────────────────────────── */
-.cal-head { gap: 10px; }
+/* 왼쪽 큰 달력 + 오른쪽 '선택한 날짜'·분류. 좁아지면 위아래로 쌓는다. */
+.cal-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.cal-side { display: grid; gap: 20px; }
+.cal-head { gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.cal-foot { padding: 12px 18px; margin: 0; border-top: 1px solid var(--line); }
 .cal-nav { display: flex; align-items: center; gap: 8px; }
 .cal-month { font-family: var(--display); font-size: 1.15rem; letter-spacing: -.01em; }
 .cal { padding: 0; overflow: hidden; }
@@ -662,12 +666,15 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   border-left: 3px solid var(--accent); background: var(--accent-soft); color: var(--ink-2);
 }
 .cal-more { font-size: .7rem; color: var(--muted); padding-left: 5px; }
-.cal-picked { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cal-picked { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; }
 .cal-hol-tag { font-size: .78rem; color: var(--bad); background: var(--bad-bg); padding: 2px 8px; border-radius: 99px; font-weight: 500; }
 .cal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .cal-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 2px; border-top: 1px solid var(--line); }
 .cal-item:first-child { border-top: 0; }
 .cal-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--accent); margin-top: 6px; flex: none; }
+.cal-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cal-leg { display: flex; align-items: center; gap: 9px; font-size: .9rem; }
+.cal-leg i { width: 10px; height: 10px; border-radius: 99px; flex: none; }
 .cal-item.leave .cal-dot { background: var(--info-ink); }
 .cal-item-body { display: grid; gap: 2px; min-width: 0; flex: 1; }
 .cal-item-act { display: flex; gap: 10px; font-size: .85rem; flex: none; }
@@ -680,7 +687,14 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 }
 .modal-card { width: 100%; max-width: 440px; max-height: 90vh; overflow: auto; }
 
+@media (max-width: 1200px) {
+  .cal-layout { grid-template-columns: 1fr; }
+  .cal-side { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+}
+
 @media (max-width: 760px) {
+  .cal-head, .cal-foot { padding: 12px 14px; }
+  .cal-picked { font-size: 1.25rem; }
   .cal-day { min-height: 92px; padding: 4px 3px 6px; }
   .cal-hol { font-size: .62rem; }
   /* 지은님 요청(2026-10-20): 휴대폰에서도 제목이 보여야 한다. 글자를 줄이고 말줄임 */
@@ -699,9 +713,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .cat-add { border-top: 1px solid var(--line); padding-top: 12px; }
 
 /* 달력 색 범례 */
-.cal-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .85rem; color: var(--ink-2); padding: 0 2px; }
-.cal-leg { display: inline-flex; align-items: center; gap: 6px; }
-.cal-leg i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 
 /* ── 직접 만든 양식 ────────────────────────────────────────────────── */
 .guide { background: var(--info-bg); color: var(--info-ink); padding: 10px 14px; border-radius: var(--radius-sm); font-size: .9rem; margin: 0; }
