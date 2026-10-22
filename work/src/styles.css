@@ -849,3 +849,12 @@ button.att-day:hover { background: var(--accent-soft); }
   display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 12px; align-items: end;
 }
+
+/* 등급 제시 */
+.suggest { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.suggest h4 { margin: 0 0 8px; font-size: .92rem; }
+.suggest ul { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
+.suggest li { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: .9rem; }
+.s-kind { min-width: 72px; color: var(--muted); font-size: .8rem; }
+.s-why { color: var(--muted); font-size: .82rem; }
+.warn-text { color: var(--accent-ink); background: var(--accent-soft); padding: 1px 6px; border-radius: 5px; }

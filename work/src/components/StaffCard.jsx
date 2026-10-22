@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { errText, supabase } from '../lib/supabase'
 import { dot, today } from '../lib/dates'
-import { DESIGN_GRADES, EDU_LEVELS, TECH_GRADES, age, careerSummary, duration, rangeDays } from '../lib/hr'
+import { age, careerSummary, duration, rangeDays } from '../lib/hr'
+import {
+  DESIGN_TRACK, EDUS, MAJOR_TYPES, QUALS, SKILL_TRACK, TECH_TRACK,
+  suggestDesignGrade, suggestGrades, yearsOf,
+} from '../lib/grade'
 import { ErrorBox } from './ui'
 
 /* 인사기록카드. 노션 '직원현황관리 · 직원경력관리' 를 옮긴 것. (2026-10-22)
@@ -67,6 +71,9 @@ export default function StaffCard({ emp, onClose }) {
   if (!hr) return <section className="card"><p className="hint">불러오는 중…</p></section>
 
   const sum = careerSummary(careers, emp.hire_date)
+  /* 기준표대로 등급을 제시한다. 고르는 건 사람이 한다. */
+  const tech = suggestGrades(hr, careers, emp.hire_date)
+  const design = suggestDesignGrade(hr, careers, emp.hire_date)
   const yrs = age(hr.birth_date)
 
   return (
@@ -112,30 +119,55 @@ export default function StaffCard({ emp, onClose }) {
         <label className="field"><span>학력</span>
           <select value={hr.edu_level || ''} onChange={set('edu_level')}>
             <option value="">선택</option>
-            {EDU_LEVELS.map((v) => <option key={v} value={v}>{v}</option>)}
+            {EDUS.map((v) => <option key={v} value={v}>{v}</option>)}
           </select></label>
         <label className="field"><span>졸업학교</span>
           <input value={hr.school || ''} onChange={set('school')} /></label>
         <label className="field"><span>학과</span>
           <input value={hr.major || ''} onChange={set('major')} /></label>
       </div>
+      <div className="form-row three">
+        <label className="field"><span>전공 구분</span>
+          <select value={hr.major_type || ''} onChange={set('major_type')}>
+            <option value="">선택</option>
+            {MAJOR_TYPES.map((v) => <option key={v} value={v}>{v}</option>)}
+          </select></label>
+        <label className="field"><span>졸업일</span>
+          <input type="date" value={hr.edu_date || ''} onChange={set('edu_date')} /></label>
+        <label className="field"><span>자격 종류</span>
+          <select value={hr.qual_kind || ''} onChange={set('qual_kind')}>
+            <option value="">없음</option>
+            {QUALS.map((v) => <option key={v} value={v}>{v}</option>)}
+          </select></label>
+      </div>
+      <div className="form-row three">
+        <label className="field"><span>자격취득일</span>
+          <input type="date" value={hr.qual_date || ''} onChange={set('qual_date')} /></label>
+      </div>
 
       <div className="form-row">
         <label className="field half"><span>기술자등급</span>
           <select value={hr.tech_grade || ''} onChange={set('tech_grade')}>
             <option value="">해당 없음</option>
-            {TECH_GRADES.map((v) => <option key={v} value={v}>{v}</option>)}
+            <optgroup label="기술계">
+              {TECH_TRACK.map((v) => <option key={v} value={v}>{v}</option>)}
+            </optgroup>
+            <optgroup label="숙련기술계">
+              {SKILL_TRACK.map((v) => <option key={v} value={v}>{v}</option>)}
+            </optgroup>
           </select></label>
         <label className="field half"><span>디자이너등급</span>
           <select value={hr.design_grade || ''} onChange={set('design_grade')}>
             <option value="">해당 없음</option>
-            {DESIGN_GRADES.map((v) => <option key={v} value={v}>{v}</option>)}
+            {DESIGN_TRACK.map((v) => <option key={v} value={v}>{v}</option>)}
           </select></label>
       </div>
-      <p className="hint no-print">
-        등급은 <strong>직접 고릅니다.</strong> 법에서 정한 기준표(학력·경력 조합)를 주시면 총 경력으로
-        후보를 자동 제시하게 만들 수 있어요.
-      </p>
+
+      <Suggest
+        tech={tech} design={design}
+        onTech={(v) => setHr({ ...hr, tech_grade: v })}
+        onDesign={(v) => setHr({ ...hr, design_grade: v })}
+      />
 
       <label className="field"><span>보유자격증</span>
         <textarea rows={2} value={hr.certs || ''} onChange={set('certs')} placeholder="한 줄에 하나씩" /></label>
@@ -195,6 +227,50 @@ export default function StaffCard({ emp, onClose }) {
       <div className="actions start no-print">
         <button className="btn" disabled={busy} onClick={addCareer}>경력 추가</button>
       </div>
+    </section>
+  )
+}
+
+/* 기준표로 뽑은 등급 제시.
+   ⚠️ **자동으로 바꾸지 않는다.** '해당 전문분야와 관련된 업무' 인지는 기계가 모른다.
+   버튼을 눌러야 위 드롭다운에 들어가고, 저장은 따로 눌러야 한다. */
+function Suggest({ tech, design, onTech, onDesign }) {
+  const rows = [
+    { label: '기술계', v: tech.tech, put: onTech },
+    { label: '숙련기술계', v: tech.skill, put: onTech },
+    { label: '디자이너', v: design.grade ? { grade: design.grade, why: design.why } : null, put: onDesign },
+  ]
+  return (
+    <section className="suggest no-print">
+      <h4>기준표로 본 등급</h4>
+      <ul>
+        {rows.map((r) => (
+          <li key={r.label}>
+            <span className="s-kind">{r.label}</span>
+            {r.v ? (
+              <>
+                <strong>{r.v.grade}</strong>
+                <span className="s-why">{r.v.why}</span>
+                <button type="button" className="linkbtn" onClick={() => r.put(r.v.grade)}>이걸로 넣기</button>
+              </>
+            ) : (
+              <span className="s-why">{r.label === '디자이너' ? design.why : '해당하는 등급이 없어요.'}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className="hint">
+        인정경력 — 자격 기준 <strong className="tnum">{yearsOf(tech.days.byQual || 0)}년</strong> ·
+        학력 기준 <strong className="tnum">{yearsOf(tech.days.byEdu || 0)}년</strong>
+        {tech.guessed && (
+          <> · <span className="warn-text">자격취득일·졸업일을 적으면 더 정확해져요
+            (갖추기 전 경력은 60%만 인정됩니다)</span></>
+        )}
+      </p>
+      <p className="hint">
+        적어 둔 경력을 <strong>전부 ‘해당 전문분야 관련 업무’로 보고</strong> 셉니다.
+        관련 없는 경력이 섞여 있으면 직접 낮춰 주세요. <strong>최종 결정은 사람이 합니다.</strong>
+      </p>
     </section>
   )
 }

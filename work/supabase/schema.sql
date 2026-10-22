@@ -1255,6 +1255,12 @@ create table if not exists public.employee_hr (
   certs        text not null default '',   -- 보유자격증 (여러 개면 줄바꿈)
   tech_grade   text not null default '',   -- 기술자등급
   design_grade text not null default '',   -- 디자이너등급
+  -- 등급 자동 제시용. 기준표가 자격 종류·전공 구분으로 갈리고,
+  -- 시행령 [별표2] 비고 5 가 "자격·학력을 갖추기 전 경력은 60%" 라서 날짜가 필요하다.
+  qual_kind    text not null default '',   -- 기술사·기능장·기사·산업기사·기능사·기능사보
+  qual_date    date,                       -- 자격취득일
+  edu_date     date,                       -- 졸업일
+  major_type   text not null default '',   -- 디자인 전공 / 준 전공 / 비전공
   note         text not null default '',
   updated_at   timestamptz not null default now()
 );
