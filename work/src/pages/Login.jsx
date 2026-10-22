@@ -30,7 +30,7 @@ export default function Login() {
     <div className="center-screen login-bg">
       <form className="card narrow login" onSubmit={submit}>
         <h1 className="brand-title">VIREN <span>WORK</span></h1>
-        <p className="muted">바이렌 사내 전자결재 · 근태관리</p>
+        <p className="muted">바이렌 사내 전자결재 · 근태 · 캘린더 · 메신저</p>
         <label className="field">
           <span>아이디</span>
           <span className="id-input">
