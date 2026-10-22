@@ -130,9 +130,13 @@ export function suggestGrades(hr, careers, hireDate, on = today()) {
   const byEdu = credited(ranges, hr?.edu_date || null)
   const plain = credited(ranges, null)
 
+  /* 비고 2: 관련 없는 학과면 학력으로는 등급을 받을 수 없다.
+     '미확인' 은 일단 쓰되 화면에서 확인하라고 알린다. */
+  const eduUsable = hr?.major_related !== '관련 없음'
+
   const hit = (r) => {
     if (r.qual) return qualMeets(hr?.qual_kind, r.qual) && byQual >= r.years * Y
-    if (r.edu) return eduMeets(hr?.edu_level, r.edu) && byEdu >= r.years * Y
+    if (r.edu) return eduUsable && eduMeets(hr?.edu_level, r.edu) && byEdu >= r.years * Y
     return plain >= r.years * Y          // 학력·자격 무관
   }
 
@@ -159,6 +163,8 @@ export function suggestGrades(hr, careers, hireDate, on = today()) {
     days: { byQual, byEdu, plain },
     /* 자격취득일·졸업일을 안 적었으면 60% 규칙을 못 써서 실제보다 높게 나올 수 있다 */
     guessed: (!!hr?.qual_kind && !hr?.qual_date) || (!!hr?.edu_level && !hr?.edu_date),
+    /* 학과가 관련 학과인지 아직 안 정했다 — 학력으로 등급이 나왔다면 확인이 필요하다 */
+    majorUnsure: !!hr?.edu_level && !hr?.major_related,
     on,
   }
 }
@@ -250,4 +256,58 @@ export function suggestDesignGrade(hr, careers, hireDate, on = today()) {
     bonus ? `(학위 ${bonus}년 포함)` : '',
   ].filter(Boolean).join(' · ')
   return { grade: band[0], why, years, bonus, on }
+}
+
+/* ── 자격증 ──────────────────────────────────────────────────────
+   국가기술자격 종목명은 늘 급으로 끝난다('실내건축산업기사' → 산업기사).
+   ⚠️ 찾는 차례가 중요하다. '산업기사' 를 '기사' 보다 먼저 봐야 하고,
+      '기능사보' 를 '기능사' 보다 먼저 봐야 한다. */
+const TIER_BY_SUFFIX = ['기능사보', '산업기사', '기능장', '기술사', '기사', '기능사']
+
+export function tierOf(name) {
+  const s = String(name || '').replace(/\s/g, '')
+  return TIER_BY_SUFFIX.find((t) => s.endsWith(t)) || ''
+}
+
+/* 등급 판정에 쓸 자격 하나.
+   ⚠️ 시행령 [별표2] 비고 1 — **국가기술자격만** 쓴다. 민간자격은 기록만 한다.
+   같은 급이 여럿이면 **먼저 딴 것**을 쓴다(비고 5 의 60% 구간이 그만큼 짧아진다). */
+export function bestQual(certs) {
+  const ok = (certs || [])
+    .filter((c) => c.kind === '국가기술자격')
+    .map((c) => ({ tier: tierOf(c.name), date: c.got_date }))
+    .filter((c) => c.tier)
+  if (!ok.length) return { qual_kind: '', qual_date: null }
+  ok.sort((a, b) => {
+    const d = QUAL_ORDER.indexOf(b.tier) - QUAL_ORDER.indexOf(a.tier)
+    if (d) return d
+    return String(a.date || '9999').localeCompare(String(b.date || '9999'))
+  })
+  return { qual_kind: ok[0].tier, qual_date: ok[0].date || null }
+}
+
+/* ── 관련 학과인가 ───────────────────────────────────────────────
+   시행령 [별표2] 비고 2 — '학력자' 는 **엔지니어링기술 관련 학과**를 나온 사람이다.
+   관련 없는 학과면 학력으로는 등급을 받지 못한다.
+
+   ⚠️ **어느 학과가 관련 학과인지는 기계가 정할 수 없다.**
+      비고 6 의 산업통상자원부 고시(세부기준)에 학과 목록이 있는데 우리는 그걸 모른다.
+      모르는 채로 판정하면 틀린 등급이 입찰 서류로 나간다.
+      그래서 여기서는 **이름으로 추정만** 하고, 최종 판단은 사람이 `major_related` 에 적는다.
+      고시 목록을 받으면 이 함수를 그 목록으로 바꾼다. */
+const MAJOR_WORDS = [
+  '건축', '실내', '인테리어', '토목', '도시', '조경', '환경', '교통',
+  '기계', '전기', '전자', '정보통신', '통신', '컴퓨터', '소프트웨어', '정보',
+  '화학', '재료', '금속', '섬유', '에너지', '원자력', '자원', '소방', '안전',
+  '산업공학', '조선', '항공', '해양', '농업', '산림', '식품', '생명',
+  '디자인', '시각', '영상', '미술', '공예', '멀티미디어',
+]
+
+/* '관련 있어 보임' / '모르겠음' 을 돌려준다. 단정하지 않는다. */
+export function majorHint(major) {
+  const s = String(major || '').replace(/\s/g, '')
+  if (!s) return ''
+  const hit = MAJOR_WORDS.find((w) => s.includes(w))
+  return hit ? `'${hit}' 이(가) 들어 있어 관련 학과로 보입니다 — 확인해 주세요`
+             : '관련 학과인지 이름만으로는 알 수 없습니다 — 직접 정해 주세요'
 }

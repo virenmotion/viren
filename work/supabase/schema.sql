@@ -1261,6 +1261,10 @@ create table if not exists public.employee_hr (
   qual_date    date,                       -- 자격취득일
   edu_date     date,                       -- 졸업일
   major_type   text not null default '',   -- 디자인 전공 / 준 전공 / 비전공
+  -- 비고 2: 관련 없는 학과면 학력으로는 등급을 못 받는다.
+  -- ⚠️ 어느 학과가 관련 학과인지는 산업통상자원부 고시에 있다 — 기계가 정하지 않는다.
+  major_related text not null default ''
+                check (major_related in ('', '관련 학과', '관련 없음')),
   note         text not null default '',
   updated_at   timestamptz not null default now()
 );
@@ -1322,6 +1326,35 @@ create trigger make_hr_row after insert on public.employees
 insert into public.employee_hr (user_id)
 select e.id from public.employees e
 where not exists (select 1 from public.employee_hr h where h.user_id = e.id);
+
+
+-- 자격증 (한 사람당 여러 줄). 번호·종목명·구분·취득일.
+-- ⚠️ 등급에 쓰는 자격은 **국가기술자격만**(시행령 별표2 비고 1). 급은 종목명 끝글자로 읽는다.
+create table if not exists public.employee_certs (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.employees(id) on delete cascade,
+  cert_no    text not null default '',                       -- 자격증 번호
+  name       text not null check (length(trim(name)) > 0),    -- 종목명
+  kind       text not null default '국가기술자격'
+             check (kind in ('국가기술자격', '민간자격')),
+  got_date   date,                                            -- 자격취득일
+  created_at timestamptz not null default now()
+);
+create index if not exists employee_certs_user_idx
+  on public.employee_certs (user_id, got_date desc);
+
+alter table public.employee_certs enable row level security;
+revoke all on public.employee_certs from anon;
+
+drop policy if exists "자격증은 관리자와 본인만 본다" on public.employee_certs;
+create policy "자격증은 관리자와 본인만 본다" on public.employee_certs
+  for select to authenticated
+  using (public.is_active_employee() and (public.is_admin() or user_id = auth.uid()));
+
+drop policy if exists "자격증은 관리자만 고친다" on public.employee_certs;
+create policy "자격증은 관리자만 고친다" on public.employee_certs
+  for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
 
 -- ---------------------------------------------------------------------
 -- 권한 정리: 로그인 안 한 사람(anon)은 아무것도 못 한다.

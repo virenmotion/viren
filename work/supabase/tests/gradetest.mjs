@@ -97,5 +97,31 @@ T('디자인 석사 + 경력 3년 → 초급(학위 1년)', dz({ major_type: '�
 T('디자인 박사 + 경력 2년 → 초급(학위 2년)', dz({ major_type: '디자인 전공', edu_level: '박사' }, 2), '초급 디자이너')
 T('아무것도 없음 → 판정 불가', dz({}, 5), null)
 
+console.log('\n── 자격증 읽기 · 관련 학과 ──')
+const { tierOf, bestQual, majorHint } = await import(pathToFileURL(process.env.SP + '/grade.copy.mjs').href)
+T('실내건축산업기사 → 산업기사', tierOf('실내건축산업기사'), '산업기사')
+T('실내건축기사 → 기사', tierOf('실내건축기사'), '기사')
+T('컴퓨터그래픽스운용기능사 → 기능사', tierOf('컴퓨터그래픽스운용기능사'), '기능사')
+T('건축전기설비기술사 → 기술사', tierOf('건축전기설비기술사'), '기술사')
+T('전산응용건축제도기능사보 → 기능사보', tierOf('전산응용건축제도기능사보'), '기능사보')
+T('용접기능장 → 기능장', tierOf('용접기능장'), '기능장')
+T('급이 없는 이름', tierOf('정보처리'), '')
+T('민간자격은 등급에 안 씀',
+  bestQual([{ kind: '민간자격', name: '컬러리스트기사', got_date: '2020-01-01' }]).qual_kind, '')
+T('국가기술자격 중 높은 급을 고름', bestQual([
+  { kind: '국가기술자격', name: '실내건축기능사', got_date: '2015-01-01' },
+  { kind: '국가기술자격', name: '실내건축산업기사', got_date: '2018-01-01' },
+]).qual_kind, '산업기사')
+T('같은 급이면 먼저 딴 것', bestQual([
+  { kind: '국가기술자격', name: '가기사', got_date: '2020-01-01' },
+  { kind: '국가기술자격', name: '나기사', got_date: '2018-01-01' },
+]).qual_date, '2018-01-01')
+T('관련 없는 학과면 학력 경로 막힘',
+  suggestGrades({ edu_level: '학사', major_related: '관련 없음' }, career(10), null, ON).tech?.grade ?? null, null)
+T('관련 학과면 학력 경로 열림',
+  suggestGrades({ edu_level: '학사', major_related: '관련 학과' }, career(10), null, ON).tech?.grade, '고급기술자')
+console.log('   실내건축과 →', majorHint('실내건축과'))
+console.log('   경영학과   →', majorHint('경영학과'))
+
 console.log(`\n${pass}개 통과 · ${fail}개 실패`)
 process.exit(fail ? 1 : 0)

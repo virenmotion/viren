@@ -3,8 +3,8 @@ import { errText, supabase } from '../lib/supabase'
 import { dot, today } from '../lib/dates'
 import { age, careerSummary, duration, rangeDays } from '../lib/hr'
 import {
-  DESIGN_TRACK, EDUS, MAJOR_TYPES, QUALS, SKILL_TRACK, TECH_TRACK,
-  suggestDesignGrade, suggestGrades, yearsOf,
+  DESIGN_TRACK, EDUS, MAJOR_TYPES, SKILL_TRACK, TECH_TRACK,
+  bestQual, majorHint, suggestDesignGrade, suggestGrades, tierOf, yearsOf,
 } from '../lib/grade'
 import { ErrorBox } from './ui'
 
@@ -13,22 +13,27 @@ import { ErrorBox } from './ui'
    관리 → 직원에서 이름을 누르면 열린다. 관리자와 본인만 볼 수 있다(DB 정책). */
 
 const EMPTY_CAREER = { company: '', start_date: '', end_date: '', note: '' }
+const EMPTY_CERT = { cert_no: '', name: '', kind: '국가기술자격', got_date: '' }
 
 export default function StaffCard({ emp, onClose }) {
   const [hr, setHr] = useState(null)
   const [careers, setCareers] = useState([])
+  const [certs, setCerts] = useState([])
+  const [addCert, setAddCert] = useState(EMPTY_CERT)
   const [add, setAdd] = useState(EMPTY_CAREER)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
   const load = useCallback(async () => {
-    const [{ data: h }, { data: c }] = await Promise.all([
+    const [{ data: h }, { data: c }, { data: q }] = await Promise.all([
       supabase.from('employee_hr').select('*').eq('user_id', emp.id).maybeSingle(),
       supabase.from('employee_careers').select('*').eq('user_id', emp.id).order('start_date', { ascending: false }),
+      supabase.from('employee_certs').select('*').eq('user_id', emp.id).order('got_date', { ascending: false }),
     ])
     setHr(h || { user_id: emp.id })
     setCareers(c || [])
+    setCerts(q || [])
   }, [emp.id])
 
   useEffect(() => { load() }, [load])
@@ -61,6 +66,29 @@ export default function StaffCard({ emp, onClose }) {
     load()
   }
 
+  async function saveCert() {
+    if (!addCert.name.trim()) return setErr('종목명을 넣어 주세요.')
+    setBusy(true); setErr(''); setMsg('')
+    const { error } = await supabase.from('employee_certs').insert({
+      user_id: emp.id,
+      cert_no: addCert.cert_no.trim(),
+      name: addCert.name.trim(),
+      kind: addCert.kind,
+      got_date: addCert.got_date || null,
+    })
+    setBusy(false)
+    if (error) return setErr(errText(error))
+    setAddCert(EMPTY_CERT)
+    load()
+  }
+
+  async function delCert(id) {
+    if (!window.confirm('이 자격증을 지울까요?')) return
+    const { error } = await supabase.from('employee_certs').delete().eq('id', id)
+    if (error) return setErr(errText(error))
+    load()
+  }
+
   async function delCareer(id) {
     if (!window.confirm('이 경력을 지울까요?')) return
     const { error } = await supabase.from('employee_careers').delete().eq('id', id)
@@ -72,8 +100,10 @@ export default function StaffCard({ emp, onClose }) {
 
   const sum = careerSummary(careers, emp.hire_date)
   /* 기준표대로 등급을 제시한다. 고르는 건 사람이 한다. */
-  const tech = suggestGrades(hr, careers, emp.hire_date)
-  const design = suggestDesignGrade(hr, careers, emp.hire_date)
+  /* 등급에 쓰는 자격은 자격증 표에서 뽑는다(국가기술자격만, 비고 1) */
+  const withQual = { ...hr, ...bestQual(certs) }
+  const tech = suggestGrades(withQual, careers, emp.hire_date)
+  const design = suggestDesignGrade(withQual, careers, emp.hire_date)
   const yrs = age(hr.birth_date)
 
   return (
@@ -125,7 +155,20 @@ export default function StaffCard({ emp, onClose }) {
           <input value={hr.school || ''} onChange={set('school')} /></label>
         <label className="field"><span>학과</span>
           <input value={hr.major || ''} onChange={set('major')} /></label>
+        <label className="field"><span>관련 학과인가</span>
+          <select value={hr.major_related || ''} onChange={set('major_related')}>
+            <option value="">아직 안 정함</option>
+            <option value="관련 학과">관련 학과</option>
+            <option value="관련 없음">관련 없음</option>
+          </select></label>
       </div>
+      {hr.major && (
+        <p className="hint no-print">
+          {majorHint(hr.major)}
+          {' '}엔지니어링기술 관련 학과인지는 <strong>산업통상자원부 고시</strong>에 적힌
+          학과 목록으로 정해집니다. 목록을 주시면 자동으로 판정하게 바꾸겠습니다.
+        </p>
+      )}
       <div className="form-row three">
         <label className="field"><span>전공 구분</span>
           <select value={hr.major_type || ''} onChange={set('major_type')}>
@@ -134,15 +177,6 @@ export default function StaffCard({ emp, onClose }) {
           </select></label>
         <label className="field"><span>졸업일</span>
           <input type="date" value={hr.edu_date || ''} onChange={set('edu_date')} /></label>
-        <label className="field"><span>자격 종류</span>
-          <select value={hr.qual_kind || ''} onChange={set('qual_kind')}>
-            <option value="">없음</option>
-            {QUALS.map((v) => <option key={v} value={v}>{v}</option>)}
-          </select></label>
-      </div>
-      <div className="form-row three">
-        <label className="field"><span>자격취득일</span>
-          <input type="date" value={hr.qual_date || ''} onChange={set('qual_date')} /></label>
       </div>
 
       <div className="form-row">
@@ -169,8 +203,6 @@ export default function StaffCard({ emp, onClose }) {
         onDesign={(v) => setHr({ ...hr, design_grade: v })}
       />
 
-      <label className="field"><span>보유자격증</span>
-        <textarea rows={2} value={hr.certs || ''} onChange={set('certs')} placeholder="한 줄에 하나씩" /></label>
       <label className="field"><span>메모</span>
         <textarea rows={2} value={hr.note || ''} onChange={set('note')} /></label>
 
@@ -178,6 +210,53 @@ export default function StaffCard({ emp, onClose }) {
       {msg && <p className="ok">{msg}</p>}
       <div className="actions start no-print">
         <button className="btn primary" disabled={busy} onClick={save}>인사기록 저장</button>
+      </div>
+
+      {/* ── 자격증 ─────────────────────────────────────────── */}
+      <h3 className="hr-sub">자격증</h3>
+      <p className="hint no-print">
+        등급 판정에는 <strong>국가기술자격만</strong> 쓰입니다(시행령 별표2 비고 1).
+        급은 종목명 끝글자로 읽습니다 — ‘실내건축<strong>산업기사</strong>’.
+      </p>
+
+      <div className="table-wrap">
+        <table className="table">
+          <thead><tr>
+            <th>번호</th><th>종목명</th><th>구분</th><th>취득일</th><th>급</th><th className="no-print" />
+          </tr></thead>
+          <tbody>
+            {certs.map((c) => (
+              <tr key={c.id}>
+                <td className="tnum">{c.cert_no || '—'}</td>
+                <td>{c.name}</td>
+                <td>{c.kind}</td>
+                <td className="tnum">{c.got_date ? dot(c.got_date) : '—'}</td>
+                <td>{c.kind === '국가기술자격' ? (tierOf(c.name) || '—') : '—'}</td>
+                <td className="no-print">
+                  <button className="icon" aria-label="지우기" onClick={() => delCert(c.id)}>✕</button>
+                </td>
+              </tr>
+            ))}
+            {!certs.length && <tr><td colSpan={6} className="muted center">적힌 자격증이 없습니다.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="form-row no-print">
+        <label className="field half"><span>자격증 번호</span>
+          <input value={addCert.cert_no} onChange={(e) => setAddCert({ ...addCert, cert_no: e.target.value })} /></label>
+        <label className="field"><span>종목명</span>
+          <input value={addCert.name} onChange={(e) => setAddCert({ ...addCert, name: e.target.value })}
+            placeholder="실내건축산업기사" /></label>
+        <label className="field half"><span>구분</span>
+          <select value={addCert.kind} onChange={(e) => setAddCert({ ...addCert, kind: e.target.value })}>
+            <option>국가기술자격</option><option>민간자격</option>
+          </select></label>
+        <label className="field half"><span>자격취득일</span>
+          <input type="date" value={addCert.got_date} onChange={(e) => setAddCert({ ...addCert, got_date: e.target.value })} /></label>
+      </div>
+      <div className="actions start no-print">
+        <button className="btn" disabled={busy} onClick={saveCert}>자격증 추가</button>
       </div>
 
       {/* ── 경력 ───────────────────────────────────────────── */}
@@ -262,6 +341,10 @@ function Suggest({ tech, design, onTech, onDesign }) {
       <p className="hint">
         인정경력 — 자격 기준 <strong className="tnum">{yearsOf(tech.days.byQual || 0)}년</strong> ·
         학력 기준 <strong className="tnum">{yearsOf(tech.days.byEdu || 0)}년</strong>
+        {tech.majorUnsure && (
+          <> · <span className="warn-text">학과가 ‘관련 학과’ 인지 정해 주세요 —
+            관련 없으면 학력으로는 등급을 못 받습니다</span></>
+        )}
         {tech.guessed && (
           <> · <span className="warn-text">자격취득일·졸업일을 적으면 더 정확해져요
             (갖추기 전 경력은 60%만 인정됩니다)</span></>
