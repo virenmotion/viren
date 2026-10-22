@@ -321,7 +321,17 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 
 /* ---------- 홈 ---------- */
 .home { gap: 22px; }
-.home-head { display: grid; gap: 2px; }
+.home-head { display: flex; justify-content: space-between; align-items: start; gap: 16px; flex-wrap: wrap; }
+.home-head > div { display: grid; gap: 2px; }
+/* 회사소개서 — 인사말 줄 오른쪽 (지은님 2026-10-22) */
+.profile-btn {
+  display: inline-flex; align-items: center; gap: 8px; flex: none;
+  padding: 10px 16px; border-radius: 99px;
+  background: var(--accent-soft); border: 1px solid #f0dfa4; color: var(--accent-ink);
+  font-size: .88rem; font-weight: 700; text-decoration: none; white-space: nowrap;
+}
+.profile-btn svg { width: 17px; height: 17px; }
+.profile-btn:hover { background: #ffeeb8; border-color: var(--accent); }
 
 /* 알림 켜기 권유 — 켜고 나면 사라지므로 눈에 띄어도 거슬리지 않는다 */
 .push-nudge {
@@ -348,8 +358,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 /* 끝의 '›' — 누르면 밖으로 나간다는 표시 */
 .shortcuts .sc::after { content: "›"; margin-left: auto; color: var(--muted); font-size: 1.05rem; line-height: 1; }
 .shortcuts .sc:hover { border-color: var(--line-2); color: var(--ink); background: var(--surface-2); }
-.shortcuts .sc-pdf { background: var(--accent-soft); border-color: #f0dfa4; color: var(--accent-ink); }
-.shortcuts .sc-pdf:hover { background: #ffeeb8; border-color: var(--accent); color: var(--accent-ink); }
 
 @media (max-width: 400px) { .shortcuts { grid-template-columns: 1fr; } }
 

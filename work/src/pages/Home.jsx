@@ -7,7 +7,7 @@ import { leaveSummary } from '../lib/leave'
 import { formName } from '../lib/labels'
 import { workStat } from '../lib/worktime'
 import { Empty, ErrorBox, StatusPill } from '../components/ui'
-import Shortcuts from '../components/Shortcuts'
+import Shortcuts, { DOC_ICON, PROFILE_PDF } from '../components/Shortcuts'
 import WorkBar from '../components/WorkBar'
 import { pushSupported } from '../lib/push'
 
@@ -51,6 +51,9 @@ export default function Home() {
   /* 오늘의 일정 — 캘린더가 쓰는 events 표를 그대로 읽는다(새 API 없음). */
   const [plans, setPlans] = useState([])
   const [box, setBox] = useState('todo')   // 결재함에서 보고 있는 칸
+  /* AI 사무실 주소는 코드가 아니라 settings 에 있다 — 주소에 공유키가 붙어 있고
+     자바스크립트 묶음은 로그인 없이 받을 수 있기 때문이다. 비어 있으면 그 칸은 안 나온다. */
+  const [aiUrl, setAiUrl] = useState('')
   const d = today()
 
   useEffect(() => {
@@ -73,6 +76,8 @@ export default function Home() {
     supabase.rpc('comp_balance', { p_user: userId })
       .then(({ data, error }) => setComp(error ? null : Number(data ?? 0)))
     /* 일정 표가 아직 없는 DB 에서도 홈은 떠야 한다 — 실패하면 그 칸만 비운다. */
+    supabase.from('settings').select('ai_office_url').eq('id', 1).maybeSingle()
+      .then(({ data }) => setAiUrl(data?.ai_office_url || ''))
     supabase.from('events').select('*, event_categories(name, color)')
       .lte('start_date', d).gte('end_date', d)
       .order('all_day', { ascending: false }).order('start_time', { nullsFirst: true })
@@ -106,8 +111,15 @@ export default function Home() {
       )}
 
       <header className="home-head">
-        <p className="eyebrow">{m}월 {day}일 {weekday(d)}요일</p>
-        <h1>{me.name}님, {greet}</h1>
+        <div>
+          <p className="eyebrow">{m}월 {day}일 {weekday(d)}요일</p>
+          <h1>{me.name}님, {greet}</h1>
+        </div>
+        {/* 회사소개서 — 홈페이지 파일을 그대로 가리킨다(복사해 두면 한쪽만 옛날 판이 된다) */}
+        <a className="profile-btn" href={PROFILE_PDF} target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true">{DOC_ICON}</svg>
+          회사소개서
+        </a>
       </header>
 
       <div className="home-top">
@@ -252,7 +264,7 @@ export default function Home() {
 
         <section className="card">
           <h2>바로가기</h2>
-          <Shortcuts />
+          <Shortcuts aiOfficeUrl={aiUrl} />
         </section>
       </div>
 

@@ -218,6 +218,16 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 
 ### 끝난 일
 
+- **2026-10-22 홈 바로가기 정리.** (`2026-10-22h-ai-office.sql` · `Shortcuts.jsx` · `Home.jsx`)
+  회사소개서는 인사말 줄 **오른쪽 위**로. 바로가기는 6칸 —
+  홈페이지·메일 / AI 사무실·YouTube / Instagram·Behance (지은님이 정한 순서).
+  · ⚠️ **AI 사무실 주소를 코드에 적지 않았다.** 주소에 공유키(?sk=)가 붙어 있는데
+    `work.viren.kr/assets/*.js` 는 **로그인 없이 누구나 받을 수 있고**(화면이 뜨기 전에
+    받아야 하니 당연하다) 저장소도 **공개**라 커밋 기록에 영원히 남는다.
+    그래서 `settings.ai_office_url` 에 두고 로그인한 재직자만 읽는다.
+    관리 → 회사 정보에서 고칠 수 있고, 비어 있으면 그 칸이 아예 안 나온다.
+    **앞으로 공유키·토큰이 붙은 주소는 전부 이렇게 할 것.**
+
 - **2026-10-22 디자인 개편 1단계 — 공통 틀.** (`styles.css` 의 토큰·틀 · `Layout.jsx` ·
   `public/viren-signature.svg`) 지은님이 주신 「VIREN WORK 구현 가이드 · CI 반영」 패키지대로.
   자료는 `viren-react/design guide/` 에 있다(⚠️ public/ 이 아니다 — 거기 두면 viren.kr 로 공개된다).

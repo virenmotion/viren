@@ -122,6 +122,9 @@ create table public.settings (
   company_phone     text not null default '02-3144-1222',
   company_fax       text not null default '-',
   company_address   text not null default '서울특별시 마포구 양화로8길 32-17, 3층',
+  -- AI 사무실 현황판 주소(공유키 포함).
+  -- ⚠️ 코드에 적지 말 것 — 자바스크립트 묶음은 로그인 없이 누구나 받을 수 있고 저장소도 공개다.
+  ai_office_url     text not null default '',
   updated_at        timestamptz not null default now()
 );
 insert into public.settings (id) values (1);

@@ -21,6 +21,7 @@ const FIELDS = [
   ['company_phone', '전화번호', '02-0000-0000', ''],
   ['company_fax', '팩스번호', '-', '없으면 - 로 두세요'],
   ['company_address', '소재지', '서울특별시 …', '', true],
+  ['ai_office_url', 'AI 사무실 주소', 'https://…', '홈 바로가기의 ‘AI 사무실’. 비우면 그 칸이 안 보입니다', true],
 ]
 
 export default function CompanyCard() {
@@ -85,6 +86,8 @@ export default function CompanyCard() {
       <div className="card info">
         <p>여기 적은 내용이 <strong>재직증명서·경력증명서</strong>에 그대로 들어갑니다.
           주소나 전화가 바뀌면 여기서 고치세요 — 따로 배포할 필요가 없습니다.</p>
+        <p><strong>AI 사무실 주소</strong>는 홈 바로가기에 쓰입니다. 공유키가 붙은 주소라
+          코드에 적지 않고 여기 둡니다 — <strong>로그인한 재직자만</strong> 볼 수 있습니다.</p>
         <p><strong>고치는 건 관리자만</strong> 됩니다. 직원에게는 보이기만 합니다.</p>
       </div>
 
