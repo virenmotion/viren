@@ -5,7 +5,7 @@ import { useSession } from '../lib/session'
 import { dot, today } from '../lib/dates'
 import { leaveSummary } from '../lib/leave'
 import { FORMS, HALF_PICK, LEAVE_KINDS, LEAVE_PICK, leaveName, won } from '../lib/labels'
-import { ErrorBox } from '../components/ui'
+import { DateInput, ErrorBox } from '../components/ui'
 import { FormInputs } from '../components/FormFields'
 import DatePick from '../components/DatePick'
 import { emptyValue, firstMissing } from '../lib/formFields'
@@ -340,7 +340,7 @@ export default function ApprovalNew() {
               <tbody>
                 {items.map((it, i) => (
                   <tr key={i}>
-                    <td><input id={`exp-date-${i}`} type="date" value={it.date} onChange={(e) => setItems(edit(items, i, { date: e.target.value }))} /></td>
+                    <td><DateInput id={`exp-date-${i}`} value={it.date} onChange={(e) => setItems(edit(items, i, { date: e.target.value }))} /></td>
                     <td><input id={`exp-desc-${i}`} value={it.desc} placeholder="예: 촬영 소품 구입" onChange={(e) => setItems(edit(items, i, { desc: e.target.value }))} /></td>
                     <td><input id={`exp-amt-${i}`} className="r tnum" inputMode="numeric" value={it.amount} placeholder="0" onChange={(e) => setItems(edit(items, i, { amount: e.target.value.replace(/[^0-9]/g, '') }))} /></td>
                     <td><button type="button" className="icon" aria-label="줄 삭제" disabled={items.length === 1} onClick={() => setItems(items.filter((_, j) => j !== i))}>✕</button></td>

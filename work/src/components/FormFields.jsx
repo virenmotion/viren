@@ -3,6 +3,7 @@ import { won } from '../lib/labels'
 import { dot } from '../lib/dates'
 import { emptyRow, emptyValue, tableTotal } from '../lib/formFields'
 import RichText, { RichTextView } from './RichText'
+import { DateInput } from './ui'
 import DatePick from './DatePick'
 
 /* 직접 만든 양식의 칸을 그려 준다.
@@ -17,7 +18,7 @@ function Cell({ col, value, onChange, people, depts }) {
     return <input className="r tnum" inputMode="numeric" value={value ?? ''} placeholder="0"
       onChange={(e) => onChange(onlyNum(e.target.value))} />
   }
-  if (col.type === 'date') return <input type="date" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
+  if (col.type === 'date') return <DateInput value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
   if (col.type === 'select') {
     return (
       <select value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
@@ -106,7 +107,7 @@ function FieldInput({ f, value, onChange }) {
       {label}
       {f.type === 'textarea' && <textarea rows={f.rows || 4} maxLength={f.max || undefined} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />}
       {f.type === 'text' && <input maxLength={f.max || undefined} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />}
-      {f.type === 'date' && <input type="date" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />}
+      {f.type === 'date' && <DateInput value={value ?? ''} onChange={(e) => onChange(e.target.value)} />}
       {f.type === 'datetime' && <input type="datetime-local" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />}
       {f.type === 'number' && (
         <span className="with-unit">

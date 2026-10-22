@@ -1,5 +1,6 @@
 import { parse, today } from './dates'
 import { mergeRanges } from './hr'
+import { HOME_FIELDS, findMajor } from './majors'
 
 /* 엔지니어링기술자 등급 제시. (지은님이 준 기준표, 2026-10-22)
    근거: 엔지니어링산업 진흥법 시행령 [별표 2]
@@ -131,8 +132,9 @@ export function suggestGrades(hr, careers, hireDate, on = today()) {
   const plain = credited(ranges, null)
 
   /* 비고 2: 관련 없는 학과면 학력으로는 등급을 받을 수 없다.
-     '미확인' 은 일단 쓰되 화면에서 확인하라고 알린다. */
-  const eduUsable = hr?.major_related !== '관련 없음'
+     '아직 모름' 은 일단 쓰되 화면에서 확인하라고 알린다. */
+  const ms = majorStatus(hr)
+  const eduUsable = ms.value !== '관련 없음'
 
   const hit = (r) => {
     if (r.qual) return qualMeets(hr?.qual_kind, r.qual) && byQual >= r.years * Y
@@ -163,8 +165,9 @@ export function suggestGrades(hr, careers, hireDate, on = today()) {
     days: { byQual, byEdu, plain },
     /* 자격취득일·졸업일을 안 적었으면 60% 규칙을 못 써서 실제보다 높게 나올 수 있다 */
     guessed: (!!hr?.qual_kind && !hr?.qual_date) || (!!hr?.edu_level && !hr?.edu_date),
-    /* 학과가 관련 학과인지 아직 안 정했다 — 학력으로 등급이 나왔다면 확인이 필요하다 */
-    majorUnsure: !!hr?.edu_level && !hr?.major_related,
+    /* 학과가 관련 학과인지 아직 못 정했다 — 학력으로 등급이 나왔다면 확인이 필요하다 */
+    majorUnsure: !!hr?.edu_level && ms.value === '',
+    major: ms,
     on,
   }
 }
@@ -290,24 +293,49 @@ export function bestQual(certs) {
    시행령 [별표2] 비고 2 — '학력자' 는 **엔지니어링기술 관련 학과**를 나온 사람이다.
    관련 없는 학과면 학력으로는 등급을 받지 못한다.
 
-   ⚠️ **어느 학과가 관련 학과인지는 기계가 정할 수 없다.**
-      비고 6 의 산업통상자원부 고시(세부기준)에 학과 목록이 있는데 우리는 그걸 모른다.
-      모르는 채로 판정하면 틀린 등급이 입찰 서류로 나간다.
-      그래서 여기서는 **이름으로 추정만** 하고, 최종 판단은 사람이 `major_related` 에 적는다.
-      고시 목록을 받으면 이 함수를 그 목록으로 바꾼다. */
-const MAJOR_WORDS = [
-  '건축', '실내', '인테리어', '토목', '도시', '조경', '환경', '교통',
-  '기계', '전기', '전자', '정보통신', '통신', '컴퓨터', '소프트웨어', '정보',
-  '화학', '재료', '금속', '섬유', '에너지', '원자력', '자원', '소방', '안전',
-  '산업공학', '조선', '항공', '해양', '농업', '산림', '식품', '생명',
-  '디자인', '시각', '영상', '미술', '공예', '멀티미디어',
-]
+   어느 학과가 관련 학과인지는 고시 '엔지니어링기술관련학과의 범위'([별표 2]) 에 적혀 있다.
+   지은님이 2026-10-22 에 그 한글 파일을 주셔서 majors.js 에 1,305개를 그대로 옮겼다.
+   이제 이름으로 추측하지 않는다.
 
-/* '관련 있어 보임' / '모르겠음' 을 돌려준다. 단정하지 않는다. */
-export function majorHint(major) {
-  const s = String(major || '').replace(/\s/g, '')
-  if (!s) return ''
-  const hit = MAJOR_WORDS.find((w) => s.includes(w))
-  return hit ? `'${hit}' 이(가) 들어 있어 관련 학과로 보입니다 — 확인해 주세요`
-             : '관련 학과인지 이름만으로는 알 수 없습니다 — 직접 정해 주세요'
+   ⚠️ 그래도 **마지막은 사람이 정한다.** 고시 목록은 부문(기계·건설·산업…)으로 나뉘는데,
+      등급은 '해당 전문분야' 기준이다. 예를 들어 '경영' 은 산업부문 목록에는 있지만
+      바이렌이 하는 건설 쪽 일과는 상관이 없다. 그래서 바이렌 부문(majors.js 의
+      HOME_FIELDS)에 있을 때만 자동으로 '관련 학과' 로 보고, 다른 부문에만 있으면
+      판단을 사람에게 넘긴다. */
+
+/* 돌려주는 값
+     value : '관련 학과' | '관련 없음' | ''(사람이 정해야 함)
+     auto  : 고시 목록으로 자동으로 본 것인가 (false = 사람이 골라 둔 값)
+     why   : 화면에 그대로 보여 줄 한 줄 */
+export function majorStatus(hr) {
+  if (hr?.major_related) {
+    return { value: hr.major_related, auto: false, why: '직접 정하신 값입니다.' }
+  }
+  const major = String(hr?.major || '').trim()
+  if (!major) return { value: '', auto: false, why: '학과를 적으면 고시 목록에서 찾아봅니다.' }
+
+  const found = findMajor(major)
+  if (!found) {
+    return {
+      value: '관련 없음',
+      auto: true,
+      why: '고시 「엔지니어링기술관련학과의 범위」 목록에 없습니다 — 학력으로는 기술자등급을 받지 못합니다.',
+    }
+  }
+  if (found.fields.some((x) => HOME_FIELDS.includes(x))) {
+    return {
+      value: '관련 학과',
+      auto: true,
+      why: "고시 목록에 있습니다 — '" + found.stem + "' · " + found.fields.join(', '),
+    }
+  }
+  return {
+    value: '',
+    auto: true,
+    why: "고시 목록에 있기는 합니다 — '" + found.stem + "' · " + found.fields.join(', ')
+      + '. 바이렌이 하는 건설·설비 쪽 부문은 아니라서 직접 정해 주셔야 합니다.',
+  }
 }
+
+/* 화면에 띄울 한 줄 */
+export const majorHint = (major) => majorStatus({ major }).why

@@ -9,6 +9,7 @@ const fix = (name, out) => {
   const src = readFileSync(lib + name, 'utf8')
     .replace("from './dates'", `from ${JSON.stringify(url('dates.js'))}`)
     .replace("from './hr'", `from ${JSON.stringify(hrCopy)}`)
+    .replace("from './majors'", `from ${JSON.stringify(url('majors.js'))}`)
   writeFileSync(process.env.SP + '/' + out, src)
 }
 // hr.js 사본 먼저 (grade 가 이걸 부른다)
@@ -122,6 +123,34 @@ T('관련 학과면 학력 경로 열림',
   suggestGrades({ edu_level: '학사', major_related: '관련 학과' }, career(10), null, ON).tech?.grade, '고급기술자')
 console.log('   실내건축과 →', majorHint('실내건축과'))
 console.log('   경영학과   →', majorHint('경영학과'))
+
+console.log('\n── 고시 「엔지니어링기술관련학과의 범위」 목록 ──')
+const { majorStatus } = await import(pathToFileURL(process.env.SP + '/grade.copy.mjs').href)
+const mv = (major, extra) => majorStatus({ major, ...extra }).value
+T('실내건축학과 → 관련 학과', mv('실내건축학과'), '관련 학과')
+T('실내건축과 → 관련 학과', mv('실내건축과'), '관련 학과')
+T('건축공학과 → 관련 학과 (공학과 떼기)', mv('건축공학과'), '관련 학과')
+T('토목공학전공 → 관련 학과', mv('토목공학전공'), '관련 학과')
+T('실내건축디자인(야간) → 관련 학과 (괄호 떼기)', mv('실내건축디자인(야간)'), '관련 학과')
+T('기계ㆍ시스템디자인학과 → 관련 학과 (가운뎃점)', mv('기계ㆍ시스템디자인학과'), '관련 학과')
+T('국어국문학과 → 관련 없음', mv('국어국문학과'), '관련 없음')
+T('시각디자인학과 → 관련 없음 (목록에 없다)', mv('시각디자인학과'), '관련 없음')
+T('경영학과 → 사람이 정함 (산업부문만)', mv('경영학과'), '')
+T('산업디자인학과 → 사람이 정함 (산업부문만)', mv('산업디자인학과'), '')
+T('학과를 안 적으면 빈 값', mv(''), '')
+T('사람이 고른 값이 이긴다', mv('국어국문학과', { major_related: '관련 학과' }), '관련 학과')
+T('목록에 없으면 학력 경로가 막힌다',
+  suggestGrades({ edu_level: '학사', major: '국어국문학과' }, career(10), null, ON).tech?.grade ?? null, null)
+T('목록에 있으면 학력 경로가 열린다',
+  suggestGrades({ edu_level: '학사', major: '실내건축학과' }, career(10), null, ON).tech?.grade, '고급기술자')
+
+console.log('\n── 기간 표시 ──')
+const { duration } = await import(hrCopy)
+T('400일 → 1년 1개월 5일', duration(400), '1년 1개월 5일')
+T('365일 → 1년', duration(365), '1년')
+T('30일 → 1개월', duration(30), '1개월')
+T('7일 → 7일', duration(7), '7일')
+T('0일 → —', duration(0), '—')
 
 console.log(`\n${pass}개 통과 · ${fail}개 실패`)
 process.exit(fail ? 1 : 0)

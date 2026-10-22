@@ -1262,9 +1262,13 @@ create table if not exists public.employee_hr (
   edu_date     date,                       -- 졸업일
   major_type   text not null default '',   -- 디자인 전공 / 준 전공 / 비전공
   -- 비고 2: 관련 없는 학과면 학력으로는 등급을 못 받는다.
-  -- ⚠️ 어느 학과가 관련 학과인지는 산업통상자원부 고시에 있다 — 기계가 정하지 않는다.
+  -- 고시의 학과 목록은 src/lib/majors.js 에 그대로 들어 있다(1,305개).
+  -- 비워 두면 그 목록으로 자동 판정하고, 여기에 값을 넣으면 사람이 정한 값이 이긴다.
   major_related text not null default ''
                 check (major_related in ('', '관련 학과', '관련 없음')),
+  -- 바이렌 4대보험 자격취득일. 비우면 employees.hire_date 를 쓴다.
+  -- ⚠️ 연차 계산에는 쓰지 않는다. 연차는 hire_date 하나로만 센다.
+  viren_start  date,
   note         text not null default '',
   updated_at   timestamptz not null default now()
 );

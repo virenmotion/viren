@@ -28,14 +28,20 @@ export function age(birth, on = today()) {
   return a < 0 ? null : a
 }
 
-/* 며칠을 'N년 N개월' 로. 1년 미만이면 'N개월', 1개월 미만이면 'N일'. */
+/* 며칠을 'N년 N개월 N일' 로.
+   ⚠️ 1년을 365일, 1개월을 30일로 본다. 달마다 날수가 다르니 **어림값**이다.
+      경력 인정은 날수로 따지므로, 화면에는 늘 일수를 같이 보여 준다(duration + days). */
 export function duration(days) {
   if (!days || days <= 0) return '—'
   const y = Math.floor(days / 365)
-  const m = Math.floor((days % 365) / 30)
-  if (y > 0) return m > 0 ? `${y}년 ${m}개월` : `${y}년`
-  if (m > 0) return `${m}개월`
-  return `${days}일`
+  const rest = days % 365
+  const m = Math.floor(rest / 30)
+  const d = rest % 30
+  const out = []
+  if (y) out.push(`${y}년`)
+  if (m) out.push(`${m}개월`)
+  if (d || !out.length) out.push(`${d}일`)
+  return out.join(' ')
 }
 
 const dayNum = (s) => Math.floor(parse(s).getTime() / DAY)

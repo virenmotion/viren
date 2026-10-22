@@ -4,6 +4,7 @@ import { useSession } from '../lib/session'
 import { holidayName } from '../lib/holidays'
 import { leaveShort } from '../lib/labels'
 import { WEEK, addDays, addMonths, dot, parse, today } from '../lib/dates'
+import { DateInput } from '../components/ui'
 
 /* 회사 공용 달력.
    · 일정은 재직자 누구나 올린다. 고치고 지우는 건 올린 사람과 관리자만(DB 정책이 막는다).
@@ -326,10 +327,10 @@ function EventForm({ form, setForm, cats, userId, onDone }) {
         </label>
         <div className="form-row">
           <label className="field"><span>시작일</span>
-            <input id="ev-start" type="date" required value={form.start_date}
+            <DateInput id="ev-start" required value={form.start_date}
               onChange={(e) => set({ start_date: e.target.value, end_date: e.target.value > form.end_date ? e.target.value : form.end_date })} /></label>
           <label className="field"><span>종료일</span>
-            <input id="ev-end" type="date" required min={form.start_date} value={form.end_date} onChange={(e) => set({ end_date: e.target.value })} /></label>
+            <DateInput id="ev-end" required min={form.start_date} value={form.end_date} onChange={(e) => set({ end_date: e.target.value })} /></label>
         </div>
         <label className="check">
           <input id="ev-allday" type="checkbox" checked={form.all_day} onChange={(e) => set({ all_day: e.target.checked })} />

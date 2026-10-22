@@ -5,7 +5,7 @@ import { leavePeriod } from '../lib/leave'
 import { DUTIES, RANKS } from '../lib/labels'
 import { ymd } from '../lib/dates'
 import { downloadBlob } from '../lib/csv'
-import { ErrorBox } from '../components/ui'
+import { DateInput, ErrorBox } from '../components/ui'
 import AdminForms from './AdminForms'
 import StorageCard from '../components/StorageCard'
 import StaffCard from '../components/StaffCard'
@@ -160,11 +160,20 @@ function Staff() {
   const [rows, setRows] = useState(employees)
   /* 인사기록카드를 열어 둔 직원 (노션 직원현황관리를 옮긴 화면, 2026-10-22) */
   const [cardOf, setCardOf] = useState(null)
+  /* 목록에서 바로 보려고 등급만 따로 읽는다(값을 고치는 건 인사기록카드에서).
+     employee_hr 은 관리자와 본인만 보이므로, 직원 권한이면 자기 줄만 온다. */
+  const [grades, setGrades] = useState({})
   const [dragFrom, setDragFrom] = useState(null)
   const [canDrag, setCanDrag] = useState(null)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   useEffect(() => setRows(employees), [employees])
+
+  async function loadGrades() {
+    const { data } = await supabase.from('employee_hr').select('user_id, tech_grade, design_grade')
+    setGrades(Object.fromEntries((data || []).map((h) => [h.user_id, h])))
+  }
+  useEffect(() => { loadGrades() }, [])
 
   const set = (id, patch) => setRows(rows.map((r) => (r.id === id ? { ...r, ...patch, _dirty: true } : r)))
 
@@ -222,7 +231,7 @@ function Staff() {
       {msg && <p className="ok">{msg}</p>}
       <div className="table-wrap card flush">
         <table className="table staff">
-          <thead><tr><th aria-label="순서" /><th>이름</th><th>이메일</th><th>부서</th><th>직급</th><th>직책</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>이전 사용</th><th>권한</th><th>재직</th><th aria-label="인사기록" /><th></th></tr></thead>
+          <thead><tr><th aria-label="순서" /><th>이름</th><th>이메일</th><th>부서</th><th>기술자등급</th><th>디자이너등급</th><th>직급</th><th>직책</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>이전 사용</th><th>권한</th><th>재직</th><th aria-label="인사기록" /><th></th></tr></thead>
           <tbody>
             {rows.map((r, i) => {
               const p = leavePeriod(r.hire_date)
@@ -247,6 +256,8 @@ function Staff() {
                   <td><input id={`n-${r.id}`} value={r.name} onChange={(e) => set(r.id, { name: e.target.value })} /></td>
                   <td className="small">{r.email}</td>
                   <td><input id={`d-${r.id}`} value={r.dept} onChange={(e) => set(r.id, { dept: e.target.value })} /></td>
+                  <td className="small">{grades[r.id]?.tech_grade || '—'}</td>
+                  <td className="small">{grades[r.id]?.design_grade || '—'}</td>
                   <td>
                     <select id={`p-${r.id}`} value={r.position || ''} onChange={(e) => set(r.id, { position: e.target.value })}>
                       <option value="">—</option>
@@ -262,7 +273,7 @@ function Staff() {
                       {r.duty && !DUTIES.includes(r.duty) && <option value={r.duty}>{r.duty}</option>}
                     </select>
                   </td>
-                  <td><input id={`h-${r.id}`} type="date" value={r.hire_date || ''} onChange={(e) => set(r.id, { hire_date: e.target.value })} /></td>
+                  <td><DateInput id={`h-${r.id}`} value={r.hire_date || ''} onChange={(e) => set(r.id, { hire_date: e.target.value })} /></td>
                   <td className="tnum small">{p ? `${p.legal}일` : '—'}</td>
                   <td><input id={`o-${r.id}`} className="tnum" type="number" step="0.5" min="0" value={r.leave_override ?? ''} placeholder="자동" onChange={(e) => set(r.id, { leave_override: e.target.value })} /></td>
                   <td><input id={`b-${r.id}`} className="tnum" type="number" step="0.5" min="0" value={r.leave_used_before ?? 0} onChange={(e) => set(r.id, { leave_used_before: e.target.value })} /></td>
@@ -286,6 +297,7 @@ function Staff() {
           key={cardOf.id}
           emp={rows.find((r) => r.id === cardOf.id) || cardOf}
           onClose={() => setCardOf(null)}
+          onSaved={loadGrades}
         />
       )}
     </section>
