@@ -9,6 +9,7 @@ import { DateInput, ErrorBox } from '../components/ui'
 import AdminForms from './AdminForms'
 import StorageCard from '../components/StorageCard'
 import StaffCard from '../components/StaffCard'
+import Certificate from '../components/Certificate'
 
 const TABS = [['staff', '직원'], ['settings', '출근 설정'], ['forms', '양식'], ['cats', '일정 분류'], ['storage', '저장소'], ['backup', '백업']]
 
@@ -160,6 +161,9 @@ function Staff() {
   const [rows, setRows] = useState(employees)
   /* 인사기록카드를 열어 둔 직원 (노션 직원현황관리를 옮긴 화면, 2026-10-22) */
   const [cardOf, setCardOf] = useState(null)
+  /* 증명서를 열어 둔 직원. 인사기록과 **동시에 열지 않는다** — 둘 다 열려 있으면
+     인쇄할 때 무엇을 찍어야 할지 알 수 없다. */
+  const [certOf, setCertOf] = useState(null)
   /* 목록에서 바로 보려고 등급만 따로 읽는다(값을 고치는 건 인사기록카드에서).
      employee_hr 은 관리자와 본인만 보이므로, 직원 권한이면 자기 줄만 온다. */
   const [grades, setGrades] = useState({})
@@ -231,7 +235,7 @@ function Staff() {
       {msg && <p className="ok">{msg}</p>}
       <div className="table-wrap card flush">
         <table className="table staff">
-          <thead><tr><th aria-label="순서" /><th>이름</th><th>이메일</th><th>부서</th><th>기술자등급</th><th>디자이너등급</th><th>직급</th><th>직책</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>이전 사용</th><th>권한</th><th>재직</th><th aria-label="인사기록" /><th></th></tr></thead>
+          <thead><tr><th aria-label="순서" /><th>이름</th><th>이메일</th><th>부서</th><th>기술자등급</th><th>디자이너등급</th><th>직급</th><th>직책</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>이전 사용</th><th>권한</th><th>재직</th><th aria-label="인사기록" /><th aria-label="증명서" /><th></th></tr></thead>
           <tbody>
             {rows.map((r, i) => {
               const p = leavePeriod(r.hire_date)
@@ -283,7 +287,10 @@ function Staff() {
                     </select>
                   </td>
                   <td><input id={`a-${r.id}`} type="checkbox" checked={r.active} disabled={r.id === userId} onChange={(e) => set(r.id, { active: e.target.checked })} aria-label="재직" /></td>
-                  <td><button className="btn small-btn" onClick={() => setCardOf(r)}>인사기록</button></td>
+                  <td><button className="btn small-btn"
+                    onClick={() => { setCertOf(null); setCardOf(r) }}>인사기록</button></td>
+                  <td><button className="btn small-btn"
+                    onClick={() => { setCardOf(null); setCertOf(r) }}>증명서</button></td>
                   <td><button className="btn small-btn primary" disabled={!r._dirty} onClick={() => save(r)}>저장</button></td>
                 </tr>
               )
@@ -291,6 +298,14 @@ function Staff() {
           </tbody>
         </table>
       </div>
+
+      {certOf && (
+        <Certificate
+          key={certOf.id}
+          emp={rows.find((r) => r.id === certOf.id) || certOf}
+          onClose={() => setCertOf(null)}
+        />
+      )}
 
       {cardOf && (
         <StaffCard

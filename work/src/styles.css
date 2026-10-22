@@ -226,7 +226,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .table .title-cell a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .table.compact th, .table.compact td { padding: 7px 8px; }
 .table.compact input { padding: 7px 9px; }
-.table.staff { min-width: 1420px; }
+.table.staff { min-width: 1500px; }
 .table.staff input, .table.staff select { padding: 6px 8px; }
 .table.staff td { padding: 7px 8px; }
 .table.staff select { min-width: 92px; }
@@ -854,7 +854,20 @@ button.att-day:hover { background: var(--accent-soft); }
   .shell:has(.hr-card) .table-wrap.card.flush { display: none; }
   .hr-card { border: 0; padding: 0; box-shadow: none; }
   .no-print { display: none !important; }
+
+  /* 증명서를 열어 두면 그것만 찍는다 (A4 한 장) */
+  .shell:has(.cert-card) .topbar,
+  .shell:has(.cert-card) .tabbar,
+  .shell:has(.cert-card) .page > .stack > h1,
+  .shell:has(.cert-card) .tabs,
+  .shell:has(.cert-card) .card.info,
+  .shell:has(.cert-card) .table-wrap.card.flush,
+  .shell:has(.cert-card) .hr-card { display: none; }
+  .cert-card { border: 0; padding: 0; box-shadow: none; gap: 0; }
+  .cert { width: auto; max-width: none; border: 0; padding: 0; }
 }
+
+@page { size: A4; margin: 16mm 14mm; }
 
 /* 세 칸을 고르게. ⚠️ .form-row 가 이 파일에 두 번 정의돼 있어(grid → flex)
    나중 것이 이긴다. 그래서 더 구체적인 .form-row.three 로 덮어쓴다. */
@@ -862,6 +875,38 @@ button.att-day:hover { background: var(--accent-soft); }
   display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 12px; align-items: end;
 }
+
+/* ── 증명서 (재직·경력) ───────────────────────────────────────────
+   양식: 「[제1호] 재직증명서.hwp」 를 그대로 옮겼다.
+   ⚠️ 색을 테마 변수로 쓰지 않는다. 종이에 찍히는 것이라 화면 테마와 무관해야 한다. */
+.cert {
+  background: #fff; color: #2b2622;
+  width: 190mm; max-width: 100%; margin: 0 auto; padding: 14mm 12mm;
+  border: 1px solid var(--line); line-height: 1.6;
+}
+.cert-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13mm; }
+.cert-head h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: .06em; color: #2b2622; }
+.cert-logo { height: 30px; width: auto; }
+
+.cert-tb { width: 100%; border-collapse: collapse; margin-bottom: 7mm; table-layout: fixed; }
+.cert-tb th, .cert-tb td {
+  border: 1px solid #c9c4bd; padding: 7px 8px; text-align: center;
+  font-size: 12.5px; font-weight: 400; word-break: keep-all;
+}
+/* 이름표 칸. 종이에도 배경색이 나와야 양식과 같아진다. */
+.cert-tb th.g {
+  background: #f1efea; color: #4a443d; font-size: 12px;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+/* 맨 왼쪽 분류 칸 — 원본처럼 '인적 / 사항' 두 줄로 */
+.cert-tb th.k { white-space: pre-line; line-height: 1.35; }
+.cert-say { text-align: center; margin: 15mm 0 0; font-size: 14px; }
+.cert-date { text-align: center; margin: 9mm 0 0; font-size: 13.5px; }
+.cert-sign { text-align: right; margin: 11mm 52px 0 0; font-size: 14px; }
+/* 도장은 '(인)' 글자에 살짝 걸치게 — 원본과 같다 */
+.cert-seal { width: 62px; height: auto; vertical-align: middle; margin: -14px -46px -14px 2px; }
+.cert-corp { text-align: center; margin: 13mm 0 0; font-size: 17px; font-weight: 800; letter-spacing: .08em; }
+.file-pick { cursor: pointer; }
 
 /* 등급 제시 */
 .suggest { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }

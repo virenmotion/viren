@@ -112,6 +112,16 @@ create table public.settings (
   dept_order        text[] not null default '{}',
   -- 대화에 붙인 사진·파일을 며칠 두고 지울지. 0 보다 커야 지운다.
   chat_file_days    int not null default 60,
+  -- 증명서(재직·경력)에 들어가는 회사 정보. 배포 없이 고칠 수 있게 DB 에 둔다.
+  -- ⚠️ 이 표는 '재직자 누구나 본다'. 사업자등록증·홈페이지에 이미 적힌 것만 넣는다.
+  company_name      text not null default '주식회사 바이렌',
+  company_short     text not null default '㈜바이렌',
+  company_ceo       text not null default '김기선, 백승민',
+  ceo_title         text not null default '대표이사',
+  company_biz_no    text not null default '566-87-03717',
+  company_phone     text not null default '-',
+  company_fax       text not null default '-',
+  company_address   text not null default '서울특별시 마포구 양화로8길 32-17, 3층',
   updated_at        timestamptz not null default now()
 );
 insert into public.settings (id) values (1);
@@ -682,6 +692,32 @@ begin
   if not found then raise exception '오늘 출근 기록이 없습니다. 먼저 출근을 찍어 주세요.'; end if;
   return v_row;
 end $$;
+
+-- ---------------------------------------------------------------------
+-- 회사 그림 저장소 — 법인 직인(도장)
+-- ⚠️ **public/ 에 두지 않는다.** 거기 넣으면 로그인 없이 누구나 내려받는다.
+--    도장 그림만 있으면 아무 문서나 바이렌이 찍은 것처럼 만들 수 있다.
+-- ---------------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('company', 'company', false)
+on conflict (id) do nothing;
+
+create policy "회사 그림 보기" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'company' and public.is_active_employee());
+
+create policy "회사 그림 올리기" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'company' and public.is_admin());
+
+create policy "회사 그림 바꾸기" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'company' and public.is_admin())
+  with check (bucket_id = 'company' and public.is_admin());
+
+create policy "회사 그림 지우기" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'company' and public.is_admin());
 
 -- ---------------------------------------------------------------------
 -- 첨부파일 저장소 (Storage)
