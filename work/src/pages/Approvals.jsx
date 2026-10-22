@@ -4,13 +4,14 @@ import { errText, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { dot, ymd } from '../lib/dates'
 import { formName } from '../lib/labels'
-import { Empty, ErrorBox, StatusPill } from '../components/ui'
+import { BigEmpty, ErrorBox, StatusPill } from '../components/ui'
 
+/* [칸 이름, 이름표, 비었을 때 제목, 비었을 때 설명] */
 const BOXES = [
-  ['todo', '결재할 문서'],
-  ['mine', '내가 올린 문서'],
-  ['done', '내가 결재한 문서'],
-  ['ref', '참조 문서'],
+  ['todo', '결재할 문서', '결재할 문서가 없어요', '새로운 결재 요청이 도착하면 이곳에 표시됩니다.'],
+  ['mine', '내가 올린 문서', '올린 문서가 없어요', '오른쪽 위 ‘새 문서’ 로 기안할 수 있어요.'],
+  ['done', '내가 결재한 문서', '결재한 문서가 없어요', '승인하거나 반려한 문서가 여기 쌓입니다.'],
+  ['ref', '참조 문서', '참조로 받은 문서가 없어요', '다른 사람이 나를 참조로 넣으면 여기 보입니다.'],
 ]
 
 async function idsFrom(table, col, filters) {
@@ -44,23 +45,36 @@ export default function Approvals() {
     return () => { alive = false }
   }, [box, userId])
 
-  const boxes = isAdmin ? [...BOXES, ['all', '전체 문서']] : BOXES
+  const boxes = isAdmin
+    ? [...BOXES, ['all', '전체 문서', '문서가 없어요', '회사에 올라온 문서가 모두 여기 보입니다.']]
+    : BOXES
+  const here = boxes.find(([k]) => k === box) || BOXES[0]
 
   return (
     <div className="stack">
-      <div className="row-between">
-        <h1>전자결재</h1>
+      <header className="page-head">
+        <div>
+          <h1>전자결재</h1>
+          <p className="eyebrow">필요한 문서를 빠르게 확인하고 처리하세요.</p>
+        </div>
         <Link to="/approval/new" className="btn primary">+ 새 문서</Link>
-      </div>
-      <div className="tabs" role="tablist">
-        {boxes.map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={box === k} className={box === k ? 'on' : ''} onClick={() => setParams({ box: k })}>{label}</button>
-        ))}
-      </div>
+      </header>
+
       <ErrorBox>{err}</ErrorBox>
-      {docs === null ? <p className="muted">불러오는 중…</p> : docs.length === 0 ? <div className="card"><Empty>문서가 없어요.</Empty></div> : (
+
+      <section className="card flush box-card">
+        <div className="subtabs pad-x" role="tablist">
+          {boxes.map(([k, label]) => (
+            <button key={k} role="tab" aria-selected={box === k} className={box === k ? 'on' : ''} onClick={() => setParams({ box: k })}>{label}</button>
+          ))}
+        </div>
+
+        {/* ⚠️ 불러오는 중 · 오류 · 진짜 0건을 구분한다. 오류를 '없음' 으로 바꿔치지 않는다. */}
+        {docs === null ? <p className="muted pad">불러오는 중…</p> : docs.length === 0 ? (
+          <BigEmpty title={here[2]}>{here[3]}</BigEmpty>
+        ) : (
         <>
-          <div className="table-wrap card flush only-wide">
+          <div className="table-wrap only-wide">
             <table className="table">
               <thead>
                 <tr><th>문서번호</th><th>양식</th><th>제목</th><th>기안자</th><th>기안일</th><th>현재 결재자</th><th>상태</th></tr>
@@ -83,7 +97,7 @@ export default function Approvals() {
               </tbody>
             </table>
           </div>
-          <ul className="doc-cards only-narrow">
+          <ul className="doc-cards pad only-narrow">
             {docs.map((d) => {
               const cur = d.approval_steps?.find((s) => s.status === 'pending')
               return (
@@ -100,7 +114,10 @@ export default function Approvals() {
             })}
           </ul>
         </>
-      )}
+        )}
+
+        <p className="box-foot">다른 문서는 위 탭에서 확인하세요.</p>
+      </section>
     </div>
   )
 }

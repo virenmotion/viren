@@ -325,9 +325,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
    ⚠️ align-items: end 만으로는 5px 쯤 내려간다 — 제목의 줄높이(1.3)가 글자 아래에
       반 줄 간격을 남기기 때문이다. 그만큼(0.15em)을 제목에서 걷어내 상자를 글자에 붙인다.
       글꼴 크기가 바뀌어도 따라오도록 px 이 아니라 em 으로 적는다. */
-.home-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
-.home-head > div { display: grid; gap: 2px; }
-.home-head h1 { margin-bottom: -.15em; }
+.home-head, .page-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
+.home-head > div, .page-head > div { display: grid; gap: 2px; }
+.home-head h1, .page-head h1 { margin-bottom: -.15em; }
+/* 제목 아래 한 줄 설명은 제목보다 뒤로 물러나야 한다 */
+.page-head .eyebrow { margin-top: 6px; }
 /* 회사소개서 — 인사말 줄 오른쪽 (지은님 2026-10-22) */
 .profile-btn {
   display: inline-flex; align-items: center; gap: 8px; flex: none;
@@ -443,6 +445,29 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2.5px;
   border-radius: 3px 3px 0 0; background: var(--accent);
 }
+/* 탭 + 목록을 한 장에 담는 카드 (전자결재 등) */
+.box-card { gap: 0; }
+.box-card .subtabs { padding-top: 18px; }
+.box-card .pad { padding: 22px 24px; }
+.box-card .table-wrap { border-top: 0; }
+.box-foot {
+  border-top: 1px solid var(--line); padding: 14px 24px;
+  font-size: .85rem; color: var(--muted); text-align: center;
+}
+.subtabs.pad-x { padding-left: 24px; padding-right: 24px; overflow-x: auto; scrollbar-width: none; }
+.subtabs.pad-x::-webkit-scrollbar { display: none; }
+.subtabs button { white-space: nowrap; }
+
+/* 목록이 진짜 0건일 때 */
+.big-empty { display: grid; justify-items: center; gap: 6px; padding: 64px 24px; text-align: center; }
+.be-ico {
+  width: 76px; height: 76px; border-radius: 50%; background: var(--surface-2);
+  display: grid; place-items: center; color: var(--purple); margin-bottom: 8px;
+}
+.be-ico svg { width: 30px; height: 34px; }
+.big-empty strong { font-size: 1.08rem; }
+.big-empty p { color: var(--muted); font-size: .9rem; }
+
 .more { font-size: .85rem; color: var(--muted); text-decoration: none; }
 .more:hover { color: var(--ink); }
 
@@ -451,6 +476,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 }
 
 @media (max-width: 760px) {
+  .box-card .subtabs { padding-top: 14px; }
+  .subtabs.pad-x { padding-left: 16px; padding-right: 16px; }
+  .box-card .pad { padding: 16px; }
+  .box-foot { padding: 12px 16px; }
+  .big-empty { padding: 44px 16px; }
   .clock { font-size: 2.7rem; }
   .punch-foot { align-items: stretch; }
   .punch-btn { width: 100%; min-height: 54px; }
