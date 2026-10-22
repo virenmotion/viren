@@ -907,6 +907,23 @@ button.att-day:hover { background: var(--accent-soft); }
 .cert-seal { width: 62px; height: auto; vertical-align: middle; margin: -14px -46px -14px 2px; }
 .cert-corp { text-align: center; margin: 13mm 0 0; font-size: 17px; font-weight: 800; letter-spacing: .08em; }
 .file-pick { cursor: pointer; }
+/* 회사 정보 칸.
+   ⚠️ .form-row.three 를 쓰면 안 된다 — 그건 **아래 맞춤**이라, 설명이 붙은 칸과
+      안 붙은 칸이 섞이면 입력칸 높이가 들쭉날쭉해진다. 여기는 위 맞춤. */
+.company-form {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px; align-items: start;
+}
+.company-form .wide { grid-column: 1 / -1; }
+/* 칸 아래 작은 설명 */
+.field-help { display: block; margin-top: 3px; font-size: .76rem; color: var(--muted); font-style: normal; }
+/* 직인 미리보기 */
+.seal-box {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 120px; padding: 12px; background: #fff;
+  border: 1px dashed var(--line-2); border-radius: 10px;
+}
+.seal-view { width: 96px; height: auto; }
 
 /* 등급 제시 */
 .suggest { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }

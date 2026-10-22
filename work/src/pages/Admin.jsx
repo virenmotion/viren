@@ -10,8 +10,9 @@ import AdminForms from './AdminForms'
 import StorageCard from '../components/StorageCard'
 import StaffCard from '../components/StaffCard'
 import Certificate from '../components/Certificate'
+import CompanyCard from '../components/CompanyCard'
 
-const TABS = [['staff', '직원'], ['settings', '출근 설정'], ['forms', '양식'], ['cats', '일정 분류'], ['storage', '저장소'], ['backup', '백업']]
+const TABS = [['staff', '직원'], ['company', '회사 정보'], ['settings', '출근 설정'], ['forms', '양식'], ['cats', '일정 분류'], ['storage', '저장소'], ['backup', '백업']]
 
 export default function Admin() {
   const [tab, setTab] = useState('staff')
@@ -22,6 +23,7 @@ export default function Admin() {
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}
       </div>
       {tab === 'staff' && <Staff />}
+      {tab === 'company' && <CompanyCard />}
       {tab === 'settings' && <Settings />}
       {tab === 'forms' && <AdminForms />}
       {tab === 'cats' && <Categories />}

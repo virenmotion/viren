@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { errText, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { today } from '../lib/dates'
-import { COMPANY, SEAL_PATH, korDate, periodText, spread } from '../lib/cert'
+import { COMPANY, korDate, loadSeal, periodText, spread, uploadSeal } from '../lib/cert'
 import { DateInput, ErrorBox } from './ui'
 
 /* 재직증명서 · 경력증명서. (지은님 2026-10-22, 양식: 「[제1호] 재직증명서.hwp」)
@@ -63,11 +63,9 @@ export default function Certificate({ emp, onClose }) {
     setFrom(h?.viren_start || emp.hire_date || '')
 
     /* 직인은 비공개 버킷에서 내려받는다 — 로그인한 재직자만 받을 수 있다. */
-    const { data: blob, error } = await supabase.storage.from('company').download(SEAL_PATH)
-    if (blob) { setSeal(URL.createObjectURL(blob)); setSealMsg(''); return }
-    setSealMsg(/bucket not found/i.test(error?.message || '')
-      ? 'SQL 전'      // 2026-10-22f-cert.sql 을 아직 안 돌렸다
-      : '없음')
+    const r = await loadSeal()
+    setSeal((old) => { if (old) URL.revokeObjectURL(old); return r.url })
+    setSealMsg(r.state)
   }, [emp.id, emp.hire_date])
 
   useEffect(() => { load() }, [load])
@@ -82,8 +80,7 @@ export default function Certificate({ emp, onClose }) {
   async function putSeal(file) {
     if (!file) return
     setErr(''); setSealMsg('')
-    const { error } = await supabase.storage.from('company')
-      .upload(SEAL_PATH, file, { upsert: true, contentType: file.type || 'image/png' })
+    const { error } = await uploadSeal(file)
     if (error) return setErr(errText(error))
     load()
   }
@@ -178,10 +175,10 @@ export default function Certificate({ emp, onClose }) {
           <span className="warn-text">직인 그림이 없습니다</span> — 도장 없이 나갑니다.
           종이에 직접 날인하시거나, 여기서 도장 그림(배경이 비치는 PNG)을 올려 주세요.
           {' '}올린 그림은 <strong>로그인한 재직자만</strong> 볼 수 있는 곳에 들어갑니다 —
-          인터넷에 공개되지 않습니다.
+          인터넷에 공개되지 않습니다. (관리 → <strong>회사 정보</strong> 에서도 됩니다.)
           <label className="linkbtn file-pick"> 직인 올리기
             <input type="file" accept="image/png,image/webp" hidden
-              onChange={(e) => putSeal(e.target.files?.[0])} />
+              onChange={(e) => { putSeal(e.target.files?.[0]); e.target.value = '' }} />
           </label>
         </p>
       )}

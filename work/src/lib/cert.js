@@ -1,4 +1,5 @@
 import { parse } from './dates'
+import { supabase } from './supabase'
 
 /* 증명서에 쓰는 값들. (양식: 「[제1호] 재직증명서.hwp」, 2026-10-22) */
 
@@ -19,6 +20,23 @@ export const COMPANY = {
   fax: '-',
   address: '서울특별시 마포구 양화로8길 32-17, 3층',
 }
+
+/* 직인 가져오기.
+     url   — 화면에서만 쓰는 임시 주소(다 쓰면 URL.revokeObjectURL 로 거둔다)
+     state — '' 있음 / '없음' / 'SQL 전'(버킷이 아직 없다) */
+export async function loadSeal() {
+  const { data, error } = await supabase.storage.from('company').download(SEAL_PATH)
+  if (data) return { url: URL.createObjectURL(data), state: '' }
+  return { url: '', state: /bucket not found/i.test(error?.message || '') ? 'SQL 전' : '없음' }
+}
+
+/* 올리기·지우기는 관리자만 된다(DB 정책). */
+export const uploadSeal = (file) =>
+  supabase.storage.from('company').upload(SEAL_PATH, file, {
+    upsert: true, contentType: file.type || 'image/png',
+  })
+
+export const delSeal = () => supabase.storage.from('company').remove([SEAL_PATH])
 
 /* 2026-07-20 → '2026년   07월   20일' (양식의 날짜 줄) */
 export function korDate(s) {
