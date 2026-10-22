@@ -60,6 +60,17 @@ const Icon = ({ name }) => (
   </svg>
 )
 
+/* 공식 로고.
+   ⚠️ CI 가이드 p.6~8 — 원본 에셋만 쓴다. 글자로 다시 치거나 다시 그리지 않는다.
+      그림자·테두리·색 바꾸기·찌그러뜨리기 금지. 'WORK' 는 로고가 아니라 제품명이라
+      보호공간(SVG 안에 이미 들어 있다) 밖에 따로 적는다. */
+const Logo = ({ className }) => (
+  <NavLink to="/" className={className} aria-label="VIREN WORK 홈">
+    <img src="/viren-signature.svg" alt="VIREN" />
+    <span aria-hidden="true">WORK</span>
+  </NavLink>
+)
+
 export default function Layout() {
   const { me, isAdmin } = useSession()
   const todo = useTodoCount()
@@ -70,34 +81,58 @@ export default function Layout() {
   /* 앱으로 설치했을 때 작업표시줄·독 아이콘에 뜨는 숫자 */
   useEffect(() => { setBadge(todo + chat) }, [todo, chat])
 
+  /* 가운데 메뉴. 관리는 **기존 권한 조건 그대로** 렌더링한다 — 감추는 것만으로
+     권한을 대신하지 않는다(서버 정책이 진짜 문지기다). */
   const items = [
     { to: '/', end: true, label: '홈', icon: 'home' },
     { to: '/approval', label: '전자결재', icon: 'approval', badge: todo },
     { to: '/attendance', label: '근태', icon: 'attendance' },
     { to: '/calendar', label: '캘린더', icon: 'calendar' },
     { to: '/chat', label: '메신저', icon: 'chat', badge: chat },
-    ...(isAdmin ? [{ to: '/admin', label: '관리', icon: 'admin' }] : []),
   ]
+  const adminItem = isAdmin ? [{ to: '/admin', label: '관리', icon: 'admin' }] : []
+  const mobileItems = [...items, ...adminItem]
 
   return (
     <div className="shell">
+      {/* 넓은 화면: 왼쪽 사이드바 */}
+      <aside className="sidebar">
+        <Logo className="sb-logo" />
+
+        <nav className="sb-nav" aria-label="주 메뉴">
+          {items.map((it) => (
+            <NavLink key={it.to} to={it.to} end={it.end}>
+              <Icon name={it.icon} />
+              {it.label}
+              {it.badge > 0 && <span className="badge">{it.badge}</span>}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="sb-foot">
+          <nav className="sb-nav" aria-label="보조 메뉴">
+            {adminItem.map((it) => (
+              <NavLink key={it.to} to={it.to}><Icon name={it.icon} />{it.label}</NavLink>
+            ))}
+            {/* 로그아웃은 내 정보 안에 있다. 여기서는 그리로 가는 길만 둔다. */}
+            <NavLink to="/me" className="sb-me">
+              <span className="avatar" aria-hidden="true">{(me.name || me.email).slice(0, 1)}</span>
+              {me.name || me.email}
+              <span className="chev" aria-hidden="true">›</span>
+            </NavLink>
+          </nav>
+        </div>
+      </aside>
+
+      {/* 휴대폰: 위 간이 머리줄 + 아래 탭 메뉴 */}
       <header className="topbar">
         <div className="topbar-in">
-          <NavLink to="/" className="logo" aria-label="VIREN WORK 홈">VIREN<span>WORK</span></NavLink>
-          <nav className="nav" aria-label="주 메뉴">
-            {items.map((it) => (
-              <NavLink key={it.to} to={it.to} end={it.end}>
-                {it.label}
-                {it.badge > 0 && <span className="badge" aria-label={`결재할 문서 ${it.badge}건`}>{it.badge}</span>}
-              </NavLink>
-            ))}
-          </nav>
+          <Logo className="logo" />
           <div className="who">
             <NavLink to="/me" className="who-name">
               <span className="avatar" aria-hidden="true">{(me.name || me.email).slice(0, 1)}</span>
               <span className="who-text">{me.name || me.email}</span>
             </NavLink>
-            <button className="linkbtn logout" onClick={() => supabase.auth.signOut()}>로그아웃</button>
           </div>
         </div>
       </header>
@@ -109,7 +144,7 @@ export default function Layout() {
 
       {/* 휴대폰: 아래쪽 탭 메뉴 */}
       <nav className="tabbar" aria-label="주 메뉴">
-        {[...items, { to: '/me', label: '내 정보', icon: 'me' }].map((it) => (
+        {[...mobileItems, { to: '/me', label: '내 정보', icon: 'me' }].map((it) => (
           <NavLink key={it.to} to={it.to} end={it.end}>
             <span className="tab-ico">
               <Icon name={it.icon} />
