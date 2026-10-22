@@ -178,6 +178,26 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 
 ### 끝난 일
 
+- **2026-10-22 홈 바로가기에 메일.** `https://mail.kakaowork.com/mail/list.do`
+  순서는 홈페이지 · 메일 · YouTube · Instagram · Behance · 회사소개서.
+
+- **2026-10-22 대표메일 공용함은 보류.** (코드는 `functions/api/mail.js` 에 1단계만 올려 둠)
+  · ⚠️ **`virenmotion@viren.kr` 은 회사용 계정이 아니라 백승민 대표 개인 계정이다.**
+    홈페이지 문의폼의 SMTP 인증 계정이라 서비스 계정인 줄 알고 "공용함으로 쓰자" 고
+    제안했다가, 그룹메일 멤버 화면에서 백승민 이름으로 떠 있는 걸 보고 알았다.
+    **코드 주석에 적힌 용도만 보고 계정의 성격을 단정하면 안 된다.**
+  · `viren@viren.kr` 은 그룹메일이고 멤버가 세 분 전원이라 **이미 모두 받고 있다.**
+    공용함을 따로 만들어 얻을 이득이 적다. 홈페이지 문의도 지은님께 온다(정상).
+  · 쓸 만한 공용 계정이 없다 → 만들려면 카카오워크에 계정 추가(사람 수 과금 가능).
+    어차피 메일을 옮길 거라면 **옮길 곳에서 공용 계정을 만들고 그때 붙이는 게 맞다.**
+  · `functions/api/mail.js` 는 그대로 둔다. IMAP 은 같은 규격이라 서비스가 바뀌어도
+    환경변수(MAIL_IMAP_HOST·PORT·USER·PASS)만 채우면 붙는다.
+    설계: **메일을 DB 에 복사하지 않고 볼 때마다 IMAP 에서 읽는다** /
+    비밀번호는 Cloudflare 환경변수에만 / 보내기는 Cloudflare 가 포트를 막아
+    Vercel(`api/send.js`)을 쓴다.
+  · 확인: 배포 후 `/api/mail` 이 빠진 환경변수 이름을 돌려줌(503). `cloudflare:sockets`
+    가 Pages Functions 에서 쓸 수 있다는 것도 이걸로 확인됐다(가장 걱정했던 부분).
+
 - **2026-10-22 ⚠️ supabase 호출은 await·then 을 붙여야 실제로 나간다.**
   메신저를 읽어도 안 읽은 수 배지가 안 지워졌다. 원인은 `supabase.rpc("mark_read", ...)`
   를 **부르기만 하고 기다리지 않은 것**. supabase 호출은 thenable 이라
