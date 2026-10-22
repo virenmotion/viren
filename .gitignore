@@ -43,5 +43,6 @@ dist-ssr
 /.agents/
 /skills-lock.json
 
-# 디자인 인계 패키지 — public/ 에 두면 홈페이지에 그대로 공개된다. 올리지 않는다.
+# 디자인 인계 패키지. ⚠️ public/ 에 두면 viren.kr 로 그대로 공개된다 — 거기 두지 말 것.
+design guide/
 public/design guide/
