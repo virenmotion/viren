@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { loadRooms, roomTitle, shortTime } from '../lib/chat'
+import { UNREAD_EVENT, loadRooms, roomTitle, shortTime } from '../lib/chat'
 import { Empty, ErrorBox } from '../components/ui'
 
 /* 대화 목록. 새 글이 오면 바로 위로 올라오도록 Realtime 을 듣는다. */
@@ -21,7 +21,11 @@ export default function Chat() {
     const ch = supabase.channel('chat-list')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, refresh)
       .subscribe()
-    return () => { supabase.removeChannel(ch) }
+    window.addEventListener(UNREAD_EVENT, refresh)
+    return () => {
+      supabase.removeChannel(ch)
+      window.removeEventListener(UNREAD_EVENT, refresh)
+    }
   }, [])
 
   return (

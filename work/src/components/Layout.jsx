@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { setBadge } from '../lib/install'
+import { UNREAD_EVENT } from '../lib/chat'
 
 /* 내 결재 차례인 문서 수. 화면을 옮길 때마다 다시 센다. */
 function useTodoCount() {
@@ -31,7 +32,14 @@ function useChatCount() {
     const ch = supabase.channel('chat-badge')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, count)
       .subscribe()
-    return () => { supabase.removeChannel(ch) }
+    /* 방을 읽었을 때도 다시 센다. 읽는 건 화면을 옮기는 일이 아니라
+       pathname 만 보고 있으면 배지가 그대로 남는다. */
+    window.addEventListener(UNREAD_EVENT, count)
+    return () => {
+      supabase.removeChannel(ch)
+      window.removeEventListener(UNREAD_EVENT, count)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   return n
 }

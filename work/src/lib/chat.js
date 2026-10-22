@@ -3,6 +3,10 @@ import { supabase } from './supabase'
 /* 메신저 공용 함수들. (지은님 2026-10-21)
    화면 두 곳(목록·대화)과 탭 배지가 같은 규칙을 써야 해서 여기로 모았다. */
 
+/* 안 읽은 수가 바뀌었다고 알리는 신호. 배지는 화면을 옮길 때만 다시 세는데,
+   방을 읽는 건 화면을 옮기는 일이 아니라서 따로 알려 줘야 한다. */
+export const UNREAD_EVENT = 'viren-unread'
+
 export const CHAT_BUCKET = 'chat-files'
 export const MAX_CHAT_MB = 20
 
@@ -50,6 +54,15 @@ export async function loadRooms() {
   for (const m of members || []) (byRoom[m.room_id] ||= []).push(m)
   const n = Object.fromEntries((unread || []).map((u) => [u.room_id, Number(u.n)]))
   return (rooms || []).map((r) => ({ ...r, members: byRoom[r.id] || [], unread: n[r.id] || 0 }))
+}
+
+/* 이 방을 지금까지 읽은 것으로.
+   ⚠️ supabase 호출은 **await·then 을 붙여야 실제로 나간다.** 그냥 불러 두면
+   아무 일도 일어나지 않는다. 2026-10-21 에 이것 때문에 안 읽은 수 배지가
+   읽어도 안 지워졌다. 눈에 안 띄는 종류의 실수다. */
+export async function markRead(roomId) {
+  const { error } = await supabase.rpc('mark_read', { p_room: roomId })
+  if (!error) window.dispatchEvent(new Event(UNREAD_EVENT))
 }
 
 export async function sendText(roomId, userId, text) {

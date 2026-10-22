@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { clock, dayLabel, fileUrl, isImage, roomTitle, sameDay, sendFile, sendText } from '../lib/chat'
+import { clock, dayLabel, fileUrl, isImage, markRead, roomTitle, sameDay, sendFile, sendText } from '../lib/chat'
 import { ErrorBox } from '../components/ui'
 
 /* 대화 한 방. 들어오면 읽음 처리하고, 새 글은 Realtime 으로 바로 붙인다. */
@@ -47,7 +47,7 @@ export default function ChatRoom() {
   /* 보고 있는 동안은 읽은 것으로. 화면을 떠날 때 한 번 더(마지막 글까지 포함되게). */
   useEffect(() => {
     if (!msgs) return
-    supabase.rpc('mark_read', { p_room: id })
+    markRead(id)
   }, [id, msgs?.length])
 
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }) }, [msgs?.length])
