@@ -6,7 +6,9 @@
  *   · 가운데에는 퍼센트만. 시각은 바깥에 따로 적는다(칸이 좁아 둘 다 넣으면 읽기 힘들다).
  */
 
-export const FULL_MIN = 9 * 60
+/* ⚠️ 기준은 lib/worktime.js 한 곳에만 둔다. 여기서 다시 정하지 않는다. */
+export { FULL_MIN } from '../lib/worktime'
+import { FULL_MIN } from '../lib/worktime'
 
 export default function WorkRing({ minutes = 0, size = 54 }) {
   const pct = Math.round((minutes / FULL_MIN) * 100)

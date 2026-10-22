@@ -334,62 +334,80 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .pill.on { background: var(--ok-bg); color: var(--ok); font-weight: 600; padding: 5px 12px; border-radius: 99px; font-size: .85rem; }
 .hint.warn { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 0 8px 8px 0; color: var(--accent-ink); }
 
-/* 바로가기 줄 — 바이렌 바깥 페이지로 나가는 길. 화면이 좁으면 옆으로 민다. */
-.shortcuts {
-  display: flex; gap: 8px; flex-wrap: wrap;
-  margin-bottom: -6px;
-}
+/* 바로가기 — 바이렌 바깥 페이지로 나가는 길. 홈의 '바로가기' 카드 안에 들어간다. */
+.shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .shortcuts .sc {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 7px 13px 7px 11px; border-radius: 99px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border-radius: 14px;
   border: 1px solid var(--line); background: var(--surface);
-  color: var(--ink-2); font-size: .85rem; font-weight: 600; text-decoration: none;
+  color: var(--ink-2); font-size: .88rem; font-weight: 600; text-decoration: none;
   transition: border-color .12s, color .12s, background .12s;
 }
-.shortcuts .sc svg { width: 16px; height: 16px; flex: none; }
-.shortcuts .sc:hover { border-color: var(--ink); color: var(--ink); background: var(--surface-2); }
+.shortcuts .sc svg { width: 18px; height: 18px; flex: none; }
+.shortcuts .sc span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 끝의 '›' — 누르면 밖으로 나간다는 표시 */
+.shortcuts .sc::after { content: "›"; margin-left: auto; color: var(--muted); font-size: 1.05rem; line-height: 1; }
+.shortcuts .sc:hover { border-color: var(--line-2); color: var(--ink); background: var(--surface-2); }
 .shortcuts .sc-pdf { background: var(--accent-soft); border-color: #f0dfa4; color: var(--accent-ink); }
 .shortcuts .sc-pdf:hover { background: #ffeeb8; border-color: var(--accent); color: var(--accent-ink); }
 
-@media (max-width: 640px) {
-  /* 줄바꿈 대신 가로 스크롤 — 한 줄로 두어 화면 위를 덜 먹는다 */
-  .shortcuts {
-    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
-    margin-inline: -16px; padding-inline: 16px;
-  }
-  .shortcuts::-webkit-scrollbar { display: none; }
-  .shortcuts .sc { flex: none; }
-}
+@media (max-width: 400px) { .shortcuts { grid-template-columns: 1fr; } }
 
-.punch {
-  background: var(--brand); color: var(--on-brand); border-radius: 16px; padding: 26px 28px;
-  display: grid; grid-template-columns: 1fr auto; grid-template-areas: "clock btn" "times btn" "note note";
-  gap: 14px 28px; align-items: center;
-  background-image: radial-gradient(circle at 100% 0%, rgba(251, 200, 37, .12), transparent 45%);
-}
-.punch-clock { grid-area: clock; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.clock { font-family: var(--display); font-size: 3rem; font-weight: 600; line-height: 1; letter-spacing: .01em; }
-.punch-state { font-size: .85rem; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: #262624; color: var(--on-brand-muted); }
-.punch-state.st-working { background: rgba(251, 200, 37, .16); color: var(--accent); }
-.punch-state.st-done { background: rgba(111, 207, 155, .14); color: #8ad9ae; }
-.punch-times { grid-area: times; display: flex; gap: 28px; margin: 0; }
+/* 홈 첫 줄 — 오늘의 근무(넓게) + 오늘의 일정 */
+.home-top { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+
+.punch { gap: 12px; }
+.punch-head { align-items: start; }
+.punch-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.punch-goal { font-size: .86rem; color: var(--muted); }
+.punch-goal strong { color: var(--ok); }
+.clock { font-family: var(--display); font-size: 3.3rem; font-weight: 700; line-height: 1; letter-spacing: -.01em; }
+.punch-state { font-size: .82rem; font-weight: 600; padding: 4px 11px; border-radius: 99px; background: var(--surface-2); color: var(--muted); }
+.punch-state.st-working { background: var(--accent-soft); color: var(--accent-ink); }
+.punch-state.st-done { background: var(--ok-bg); color: var(--ok); }
+.punch-bar { display: flex; align-items: center; gap: 12px; }
+.punch-bar .wbar { flex: 1; }
+.punch-pct { font-size: .88rem; color: var(--muted); font-weight: 600; min-width: 42px; text-align: right; }
+.punch-foot { display: flex; align-items: end; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.punch-times { display: flex; gap: 36px; margin: 0; }
 .punch-times > div { display: grid; gap: 0; }
-.punch-times dt { font-size: .78rem; color: var(--on-brand-muted); }
-.punch-times dd { margin: 0; font-family: var(--display); font-size: 1.25rem; font-weight: 600; }
-.punch-note { grid-area: note; font-size: .85rem; color: var(--on-brand-muted); }
-.punch .error { grid-area: note; }
-.punch-btn { grid-area: btn; min-width: 200px; min-height: 64px; font-size: 1.12rem; border-radius: 12px; font-weight: 700; }
-.punch-btn.in { background: var(--accent); border-color: var(--accent); color: var(--brand); }
-.punch-btn.in:hover { background: var(--accent-hover); }
-.punch-btn.out { background: transparent; border: 1.5px solid #4a4a45; color: var(--on-brand); }
-.punch-btn.out:hover { border-color: var(--on-brand); background: #1a1a19; }
+.punch-times dt { font-size: .78rem; color: var(--muted); }
+.punch-times dd { margin: 0; font-family: var(--display); font-size: 1.3rem; font-weight: 700; }
+.punch-note { font-size: .85rem; color: var(--muted); }
+.punch-btn { min-width: 180px; min-height: 52px; font-size: 1.02rem; }
 
-.stat-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+/* 근무 막대 (A안 — 연속형 가로 막대) */
+.wbar { display: block; width: 100%; border-radius: 99px; background: #e8ecf5; overflow: hidden; }
+.wbar-fill { display: block; height: 100%; border-radius: 99px; }
+.wbar-fill.t-now { background: var(--accent); }
+.wbar-fill.t-done { background: var(--ok); }
+.wbar-fill.t-over { background: var(--blue); }
+/* 모자람 — 주황. ⚠️ 공식 CI 색이 아니라 UI 확장색이다. 늘 글자를 같이 둔다. */
+.wbar-fill.t-short { background: #c9791f; }
+
+/* 오늘의 일정 */
+.plan-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.plan-list li { display: flex; gap: 10px; align-items: start; }
+.plan-list .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; margin-top: 7px; }
+.plan-main { display: grid; gap: 3px; min-width: 0; }
+.plan-title { font-weight: 600; }
+.plan-meta { display: flex; gap: 8px; align-items: center; font-size: .8rem; color: var(--muted); flex-wrap: wrap; }
+.chip-soft { background: var(--surface-2); border-radius: 99px; padding: 2px 9px; font-size: .76rem; }
+
+.stat-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .stat {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px;
-  display: grid; gap: 4px; text-decoration: none; box-shadow: var(--shadow); align-content: start;
+  display: flex; gap: 14px; align-items: center; text-decoration: none; box-shadow: var(--shadow);
   transition: border-color .15s, transform .15s;
 }
+.stat-body { display: grid; gap: 2px; min-width: 0; }
+/* 기능별 파스텔 타일 — 뜻을 거드는 정도로만 */
+.tile { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; flex: none; }
+.tile svg { width: 23px; height: 23px; }
+.tile.t-purple { background: var(--purple-bg); color: var(--purple); }
+.tile.t-blue { background: var(--blue-bg); color: var(--blue); }
+.tile.t-yellow { background: var(--accent-soft); color: var(--accent-ink); }
+.tile.t-pink { background: var(--pink-bg); color: var(--pink); }
 .stat:hover { border-color: var(--line-2); transform: translateY(-1px); }
 .stat-label { font-size: .85rem; color: var(--muted); font-weight: 500; }
 .stat-num { font-family: var(--display); font-size: 2rem; font-weight: 700; line-height: 1.15; }
@@ -398,14 +416,33 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .stat.hot { background: var(--accent-soft); border-color: #f4dc8a; }
 .stat.hot .stat-label { color: var(--accent-ink); font-weight: 600; }
 
-.home-lists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.home-lists { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+
+/* 카드 안의 작은 탭 (결재함) */
+.subtabs { display: flex; gap: 18px; border-bottom: 1px solid var(--line); margin-bottom: -2px; }
+.subtabs button {
+  border: 0; background: none; cursor: pointer; padding: 0 0 10px;
+  color: var(--muted); font-size: .92rem; font-weight: 600; position: relative;
+}
+.subtabs button:hover { color: var(--ink-2); }
+.subtabs button.on { color: var(--ink); font-weight: 700; }
+.subtabs button.on::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2.5px;
+  border-radius: 3px 3px 0 0; background: var(--accent);
+}
 .more { font-size: .85rem; color: var(--muted); text-decoration: none; }
 .more:hover { color: var(--ink); }
 
+@media (max-width: 1100px) {
+  .home-top, .home-lists { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 760px) {
-  .punch { grid-template-columns: 1fr; grid-template-areas: "clock" "times" "note" "btn"; padding: 22px 20px; border-radius: 14px; }
-  .clock { font-size: 2.6rem; }
-  .punch-btn { width: 100%; min-height: 60px; }
+  .clock { font-size: 2.7rem; }
+  .punch-foot { align-items: stretch; }
+  .punch-btn { width: 100%; min-height: 54px; }
+  .tile { width: 42px; height: 42px; border-radius: 12px; }
+  .tile svg { width: 20px; height: 20px; }
   /* 휴대폰: 두 칸씩 두 줄 */
   .stat-row { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat { padding: 14px 16px; }
