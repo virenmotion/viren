@@ -842,3 +842,10 @@ button.att-day:hover { background: var(--accent-soft); }
   .hr-card { border: 0; padding: 0; box-shadow: none; }
   .no-print { display: none !important; }
 }
+
+/* 세 칸을 고르게. ⚠️ .form-row 가 이 파일에 두 번 정의돼 있어(grid → flex)
+   나중 것이 이긴다. 그래서 더 구체적인 .form-row.three 로 덮어쓴다. */
+.form-row.three {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px; align-items: end;
+}

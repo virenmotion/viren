@@ -108,17 +108,17 @@ export default function StaffCard({ emp, onClose }) {
       <label className="field"><span>주소</span>
         <input value={hr.address || ''} onChange={set('address')} /></label>
 
-      <div className="form-row">
-        <label className="field half"><span>학력</span>
+      <div className="form-row three">
+        <label className="field"><span>학력</span>
           <select value={hr.edu_level || ''} onChange={set('edu_level')}>
             <option value="">선택</option>
             {EDU_LEVELS.map((v) => <option key={v} value={v}>{v}</option>)}
           </select></label>
-        <label className="field half"><span>졸업학교</span>
+        <label className="field"><span>졸업학교</span>
           <input value={hr.school || ''} onChange={set('school')} /></label>
+        <label className="field"><span>학과</span>
+          <input value={hr.major || ''} onChange={set('major')} /></label>
       </div>
-      <label className="field"><span>학과</span>
-        <input value={hr.major || ''} onChange={set('major')} /></label>
 
       <div className="form-row">
         <label className="field half"><span>기술자등급</span>
