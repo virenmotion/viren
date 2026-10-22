@@ -12,13 +12,13 @@ export const PROFILE_PDF = `${SITE}/assets/viren_company_profile.pdf`
 
 const LINKS = [
   {
+    label: '홈페이지', url: SITE,
+    icon: <path fill="currentColor" d="M12 3 2 11h3v10h6v-6h2v6h6V11h3z" />,
+  },
+  {
     // 카카오워크 메일. 각자 자기 계정으로 들어간다.
     label: '메일', url: 'https://mail.kakaowork.com/mail/list.do',
     icon: <><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="m3.5 7 8.5 6 8.5-6" fill="none" stroke="currentColor" strokeWidth="1.8" /></>,
-  },
-  {
-    label: '홈페이지', url: SITE,
-    icon: <path fill="currentColor" d="M12 3 2 11h3v10h6v-6h2v6h6V11h3z" />,
   },
   {
     label: 'YouTube', url: 'https://www.youtube.com/@VIREN_motion',
