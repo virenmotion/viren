@@ -1,3 +1,5 @@
+import { minutesBetween, ymd } from './dates'
+
 /* 하루 근무 기준. 홈과 근태가 **같은 셈법**을 쓰도록 여기 한 군데에 둔다.
 
    **100% = 9시간(540분)** — 출근해서 퇴근할 때까지 머문 시간이고, 점심 1시간이 그 안에
@@ -23,6 +25,25 @@ export function workStat(minutes) {
     done: min >= FULL_MIN,
   }
 }
+
+/* 하루 근무 분. **홈과 근태가 반드시 같은 값을 써야 한다.**
+
+   ⚠️ 퇴근 기록이 없는 날을 어떻게 보느냐가 핵심이다.
+        오늘   → 지금까지의 경과시간 (근무 중)
+        지난 날 → **0** (퇴근 찍는 걸 잊은 것이다)
+      지난 날을 현재 시각까지 이어서 세면 하루가 20시간처럼 불어난다.
+
+   (2026-10-22 전에는 근태 달력이 `minutesBetween(출근, 퇴근)` 만 써서,
+    근무 중인 날은 퇴근이 비어 **0% 로 보였다.** 홈과 숫자가 달랐던 원인이다.) */
+export function dayMinutes(row, date, now = new Date()) {
+  if (!row?.check_in) return 0
+  if (row.check_out) return minutesBetween(row.check_in, row.check_out)
+  return date === ymd(now) ? minutesBetween(row.check_in, now) : 0
+}
+
+/* 지금 근무 중인 날인가 (오늘 + 출근은 찍었고 퇴근은 아직) */
+export const isWorkingDay = (row, date, now = new Date()) =>
+  !!row?.check_in && !row.check_out && date === ymd(now)
 
 /* 막대 색. 글자 없이 색만으로 뜻을 전하지 않는다 — 쓰는 쪽에서 글자를 꼭 같이 둔다.
      now   근무 중 (노랑)

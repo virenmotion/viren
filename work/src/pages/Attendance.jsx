@@ -6,7 +6,9 @@ import { holidayName } from '../lib/holidays'
 import { leaveName, leaveShort } from '../lib/labels'
 import { downloadCsv } from '../lib/csv'
 import { ErrorBox } from '../components/ui'
-import WorkRing from '../components/WorkRing'
+import WorkBar from '../components/WorkBar'
+import { useNow } from '../lib/useNow'
+import { FULL_MIN, dayMinutes, isWorkingDay, workStat, workTone } from '../lib/worktime'
 
 /* 'HH:MM' + 날짜 → 한국 시간 timestamptz 문자열 */
 const toTs = (date, t) => (t ? `${date}T${t}:00+09:00` : null)
@@ -39,6 +41,10 @@ export default function Attendance() {
   const [editing, setEditing] = useState(null)
   /* 달력이 기본. 표는 고치거나 자세히 볼 때(지은님 2026-10-21). */
   const [view, setView] = useState('cal')
+  /* 출퇴근 시각·달성률은 날짜 칸에 늘어놓지 않고 이 칸에서 본다(가이드).
+     ⚠️ 날짜를 **누르는 것**은 예전처럼 '고치기' 다. 상세는 따로 작은 버튼이다. */
+  const [detail, setDetail] = useState(null)
+  const now = useNow()
 
   const load = useCallback(() => {
     setErr('')
@@ -76,13 +82,27 @@ export default function Attendance() {
   }
 
   const rowOf = (d) => data?.rows.find((r) => r.work_date === d)
+  const minOf = (d) => dayMinutes(rowOf(d), d, now)
   const workedDays = data?.rows.filter((r) => r.check_in).length || 0
-  const totalMin = data?.rows.reduce((a, r) => a + minutesBetween(r.check_in, r.check_out), 0) || 0
+  const totalMin = data?.rows.reduce((a, r) => a + dayMinutes(r, r.work_date, now), 0) || 0
   const leaveDays = data ? data.days.filter((d) => !isWeekend(d) && data.leaveOn(target, d)).length : 0
+
+  /* 오늘 칸은 **이번 달을 보고 있을 때만** 띄운다. 월간 합계와 섞지 않는다(가이드). */
+  const d0 = today()
+  const showToday = ym === d0.slice(0, 7)
+  const todayRow = rowOf(d0)
+  const todayMin = showToday ? dayMinutes(todayRow, d0, now) : 0
+  const todayWorking = showToday && isWorkingDay(todayRow, d0, now)
+  const w = workStat(todayMin)
 
   return (
     <div className="stack">
-      <h1>근태</h1>
+      <header className="page-head">
+        <div>
+          <h1>근태</h1>
+          <p className="eyebrow">하루 9시간 기준 · 점심 1시간 포함</p>
+        </div>
+      </header>
       <div className="toolbar">
         <label className="field inline"><span>월</span>
           <input id="att-month" type="month" value={ym} onChange={(e) => e.target.value && setYm(e.target.value)} /></label>
@@ -101,18 +121,60 @@ export default function Attendance() {
         {isAdmin && <button className="btn small-btn" onClick={() => exportCsv(true)}>전 직원 CSV</button>}
       </div>
 
+      {showToday && (
+        <section className="card today-work">
+          <div className="tw-main">
+            <h2>오늘의 근무</h2>
+            <p className="tw-num">
+              <strong className="tnum">{hoursText(todayMin) || '0분'}</strong>
+              <span className="muted"> / 9시간</span>
+              {todayMin > 0 && <span className="tw-pct tnum">{w.pct}%</span>}
+            </p>
+            <WorkBar minutes={todayMin} height={8} working={todayWorking} />
+            <p className="tw-left">
+              {!todayRow?.check_in ? '아직 출근 기록이 없어요.'
+                : w.over > 0 ? <><strong>{hoursText(w.over)} 초과</strong></>
+                  : <>{hoursText(w.left)} 남음</>}
+              {' · '}<span className="tnum">{d0.slice(5).replace('-', '.')} ({weekday(d0)}) 기준</span>
+            </p>
+          </div>
+          <div className="tw-side">
+            <span className={`punch-state st-${todayWorking ? 'working' : todayRow?.check_out ? 'done' : 'before'}`}>
+              {todayWorking ? '근무 중' : todayRow?.check_out ? '퇴근 완료' : '출근 전'}
+            </span>
+            {/* 색만으로 뜻을 전하지 않는다 — 이름표를 같이 둔다 */}
+            <ul className="tw-legend">
+              <li><i className="t-done" />충족</li>
+              <li><i className="t-over" />초과</li>
+              <li><i className="t-short" />미달</li>
+              <li><i className="t-now" />근무 중</li>
+            </ul>
+          </div>
+        </section>
+      )}
+
       <div className="stats">
         <div><span className="label">출근일</span><strong className="tnum">{workedDays}일</strong></div>
         <div><span className="label">근무시간 합계</span><strong className="tnum">{hoursText(totalMin) || '0시간'}</strong></div>
         <div><span className="label">휴가(평일)</span><strong className="tnum">{leaveDays}일</strong></div>
       </div>
+      <p className="hint">위 세 칸은 <strong>고른 달 전체</strong> 값입니다. ‘오늘의 근무’ 와 섞어 보지 마세요.</p>
 
       <ErrorBox>{err}</ErrorBox>
 
       {data && view === 'cal' && (
         <AttCalendar
-          ym={ym} data={data} target={target} isAdmin={isAdmin}
+          ym={ym} data={data} target={target} isAdmin={isAdmin} now={now}
+          detail={detail} onDetail={setDetail}
           onPick={(d, r) => setEditing({ date: d, in_t: hm(r?.check_in), out_t: hm(r?.check_out), note: r?.note || '' })}
+        />
+      )}
+
+      {detail && view === 'cal' && (
+        <DayDetail
+          date={detail} row={rowOf(detail)} min={minOf(detail)}
+          leave={data?.leaveOn(target, detail)} working={isWorkingDay(rowOf(detail), detail, now)}
+          onClose={() => setDetail(null)}
         />
       )}
 
@@ -161,7 +223,10 @@ export default function Attendance() {
                     <td className="tnum">{d.slice(5).replace('-', '.')} ({weekday(d)})</td>
                     <td className="tnum">{hm(r?.check_in)}</td>
                     <td className="tnum">{hm(r?.check_out)}</td>
-                    <td className="tnum">{hoursText(minutesBetween(r?.check_in, r?.check_out))}</td>
+                    <td className="tnum">
+                      {hoursText(minOf(d))}
+                      {isWorkingDay(r, d, now) && <span className="muted small"> 근무 중</span>}
+                    </td>
                     <td className="small">
                       {lv && <span className="tag leave">{leaveShort(lv.data.kind, lv.data.half)}</span>}
                       {r?.in_office === false && <span className="tag">외부</span>}
@@ -181,9 +246,15 @@ export default function Attendance() {
   )
 }
 
-/* 근태 달력 — 하루마다 동그란 그래프로 근무량을 보여 준다.
-   한 달 치만 그리므로 달력 페이지처럼 주 단위 띠는 필요 없다. */
-function AttCalendar({ ym, data, target, isAdmin, onPick }) {
+/* 근태 달력 — 하루마다 **가는 가로 막대** 하나로 근무량을 보여 준다. (A안, 2026-10-22)
+
+   ⚠️ 날짜 칸에 출퇴근 시각·퍼센트·범례를 늘어놓지 않는다. 한 달이 다 보여야 하는 화면이라
+      칸마다 네 줄씩 들어가면 읽을 수 없다. 자세한 건 '상세' 버튼으로 아래 칸에서 본다.
+   ⚠️ **기록이 없는 날에는 막대를 그리지 않는다.** 빈 막대를 줄줄이 늘어놓으면
+      미기록이 '0시간 미달' 처럼 보인다. 미래도 마찬가지다.
+   ⚠️ 날짜를 누르는 것은 예전처럼 **고치기**(관리자)다. 상세 버튼은 그 동작으로
+      번지지 않도록 stopPropagation 한다. */
+function AttCalendar({ ym, data, target, isAdmin, now, detail, onDetail, onPick }) {
   const first = `${ym}-01`
   const last = monthDays(ym).at(-1)
   const start = addDays(first, -parse(first).getUTCDay())
@@ -202,33 +273,50 @@ function AttCalendar({ ym, data, target, isAdmin, onPick }) {
           const out = d.slice(0, 7) !== ym
           const r = data.rows.find((x) => x.work_date === d)
           const lv = data.leaveOn(target, d)
-          const min = minutesBetween(r?.check_in, r?.check_out)
+          const min = dayMinutes(r, d, now)
+          const working = isWorkingDay(r, d, now)
+          const s = workStat(min)
           const dow = parse(d).getUTCDay()
           const hol = holidayName(d)
           const Cell = isAdmin && !out ? 'button' : 'div'
           return (
             <Cell
               key={d} type={isAdmin && !out ? 'button' : undefined}
-              className={`att-day${out ? ' out' : ''}${d === today() ? ' now' : ''}${isWeekend(d) || hol ? ' off' : ''}`}
+              className={`att-day${out ? ' out' : ''}${d === today() ? ' now' : ''}${isWeekend(d) || hol ? ' off' : ''}${detail === d ? ' picked' : ''}`}
               onClick={isAdmin && !out ? () => onPick(d, r) : undefined}
               title={isAdmin && !out ? '눌러서 고치기' : undefined}
             >
               <span className="att-top">
                 <span className={`cal-num tnum${hol || dow === 0 ? ' sun' : dow === 6 ? ' sat' : ''}`}>{Number(d.slice(8))}</span>
+                {d === today() && <span className="att-today">오늘</span>}
                 {hol && <span className="cal-hol">{hol}</span>}
+                {!out && min > 0 && (
+                  /* 날짜 누르기(고치기)로 번지지 않게 막는다 */
+                  <span
+                    className="att-more" role="button" tabIndex={0}
+                    aria-label={`${Number(d.slice(8))}일 상세`}
+                    onClick={(e) => { e.stopPropagation(); onDetail(detail === d ? null : d) }}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter' && e.key !== ' ') return
+                      e.preventDefault(); e.stopPropagation(); onDetail(detail === d ? null : d)
+                    }}
+                  ><span className="am-t">상세 </span>›</span>
+                )}
               </span>
               {!out && (
                 <>
-                  {/* 시각은 왼쪽, 동그라미는 오른쪽 (지은님 2026-10-21).
-                      기록이 없으면 '—'. 빈칸으로 두면 자리가 비어 허전하다.
-                      좁은 화면에서는 CSS 가 위아래로 쌓는다. */}
-                  <span className="att-body">
-                    <span className="att-times">
-                      <span className="att-t"><i>출근</i><b className="tnum">{hm(r?.check_in) || '—'}</b></span>
-                      <span className="att-t"><i>퇴근</i><b className="tnum">{hm(r?.check_out) || '—'}</b></span>
+                  {/* 기록이 있는 날만 숫자와 막대를 둔다 */}
+                  {min > 0 ? (
+                    <span className="att-body">
+                      <b className="att-min">{hoursText(min)}</b>
+                      <WorkBar minutes={min} height={5} working={working} />
+                      <span className={`att-diff t-${workTone(min, working)}`}>
+                        {working ? '근무 중'
+                          : s.over > 0 ? `+${hoursText(s.over)}`
+                            : s.left > 0 ? `-${hoursText(s.left)}` : '100%'}
+                      </span>
                     </span>
-                    <WorkRing minutes={min} size={64} />
-                  </span>
+                  ) : <span className="att-body" />}
                   <span className="att-tags">
                     {lv && <span className="tag leave">{leaveShort(lv.data.kind, lv.data.half)}</span>}
                     {r?.in_office === false && <span className="tag">외부</span>}
@@ -239,8 +327,48 @@ function AttCalendar({ ym, data, target, isAdmin, onPick }) {
           )
         })}
       </div>
-      <p className="hint att-legend">동그라미가 가득 차면 <strong>9시간</strong>입니다(점심 1시간 포함).
-        {isAdmin && ' 날짜를 누르면 출퇴근 시각을 고칠 수 있습니다.'}</p>
+      <p className="hint att-legend">
+        막대가 가득 차면 <strong>9시간</strong>입니다(점심 1시간 포함).
+        <strong>상세</strong>를 누르면 출퇴근 시각과 달성률을 봅니다.
+        {isAdmin && ' 날짜를 누르면 출퇴근 시각을 고칠 수 있습니다.'}
+      </p>
     </div>
+  )
+}
+
+/* 고른 날 상세 — 출퇴근 시각·달성률은 여기서만 보여 준다.
+   ⚠️ 기록이 없는 날은 '0시간' 이 아니라 **미기록**이다. 결근으로 단정하지 않는다. */
+function DayDetail({ date, row, min, leave, working, onClose }) {
+  const s = workStat(min)
+  return (
+    <section className="card day-detail">
+      <div className="row-between">
+        <h2 className="tnum">{date.replaceAll('-', '.')} ({weekday(date)})</h2>
+        <button className="btn small-btn" onClick={onClose}>닫기</button>
+      </div>
+      {!row?.check_in ? (
+        <p className="muted">출근 기록이 없는 날입니다. {leave && `(${leaveName(leave.data.kind, leave.data.half)})`}</p>
+      ) : (
+        <>
+          <dl className="dd-grid">
+            <div><dt>출근</dt><dd className="tnum">{hm(row.check_in) || '—'}</dd></div>
+            <div><dt>퇴근</dt><dd className="tnum">{row.check_out ? hm(row.check_out) : (working ? '근무 중' : '기록 없음')}</dd></div>
+            <div><dt>근무시간</dt><dd className="tnum">{hoursText(min) || '—'}</dd></div>
+            <div><dt>달성률</dt><dd className="tnum">{s.pct}%</dd></div>
+            <div>
+              <dt>{s.over > 0 ? '초과' : '남은 시간'}</dt>
+              <dd className="tnum">{s.over > 0 ? hoursText(s.over) : hoursText(s.left) || '없음'}</dd>
+            </div>
+            <div><dt>기준</dt><dd className="tnum">9시간 ({FULL_MIN}분)</dd></div>
+          </dl>
+          <p className="hint">
+            {leave && <>휴가: {leaveName(leave.data.kind, leave.data.half)} · </>}
+            {row.in_office === false && <>사무실 밖에서 출근을 찍었습니다 · </>}
+            점심 1시간이 9시간 안에 들어 있습니다.
+          </p>
+          {row.note && <p className="small">메모: {row.note}</p>}
+        </>
+      )}
+    </section>
   )
 }

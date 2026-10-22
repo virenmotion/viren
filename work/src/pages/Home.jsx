@@ -5,7 +5,7 @@ import { useSession } from '../lib/session'
 import { dot, hm, hoursText, minutesBetween, parse, today, weekday } from '../lib/dates'
 import { leaveSummary } from '../lib/leave'
 import { formName } from '../lib/labels'
-import { workStat } from '../lib/worktime'
+import { dayMinutes, workStat } from '../lib/worktime'
 import { Empty, ErrorBox, StatusPill } from '../components/ui'
 import Shortcuts, { DOC_ICON, PROFILE_PDF } from '../components/Shortcuts'
 import WorkBar from '../components/WorkBar'
@@ -94,7 +94,8 @@ export default function Home() {
 
   const leave = leaveSummary(me, leaveDocs)
   const state = !att?.check_in ? 'before' : att.check_out ? 'done' : 'working'
-  const worked = state === 'working' ? minutesBetween(att.check_in, now) : state === 'done' ? minutesBetween(att.check_in, att.check_out) : 0
+  /* 근무 분은 근태와 **같은 함수**로 센다 — 두 화면 숫자가 갈라지면 안 된다 */
+  const worked = dayMinutes(att, d, now)
   const w = workStat(worked)
   const [, m, day] = d.split('-').map(Number)
   const hour = Number(hm(now).slice(0, 2))
