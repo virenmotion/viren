@@ -321,9 +321,13 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 
 /* ---------- 홈 ---------- */
 .home { gap: 22px; }
-/* 회사소개서 버튼은 인사말 **아래쪽에 맞춘다**(지은님 2026-10-22) */
+/* 회사소개서 버튼은 인사말 **글자 밑선에 맞춘다**(지은님 2026-10-22).
+   ⚠️ align-items: end 만으로는 5px 쯤 내려간다 — 제목의 줄높이(1.3)가 글자 아래에
+      반 줄 간격을 남기기 때문이다. 그만큼(0.15em)을 제목에서 걷어내 상자를 글자에 붙인다.
+      글꼴 크기가 바뀌어도 따라오도록 px 이 아니라 em 으로 적는다. */
 .home-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
 .home-head > div { display: grid; gap: 2px; }
+.home-head h1 { margin-bottom: -.15em; }
 /* 회사소개서 — 인사말 줄 오른쪽 (지은님 2026-10-22) */
 .profile-btn {
   display: inline-flex; align-items: center; gap: 8px; flex: none;
