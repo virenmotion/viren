@@ -24,7 +24,7 @@ alter table public.settings
   add column if not exists company_ceo     text not null default '김기선, 백승민',
   add column if not exists ceo_title       text not null default '대표이사',
   add column if not exists company_biz_no  text not null default '566-87-03717',
-  add column if not exists company_phone   text not null default '-',
+  add column if not exists company_phone   text not null default '02-3144-1222',
   add column if not exists company_fax     text not null default '-',
   add column if not exists company_address text not null default '서울특별시 마포구 양화로8길 32-17, 3층';
 

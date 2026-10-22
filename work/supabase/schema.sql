@@ -119,7 +119,7 @@ create table public.settings (
   company_ceo       text not null default '김기선, 백승민',
   ceo_title         text not null default '대표이사',
   company_biz_no    text not null default '566-87-03717',
-  company_phone     text not null default '-',
+  company_phone     text not null default '02-3144-1222',
   company_fax       text not null default '-',
   company_address   text not null default '서울특별시 마포구 양화로8길 32-17, 3층',
   updated_at        timestamptz not null default now()

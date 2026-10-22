@@ -15,7 +15,7 @@ export const COMPANY = {
   ceo: '김기선, 백승민',
   ceoTitle: '대표이사',
   bizNo: '566-87-03717',
-  phone: '-',
+  phone: '02-3144-1222',
   fax: '-',
   address: '서울특별시 마포구 양화로8길 32-17, 3층',
 }
