@@ -101,6 +101,15 @@ export default function StorageCard() {
 
       <div className="actions start">
         <button className="btn" disabled={busy} onClick={saveDays}>기간 저장</button>
+      </div>
+
+      {/* 파일을 **지우는** 동작이라 일반 동작과 눈으로도 갈라 둔다(가이드 제안).
+          ⚠️ 확인 창은 서버 쪽 cleanup 이 하는 게 아니라 여기서 물어본다. */}
+      <div className="danger-zone">
+        <div>
+          <strong>파일 정리</strong>
+          <p className="hint">보관 기간이 지난 대화 파일을 지금 지웁니다. 되돌릴 수 없습니다.</p>
+        </div>
         <button className="btn danger" disabled={busy} onClick={cleanNow}>지금 정리</button>
       </div>
     </section>

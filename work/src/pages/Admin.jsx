@@ -18,7 +18,9 @@ export default function Admin() {
   const [tab, setTab] = useState('staff')
   return (
     <div className="stack">
-      <h1>관리</h1>
+      <header className="page-head">
+        <div><h1>관리</h1></div>
+      </header>
       <div className="tabs" role="tablist">
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}
       </div>

@@ -53,6 +53,7 @@ const ICONS = {
   chat: <path d="M4 5.5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4.5 3.5V16.5H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z" />,
   admin: <><circle cx="12" cy="12" r="3" /><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2 5.5 5.5" /></>,
   me: <><circle cx="12" cy="8.5" r="3.8" /><path d="M4.5 20.5c1.2-3.6 4-5.3 7.5-5.3s6.3 1.7 7.5 5.3" /></>,
+  out: <><path d="M15 4.5h3.5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H15" /><path d="M10.5 8 14.5 12l-4 4M14 12H4.5" /></>,
 }
 const Icon = ({ name }) => (
   <svg className="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -120,6 +121,9 @@ export default function Layout() {
               {me.name || me.email}
               <span className="chev" aria-hidden="true">›</span>
             </NavLink>
+            <button type="button" className="sb-out" onClick={() => supabase.auth.signOut()}>
+              <Icon name="out" />로그아웃
+            </button>
           </nav>
         </div>
       </aside>

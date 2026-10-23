@@ -124,6 +124,14 @@ code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
 .sb-nav .ico { width: 21px; height: 21px; flex: none; color: var(--muted); }
 .sb-nav .badge { margin-left: auto; }
 .sb-foot { margin-top: auto; display: grid; gap: 2px; border-top: 1px solid var(--line); padding-top: 12px; }
+/* 로그아웃 — 메뉴와 같은 모양이지만 버튼이다(주소가 없다) */
+.sb-out {
+  display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px;
+  border: 0; border-radius: 14px; background: none; cursor: pointer;
+  color: var(--muted); font: inherit; font-size: .97rem; font-weight: 500; text-align: left;
+}
+.sb-out:hover { background: var(--surface-2); color: var(--ink-2); }
+.sb-out .ico { width: 21px; height: 21px; flex: none; }
 .sb-me { justify-content: flex-start; }
 .sb-me .chev { margin-left: auto; color: var(--muted); }
 
@@ -190,6 +198,7 @@ code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
 }
 
 .stack { display: grid; gap: 20px; }
+.stack-md { display: grid; gap: 16px; align-content: start; }
 .stack-sm { display: grid; gap: 12px; }
 .row-between { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; align-items: center; }
@@ -204,6 +213,26 @@ code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
 .card.narrow { max-width: 400px; width: 100%; }
 .card.info { background: var(--surface-2); font-size: .9rem; gap: 8px; box-shadow: none; }
 .narrow-form { max-width: 560px; }
+
+/* ── 내 정보 (시안 14) ─────────────────────────────────────────── */
+.me-2col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.me-head { display: flex; gap: 20px; align-items: start; }
+.me-ava {
+  width: 72px; height: 72px; flex: none; border-radius: 50%;
+  background: var(--surface-2); color: var(--ink-2);
+  display: grid; place-items: center; font-size: 1.6rem; font-weight: 700;
+}
+.me-head .kv { flex: 1; min-width: 0; margin: 0; }
+@media (max-width: 1023px) { .me-2col { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .me-head { gap: 14px; } .me-ava { width: 56px; height: 56px; font-size: 1.3rem; } }
+
+/* 되돌릴 수 없는 동작은 눈으로도 갈라 둔다 (가이드 제안) */
+.danger-zone {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  background: var(--bad-bg); border: 1px solid #f3cdd1; border-radius: 14px; padding: 14px 16px;
+}
+.danger-zone strong { color: var(--bad); }
+.danger-zone .hint { margin-top: 2px; }
 
 .center-screen { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
 
