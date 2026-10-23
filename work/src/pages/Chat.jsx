@@ -81,7 +81,7 @@ export default function ChatShell() {
 
           <PeopleShortcut people={activeEmployees.filter((e) => e.id !== userId)} />
           <p className="hint">
-            알림은 <strong>내 정보 → 휴대폰 알림</strong>에서 기기마다 켤 수 있어요.
+            알림은 <strong>내 정보 → 기기 알림</strong>에서 기기마다 켤 수 있어요.
           </p>
         </aside>
 

@@ -212,6 +212,17 @@ code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
 .card.flush { padding: 0; overflow: hidden; }
 .card.narrow { max-width: 400px; width: 100%; }
 .card.info { background: var(--surface-2); font-size: .9rem; gap: 8px; box-shadow: none; }
+/* 긴 안내는 접어 둔다 */
+.card.info.help { display: block; padding: 0; }
+.card.info.help summary {
+  cursor: pointer; padding: 14px 20px; font-weight: 600; color: var(--ink-2); list-style: none;
+}
+.card.info.help summary::-webkit-details-marker { display: none; }
+.card.info.help summary::before { content: "▸ "; color: var(--muted); }
+.card.info.help[open] summary::before { content: "▾ "; }
+.card.info.help summary:hover { color: var(--ink); }
+.card.info.help p { padding: 0 20px; margin-bottom: 10px; }
+.card.info.help p:last-child { padding-bottom: 16px; }
 .narrow-form { max-width: 560px; }
 
 /* ── 내 정보 (시안 14) ─────────────────────────────────────────── */
@@ -321,6 +332,34 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .table .title-cell a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .table.compact th, .table.compact td { padding: 7px 8px; }
 .table.compact input { padding: 7px 9px; }
+/* ── 관리 → 직원: 왼쪽 목록 + 오른쪽 상세 (지은님 2026-10-23, 시안 15) ──
+   전에는 한 줄에 17칸을 다 넣어 가로로 1500px 넘게 밀렸다. */
+.staff-2col { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 1023px) { .staff-2col { grid-template-columns: 1fr; } }
+
+.table.stafflist td { padding: 9px 8px; }
+/* 순서 칸 — ⠿ ↑ ↓ 를 한 줄에 */
+.table.stafflist .ord-cell { width: 1%; }
+.table.stafflist .ord-cell { display: flex; align-items: center; gap: 2px; }
+.table.stafflist .ord-btns .icon { width: 22px; height: 22px; font-size: .8rem; }
+.table.stafflist tr { cursor: pointer; }
+.table.stafflist tr:hover td { background: var(--surface-2); }
+.table.stafflist tr.picked td { background: var(--accent-soft); }
+.table.stafflist tr.picked .staff-pick { font-weight: 700; color: var(--ink); }
+.staff-pick { font-weight: 600; color: var(--ink-2); text-decoration: none; }
+/* 퇴사 — 재직(.pill.on)과 갈라 보이게 */
+.pill.off { background: var(--surface-2); color: var(--muted); }
+
+/* 상세 */
+.sd-head {
+  margin: 10px 0 0; padding-top: 12px; border-top: 1px solid var(--line);
+  font-size: .95rem; font-weight: 700;
+}
+.sd-head:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+/* 고칠 수 없는 값(자동 계산·다른 데서 정하는 값)은 칸처럼 보이지 않게 */
+.sd-val { padding: 10px 0 0; font-weight: 600; }
+.sd-check { align-self: end; padding-bottom: 10px; }
+
 .table.staff { min-width: 1500px; }
 .table.staff input, .table.staff select { padding: 6px 8px; }
 .table.staff td { padding: 7px 8px; }

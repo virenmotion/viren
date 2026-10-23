@@ -168,6 +168,8 @@ function Staff() {
   /* 증명서를 열어 둔 직원. 인사기록과 **동시에 열지 않는다** — 둘 다 열려 있으면
      인쇄할 때 무엇을 찍어야 할지 알 수 없다. */
   const [certOf, setCertOf] = useState(null)
+  /* 오른쪽 상세에 띄울 직원. 비어 있으면 목록 맨 위 사람. */
+  const [pickedId, setPickedId] = useState(null)
   /* 목록에서 바로 보려고 등급만 따로 읽는다(값을 고치는 건 인사기록카드에서).
      employee_hr 은 관리자와 본인만 보이므로, 직원 권한이면 자기 줄만 온다. */
   const [grades, setGrades] = useState({})
@@ -226,81 +228,75 @@ function Staff() {
     reloadEmployees()
   }
 
+  /* 고른 직원. 처음에는 맨 위 사람. 목록에서 지워지면 다시 맨 위로. */
+  const picked = rows.find((r) => r.id === pickedId) || rows[0] || null
+
   return (
     <section className="stack-sm">
-      <div className="card info">
-        <p><strong>순서:</strong> 왼쪽 손잡이(⠿)를 끌어 직원 순서를 바꿉니다. 이 순서가 결재자 고르기 등 직원 목록이 쓰이는 모든 곳에 적용됩니다.</p>
+      {/* 안내가 다섯 문단이라 늘 펼쳐 두면 화면을 다 먹는다. 접어 둔다. */}
+      <details className="card info help">
+        <summary>직원 관리 안내 보기</summary>
+        <p><strong>순서:</strong> 왼쪽 손잡이(⠿)를 끌거나 ↑↓ 로 직원 순서를 바꿉니다. 이 순서가 결재자 고르기 등 직원 목록이 쓰이는 모든 곳에 적용됩니다.</p>
         <p><strong>직원 추가:</strong> Supabase 대시보드 → Authentication → Users → <em>Add user</em> → <em>Create new user</em>에서 회사 이메일과 임시 비밀번호를 넣고 <em>Auto Confirm User</em>를 켭니다. 그러면 이 목록에 <strong>재직이 꺼진 상태</strong>로 나타납니다. 이름·직급·입사일을 채우고 ‘재직’을 켠 뒤 저장해야 로그인할 수 있습니다. 본인에게는 첫 로그인 후 비밀번호를 바꾸라고 알려 주세요.</p>
         <p><strong>퇴사:</strong> 계정을 지우지 말고 ‘재직’ 체크를 끄세요. 결재 기록은 그대로 남고 로그인만 막힙니다.</p>
         <p><strong>연차:</strong> 비워 두면 입사일 기준 근로기준법 방식으로 자동 계산합니다. 상시 5인 미만 사업장은 법정 연차 적용 대상이 아니므로, 회사 규정이 따로 있으면 ‘연차 직접 지정’에 일수를 넣으세요.</p>
         <p><strong>이전 사용:</strong> 카카오워크처럼 전에 쓰던 곳에서 이미 쓴 연차 일수입니다. 남은 연차에서 함께 빠집니다. <strong>입사 1주년이 지나 연차가 새로 생기면 저절로 빠지지 않게 되므로, 따로 지우실 필요 없습니다.</strong></p>
-      </div>
+      </details>
+
       <ErrorBox>{err}</ErrorBox>
       {msg && <p className="ok">{msg}</p>}
-      <div className="table-wrap card flush">
-        <table className="table staff">
-          <thead><tr><th aria-label="순서" /><th>이름</th><th>이메일</th><th>부서</th><th>기술자등급</th><th>디자이너등급</th><th>직급</th><th>직책</th><th>입사일</th><th>자동 연차</th><th>연차 직접 지정</th><th>이전 사용</th><th>권한</th><th>재직</th><th aria-label="인사기록" /><th aria-label="증명서" /><th></th></tr></thead>
-          <tbody>
-            {rows.map((r, i) => {
-              const p = leavePeriod(r.hire_date)
-              return (
-                <tr
-                  key={r.id}
-                  className={`${r.active ? '' : 'inactive'}${dragFrom === i ? ' dragging' : ''}`}
-                  draggable={canDrag === r.id}
-                  onDragStart={() => setDragFrom(i)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => { e.preventDefault(); reorder(dragFrom, i); setDragFrom(null); setCanDrag(null) }}
-                  onDragEnd={() => { setDragFrom(null); setCanDrag(null) }}
-                >
-                  <td className="ord-cell">
-                    <span className="drag-handle" aria-hidden="true" title="끌어서 순서 바꾸기"
-                      onMouseDown={() => setCanDrag(r.id)} onMouseUp={() => setCanDrag(null)}>⠿</span>
-                    <span className="ord-btns">
-                      <button className="icon" aria-label={`${r.name} 위로`} disabled={i === 0} onClick={() => reorder(i, i - 1)}>↑</button>
-                      <button className="icon" aria-label={`${r.name} 아래로`} disabled={i === rows.length - 1} onClick={() => reorder(i, i + 1)}>↓</button>
-                    </span>
-                  </td>
-                  <td><input id={`n-${r.id}`} value={r.name} onChange={(e) => set(r.id, { name: e.target.value })} /></td>
-                  <td className="small">{r.email}</td>
-                  <td><input id={`d-${r.id}`} value={r.dept} onChange={(e) => set(r.id, { dept: e.target.value })} /></td>
-                  <td className="small">{grades[r.id]?.tech_grade || '—'}</td>
-                  <td className="small">{grades[r.id]?.design_grade || '—'}</td>
-                  <td>
-                    <select id={`p-${r.id}`} value={r.position || ''} onChange={(e) => set(r.id, { position: e.target.value })}>
-                      <option value="">—</option>
-                      {RANKS.map((x) => <option key={x} value={x}>{x}</option>)}
-                      {/* 목록에 없는 옛 값이 들어 있어도 지워지지 않게 */}
-                      {r.position && !RANKS.includes(r.position) && <option value={r.position}>{r.position}</option>}
-                    </select>
-                  </td>
-                  <td>
-                    <select id={`u-${r.id}`} value={r.duty || ''} onChange={(e) => set(r.id, { duty: e.target.value })}>
-                      <option value="">—</option>
-                      {DUTIES.map((x) => <option key={x} value={x}>{x}</option>)}
-                      {r.duty && !DUTIES.includes(r.duty) && <option value={r.duty}>{r.duty}</option>}
-                    </select>
-                  </td>
-                  <td><DateInput id={`h-${r.id}`} value={r.hire_date || ''} onChange={(e) => set(r.id, { hire_date: e.target.value })} /></td>
-                  <td className="tnum small">{p ? `${p.legal}일` : '—'}</td>
-                  <td><input id={`o-${r.id}`} className="tnum" type="number" step="0.5" min="0" value={r.leave_override ?? ''} placeholder="자동" onChange={(e) => set(r.id, { leave_override: e.target.value })} /></td>
-                  <td><input id={`b-${r.id}`} className="tnum" type="number" step="0.5" min="0" value={r.leave_used_before ?? 0} onChange={(e) => set(r.id, { leave_used_before: e.target.value })} /></td>
-                  <td>
-                    <select id={`r-${r.id}`} value={r.role} onChange={(e) => set(r.id, { role: e.target.value })}>
-                      <option value="member">직원</option><option value="admin">관리자</option>
-                    </select>
-                  </td>
-                  <td><input id={`a-${r.id}`} type="checkbox" checked={r.active} disabled={r.id === userId} onChange={(e) => set(r.id, { active: e.target.checked })} aria-label="재직" /></td>
-                  <td><button className="btn small-btn"
-                    onClick={() => { setCertOf(null); setCardOf(r) }}>인사기록</button></td>
-                  <td><button className="btn small-btn"
-                    onClick={() => { setCardOf(null); setCertOf(r) }}>증명서</button></td>
-                  <td><button className="btn small-btn primary" disabled={!r._dirty} onClick={() => save(r)}>저장</button></td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+
+      <div className="staff-2col">
+        {/* ── 왼쪽: 목록 ── */}
+        <section className="card stack-sm">
+          <h2>직원 목록</h2>
+          <p className="hint">순서 변경은 결재자 등 직원 목록이 쓰이는 모든 곳에 적용됩니다.</p>
+          <div className="table-wrap">
+            <table className="table stafflist">
+              <thead><tr><th aria-label="순서" /><th>이름</th><th>부서</th><th>직급</th><th>재직</th></tr></thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr
+                    key={r.id}
+                    className={`${r.active ? '' : 'inactive'}${dragFrom === i ? ' dragging' : ''}${picked?.id === r.id ? ' picked' : ''}`}
+                    draggable={canDrag === r.id}
+                    onClick={() => setPickedId(r.id)}
+                    onDragStart={() => setDragFrom(i)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => { e.preventDefault(); reorder(dragFrom, i); setDragFrom(null); setCanDrag(null) }}
+                    onDragEnd={() => { setDragFrom(null); setCanDrag(null) }}
+                  >
+                    <td className="ord-cell">
+                      <span className="drag-handle" aria-hidden="true" title="끌어서 순서 바꾸기"
+                        onMouseDown={() => setCanDrag(r.id)} onMouseUp={() => setCanDrag(null)}>⠿</span>
+                      <span className="ord-btns">
+                        <button className="icon" aria-label={`${r.name} 위로`} disabled={i === 0}
+                          onClick={(e) => { e.stopPropagation(); reorder(i, i - 1) }}>↑</button>
+                        <button className="icon" aria-label={`${r.name} 아래로`} disabled={i === rows.length - 1}
+                          onClick={(e) => { e.stopPropagation(); reorder(i, i + 1) }}>↓</button>
+                      </span>
+                    </td>
+                    {/* ⚠️ 고치는 건 오른쪽 상세에서만 한다. 두 군데서 고치면 어느 쪽이 맞는지 헷갈린다. */}
+                    <td><button type="button" className="linkbtn staff-pick">{r.name || '(이름 없음)'}</button></td>
+                    <td className="small">{r.dept || '—'}</td>
+                    <td className="small">{r.position || '—'}</td>
+                    <td>{r.active
+                      ? <span className="pill on">재직</span>
+                      : <span className="pill off">퇴사</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* ── 오른쪽: 고른 직원 상세 ── */}
+        {picked && <StaffDetail
+          key={picked.id} r={picked} grade={grades[picked.id]} meId={userId}
+          set={(patch) => set(picked.id, patch)} onSave={() => save(picked)}
+          onCard={() => { setCertOf(null); setCardOf(picked) }}
+          onCert={() => { setCardOf(null); setCertOf(picked) }}
+        />}
       </div>
 
       {certOf && (
@@ -319,6 +315,87 @@ function Staff() {
           onSaved={loadGrades}
         />
       )}
+    </section>
+  )
+}
+
+/* 고른 직원 하나. 값을 고치는 곳은 **여기 하나뿐**이다.
+   ⚠️ 기술자·디자이너 등급은 보여만 준다. 기준표를 보고 정해야 해서
+      [인사기록] 안에서만 고친다 — 고치는 자리가 둘이면 갈라진다. */
+function StaffDetail({ r, grade, meId, set, onSave, onCard, onCert }) {
+  const p = leavePeriod(r.hire_date)
+  return (
+    <section className="card stack-sm">
+      <div className="row-between">
+        <h2>{r.name || '(이름 없음)'} 상세</h2>
+        {!r.active && <span className="pill off">퇴사</span>}
+      </div>
+
+      <h3 className="sd-head">기본 정보</h3>
+      <div className="form-row three">
+        <label className="field"><span>이름</span>
+          <input id={`n-${r.id}`} value={r.name} onChange={(e) => set({ name: e.target.value })} /></label>
+        <label className="field"><span>이메일</span>
+          <input value={r.email} readOnly disabled /></label>
+        <label className="field"><span>부서</span>
+          <input id={`d-${r.id}`} value={r.dept} onChange={(e) => set({ dept: e.target.value })} /></label>
+        <label className="field"><span>직급</span>
+          <select id={`p-${r.id}`} value={r.position || ''} onChange={(e) => set({ position: e.target.value })}>
+            <option value="">—</option>
+            {RANKS.map((x) => <option key={x} value={x}>{x}</option>)}
+            {/* 목록에 없는 옛 값이 들어 있어도 지워지지 않게 */}
+            {r.position && !RANKS.includes(r.position) && <option value={r.position}>{r.position}</option>}
+          </select></label>
+        <label className="field"><span>직책</span>
+          <select id={`u-${r.id}`} value={r.duty || ''} onChange={(e) => set({ duty: e.target.value })}>
+            <option value="">—</option>
+            {DUTIES.map((x) => <option key={x} value={x}>{x}</option>)}
+            {r.duty && !DUTIES.includes(r.duty) && <option value={r.duty}>{r.duty}</option>}
+          </select></label>
+        <label className="field"><span>입사일</span>
+          <DateInput id={`h-${r.id}`} value={r.hire_date || ''} onChange={(e) => set({ hire_date: e.target.value })} /></label>
+      </div>
+
+      <h3 className="sd-head">전문 등급</h3>
+      <div className="form-row three">
+        <div className="field"><span>기술자등급</span><p className="sd-val">{grade?.tech_grade || '—'}</p></div>
+        <div className="field"><span>디자이너등급</span><p className="sd-val">{grade?.design_grade || '—'}</p></div>
+      </div>
+      <p className="hint">등급은 <strong>인사기록</strong>에서 기준표(시행령 별표2·디자이너 기준)를 보고 정합니다.</p>
+
+      <h3 className="sd-head">연차</h3>
+      <div className="form-row three">
+        <div className="field"><span>자동 연차</span><p className="sd-val tnum">{p ? `${p.legal}일` : '—'}</p></div>
+        <label className="field"><span>연차 직접 지정</span>
+          <input id={`o-${r.id}`} className="tnum" type="number" step="0.5" min="0"
+            value={r.leave_override ?? ''} placeholder="자동"
+            onChange={(e) => set({ leave_override: e.target.value })} /></label>
+        <label className="field"><span>이전 사용</span>
+          <input id={`b-${r.id}`} className="tnum" type="number" step="0.5" min="0"
+            value={r.leave_used_before ?? 0}
+            onChange={(e) => set({ leave_used_before: e.target.value })} /></label>
+      </div>
+
+      <h3 className="sd-head">권한 및 재직</h3>
+      <div className="form-row three">
+        <label className="field"><span>권한</span>
+          <select id={`r-${r.id}`} value={r.role} onChange={(e) => set({ role: e.target.value })}>
+            <option value="member">직원</option><option value="admin">관리자</option>
+          </select></label>
+        <label className="check sd-check">
+          {/* ⚠️ 자기 자신은 끄지 못한다(관리자가 한 명도 없어지는 걸 막는다) */}
+          <input id={`a-${r.id}`} type="checkbox" checked={r.active} disabled={r.id === meId}
+            onChange={(e) => set({ active: e.target.checked })} />
+          재직 중
+        </label>
+      </div>
+
+      <p className="hint">퇴사 시 ‘재직 중’ 을 끄고 저장합니다. 결재 기록은 그대로 남습니다.</p>
+      <div className="actions">
+        <button className="btn" onClick={onCard}>인사기록</button>
+        <button className="btn" onClick={onCert}>증명서</button>
+        <button className="btn primary" disabled={!r._dirty} onClick={onSave}>저장</button>
+      </div>
     </section>
   )
 }

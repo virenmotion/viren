@@ -3,7 +3,7 @@ import { useSession } from '../lib/session'
 import { currentSub, disablePush, enablePush, iosNeedsInstall, pushSupported, testPush } from '../lib/push'
 import { ErrorBox } from './ui'
 
-/* '내 정보' 안의 휴대폰 알림 칸. (지은님 2026-10-21)
+/* '내 정보' 안의 기기 알림 칸. (지은님 2026-10-21, 2026-10-23 이름 바뀜)
    기기마다 따로 켜야 한다 — 휴대폰에서 켰다고 PC 에서 오지 않는다.
    그래서 '이 기기' 라는 말을 또렷이 쓴다. */
 
@@ -26,7 +26,7 @@ export default function PushCard() {
   if (!pushSupported()) {
     return (
       <section className="card">
-        <h2>휴대폰 알림</h2>
+        <h2>기기 알림</h2>
         <p className="hint">이 브라우저는 알림을 지원하지 않아요. 휴대폰이나 Chrome 에서 열어 주세요.</p>
       </section>
     )
@@ -34,7 +34,7 @@ export default function PushCard() {
 
   return (
     <section className="card stack-sm">
-      <h2>휴대폰 알림</h2>
+      <h2>기기 알림</h2>
       <p className="hint">
         결재 차례가 오거나 내 문서가 승인·반려되면 알려 드려요.
         <strong> 기기마다 따로 켜야 해요</strong> — 휴대폰에서 켜도 PC 로는 오지 않아요.
