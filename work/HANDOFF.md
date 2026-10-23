@@ -237,6 +237,18 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
   · '휴대폰 알림' → '기기 알림'. PC 에서도 켜지는데 '휴대폰' 은 틀린 말이다.
   · ⚠️ `.pill.on` 을 또 쓸 뻔했다(이미 있었다). 지우고 `.pill.off` 만 더했다 —
     styles.css 중복 함정 세 번째다(`.form-row`, `.cal-legend`, `.pill.on`).
+  · 분류 앞에 선 아이콘(사람·서류·시계·열쇠). 구분선은 **제목 줄 아래 한 번만**.
+
+  **고치면서 찾은 것 두 가지**
+  · ⚠️ **`.form-row` 중복이 실제로 물었다.** 168줄(grid)과 556줄(flex, 양식 편집기용)이
+    따로 있는데 나중 것이 `padding: 10px 0` 과 `border-top` 을 들고 온다.
+    `.form-row.three` 는 `display` 만 덮어써서 **회색 줄이 딸려 왔다.**
+    `.form-row.three` 에 `padding: 0; border-top: 0` 을 박아 끊었다.
+    인사기록·회사 정보 등 `.three` 를 쓰는 화면이 **다 같이 깨끗해졌다.**
+    (전역 `.form-row` 를 고치면 양식 편집기가 깨지므로 여전히 건드리지 않는다.)
+  · ⚠️ **`<td>` 를 `display: flex` 로 만들면 표 칸에서 빠져나간다.** 줄 높이를 못 채워서
+    고른 줄의 노란 배경 **아래가 하얗게** 비어 보였다. td 는 table-cell 로 두고
+    안쪽 것들만 `inline-flex` 로 붙여야 한다.
 
 - **2026-10-23 디자인 개편 7단계 — 관리 · 내 정보.**
   (`Me.jsx` · `Admin.jsx` · `Layout.jsx` · `StorageCard.jsx`)

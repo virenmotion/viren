@@ -338,9 +338,13 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 @media (max-width: 1023px) { .staff-2col { grid-template-columns: 1fr; } }
 
 .table.stafflist td { padding: 9px 8px; }
-/* 순서 칸 — ⠿ ↑ ↓ 를 한 줄에 */
-.table.stafflist .ord-cell { width: 1%; }
-.table.stafflist .ord-cell { display: flex; align-items: center; gap: 2px; }
+/* 순서 칸 — ⠿ ↑ ↓ 를 한 줄에.
+   ⚠️ td 를 flex 로 만들면 **표 칸에서 빠져나가** 줄 높이를 못 채운다.
+      고른 줄의 노란 배경 아래가 하얗게 비어 보였다. td 는 table-cell 로 두고
+      안쪽 것들만 inline 으로 붙인다. */
+.table.stafflist .ord-cell { width: 1%; white-space: nowrap; }
+.table.stafflist .ord-cell .drag-handle { display: inline-block; vertical-align: middle; }
+.table.stafflist .ord-btns { display: inline-flex; vertical-align: middle; }
 .table.stafflist .ord-btns .icon { width: 22px; height: 22px; font-size: .8rem; }
 .table.stafflist tr { cursor: pointer; }
 .table.stafflist tr:hover td { background: var(--surface-2); }
@@ -351,11 +355,14 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .pill.off { background: var(--surface-2); color: var(--muted); }
 
 /* 상세 */
+/* 선은 제목 줄 아래 **한 번만** 긋는다 (지은님 2026-10-23) */
+.sd-title { padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .sd-head {
-  margin: 10px 0 0; padding-top: 12px; border-top: 1px solid var(--line);
+  margin: 14px 0 0; display: flex; align-items: center; gap: 8px;
   font-size: .95rem; font-weight: 700;
 }
-.sd-head:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+.sd-head:first-of-type { margin-top: 0; }
+.sd-head svg { width: 18px; height: 18px; flex: none; color: var(--accent-ink); }
 /* 고칠 수 없는 값(자동 계산·다른 데서 정하는 값)은 칸처럼 보이지 않게 */
 .sd-val { padding: 10px 0 0; font-weight: 600; }
 .sd-check { align-self: end; padding-bottom: 10px; }
@@ -1165,6 +1172,9 @@ button.att-day:hover { background: var(--accent-soft); }
 .form-row.three {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 12px; align-items: end;
+  /* ⚠️ 아래쪽 .form-row(양식 편집기용)가 padding 과 border-top 을 들고 온다.
+     display 만 덮어쓰면 **선이 딸려 온다.** 여기서 끊어 준다. */
+  padding: 0; border-top: 0;
 }
 
 /* ── 증명서 (재직·경력) ───────────────────────────────────────────

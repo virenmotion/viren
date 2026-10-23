@@ -319,6 +319,22 @@ function Staff() {
   )
 }
 
+/* 상세의 분류 앞 아이콘. 선이 가는 2D 아이콘만 쓴다(3D·캐릭터 금지). */
+const SD_ICONS = {
+  person: <><circle cx="12" cy="8" r="3.6" /><path d="M5 20.5c1.1-3.4 3.8-5 7-5s5.9 1.6 7 5" /></>,
+  grade: <><rect x="5" y="3.5" width="14" height="17" rx="2" /><path d="M9 8.5h6M9 12.5h6M9 16.5h3" /></>,
+  clock: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>,
+  key: <><circle cx="8" cy="12" r="3.5" /><path d="M11.5 12H20M17 12v3M20 12v2.5" /></>,
+}
+const SdHead = ({ icon, children }) => (
+  <h3 className="sd-head">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {SD_ICONS[icon]}
+    </svg>
+    {children}
+  </h3>
+)
+
 /* 고른 직원 하나. 값을 고치는 곳은 **여기 하나뿐**이다.
    ⚠️ 기술자·디자이너 등급은 보여만 준다. 기준표를 보고 정해야 해서
       [인사기록] 안에서만 고친다 — 고치는 자리가 둘이면 갈라진다. */
@@ -326,12 +342,12 @@ function StaffDetail({ r, grade, meId, set, onSave, onCard, onCert }) {
   const p = leavePeriod(r.hire_date)
   return (
     <section className="card stack-sm">
-      <div className="row-between">
+      <div className="row-between sd-title">
         <h2>{r.name || '(이름 없음)'} 상세</h2>
         {!r.active && <span className="pill off">퇴사</span>}
       </div>
 
-      <h3 className="sd-head">기본 정보</h3>
+      <SdHead icon="person">기본 정보</SdHead>
       <div className="form-row three">
         <label className="field"><span>이름</span>
           <input id={`n-${r.id}`} value={r.name} onChange={(e) => set({ name: e.target.value })} /></label>
@@ -356,14 +372,14 @@ function StaffDetail({ r, grade, meId, set, onSave, onCard, onCert }) {
           <DateInput id={`h-${r.id}`} value={r.hire_date || ''} onChange={(e) => set({ hire_date: e.target.value })} /></label>
       </div>
 
-      <h3 className="sd-head">전문 등급</h3>
+      <SdHead icon="grade">전문 등급</SdHead>
       <div className="form-row three">
         <div className="field"><span>기술자등급</span><p className="sd-val">{grade?.tech_grade || '—'}</p></div>
         <div className="field"><span>디자이너등급</span><p className="sd-val">{grade?.design_grade || '—'}</p></div>
       </div>
       <p className="hint">등급은 <strong>인사기록</strong>에서 기준표(시행령 별표2·디자이너 기준)를 보고 정합니다.</p>
 
-      <h3 className="sd-head">연차</h3>
+      <SdHead icon="clock">연차</SdHead>
       <div className="form-row three">
         <div className="field"><span>자동 연차</span><p className="sd-val tnum">{p ? `${p.legal}일` : '—'}</p></div>
         <label className="field"><span>연차 직접 지정</span>
@@ -376,7 +392,7 @@ function StaffDetail({ r, grade, meId, set, onSave, onCard, onCert }) {
             onChange={(e) => set({ leave_used_before: e.target.value })} /></label>
       </div>
 
-      <h3 className="sd-head">권한 및 재직</h3>
+      <SdHead icon="key">권한 및 재직</SdHead>
       <div className="form-row three">
         <label className="field"><span>권한</span>
           <select id={`r-${r.id}`} value={r.role} onChange={(e) => set({ role: e.target.value })}>
