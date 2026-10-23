@@ -9,7 +9,7 @@ import ApprovalNew from './pages/ApprovalNew'
 import ApprovalView from './pages/ApprovalView'
 import Attendance from './pages/Attendance'
 import Calendar from './pages/Calendar'
-import Chat from './pages/Chat'
+import ChatShell, { ChatEmpty } from './pages/Chat'
 import ChatRoom from './pages/ChatRoom'
 import Admin from './pages/Admin'
 import Me from './pages/Me'
@@ -56,8 +56,12 @@ function Gate() {
         <Route path="approval/:id" element={<ApprovalView />} />
         <Route path="attendance" element={<Attendance />} />
         <Route path="calendar" element={<Calendar />} />
-        <Route path="chat" element={<Chat />} />
-        <Route path="chat/:id" element={<ChatRoom />} />
+        {/* 메신저는 왼쪽 목록 + 오른쪽 대화 한 틀이다.
+            ⚠️ 주소(/chat, /chat/:id)는 예전 그대로라 알림·뒤로가기·북마크가 다 살아 있다. */}
+        <Route path="chat" element={<ChatShell />}>
+          <Route index element={<ChatEmpty />} />
+          <Route path=":id" element={<ChatRoom />} />
+        </Route>
         <Route path="me" element={<Me />} />
         <Route path="admin" element={<AdminOnly />} />
         <Route path="*" element={<Navigate to="/" replace />} />

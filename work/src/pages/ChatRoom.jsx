@@ -81,7 +81,7 @@ export default function ChatRoom() {
   if (room === null) {
     return (
       <div className="stack">
-        <h1>대화</h1>
+        <h2 className="chat-title">대화</h2>
         <ErrorBox>없는 대화방이거나 들어갈 수 없는 방이에요.</ErrorBox>
         <Link className="btn" to="/chat">← 대화 목록</Link>
       </div>
@@ -95,8 +95,9 @@ export default function ChatRoom() {
     <div className="stack chat-page">
       <div className="row-between chat-top">
         <div>
-          <Link to="/chat" className="linkbtn">← 목록</Link>
-          <h1>{title}</h1>
+          {/* 좁은 화면에서만. 넓은 화면은 왼쪽에 목록이 그대로 보인다. */}
+          <Link to="/chat" className="linkbtn back-list">← 목록</Link>
+          <h2 className="chat-title">{title}</h2>
           {room.kind === 'group' && (
             <p className="hint">{members.map((m) => empOf(m.user_id)?.name).filter(Boolean).join(', ')}</p>
           )}
