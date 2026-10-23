@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { UNREAD_EVENT, loadRooms, roomTitle, shortTime } from '../lib/chat'
-import { Empty, ErrorBox } from '../components/ui'
+import { UNREAD_EVENT, avatarTone, loadRooms, roomTitle, shortTime } from '../lib/chat'
+import { BigEmpty, ErrorBox } from '../components/ui'
 
 /* 대화 목록. 새 글이 오면 바로 위로 올라오도록 Realtime 을 듣는다. */
 
@@ -30,23 +30,31 @@ export default function Chat() {
 
   return (
     <div className="stack">
-      <div className="row-between">
-        <h1>메신저</h1>
-        <button className="btn primary small-btn" onClick={() => setMaking(true)}>+ 새 대화</button>
-      </div>
+      <header className="page-head">
+        <div>
+          <h1>메신저</h1>
+          <p className="eyebrow">대화 내용은 바이렌워크 안에만 남습니다.</p>
+        </div>
+        <button className="btn primary" onClick={() => setMaking(true)}>+ 새 대화</button>
+      </header>
       <ErrorBox>{err}</ErrorBox>
 
       {making && <NewChat onClose={() => setMaking(false)} />}
 
+      {/* ⚠️ 불러오는 중(null)과 진짜 0건을 구분한다 */}
       {rooms === null ? null : rooms.length === 0 ? (
-        <Empty>아직 대화가 없어요. ‘새 대화’ 로 시작해 보세요.</Empty>
+        <section className="card flush">
+          <BigEmpty icon="chat" title="아직 대화가 없어요">
+            오른쪽 위 ‘새 대화’ 또는 아래 ‘바로 대화 걸기’ 로 시작해 보세요.
+          </BigEmpty>
+        </section>
       ) : (
         <ul className="roomlist">
           {rooms.map((r) => (
             <li key={r.id}>
               <Link to={`/chat/${r.id}`}>
-                <span className="room-ava" aria-hidden="true">
-                  {r.kind === 'group' ? '👥' : roomTitle(r, r.members, userId, empOf).slice(0, 1)}
+                <span className={`room-ava ava-${avatarTone(r.kind === 'group' ? r.id : roomTitle(r, r.members, userId, empOf))}`} aria-hidden="true">
+                  {r.kind === 'group' ? '#' : roomTitle(r, r.members, userId, empOf).slice(0, 1)}
                 </span>
                 <span className="room-main">
                   <strong>{roomTitle(r, r.members, userId, empOf)}
@@ -63,10 +71,10 @@ export default function Chat() {
         </ul>
       )}
 
-      <p className="hint">
-        대화 내용은 바이렌워크 안에만 남습니다. 알림은 내 정보 → 휴대폰 알림에서 켤 수 있어요.
-      </p>
       <PeopleShortcut people={activeEmployees.filter((e) => e.id !== userId)} />
+      <p className="hint center">
+        알림은 <strong>내 정보 → 휴대폰 알림</strong>에서 기기마다 켤 수 있어요.
+      </p>
     </div>
   )
 }
@@ -88,7 +96,7 @@ function PeopleShortcut({ people }) {
       <div className="people-row">
         {people.map((p) => (
           <button key={p.id} type="button" className="person-chip" disabled={busy === p.id} onClick={() => open(p.id)}>
-            <span className="avatar" aria-hidden="true">{(p.name || '?').slice(0, 1)}</span>
+            <span className={`avatar ava-${avatarTone(p.name)}`} aria-hidden="true">{(p.name || '?').slice(0, 1)}</span>
             {p.name}{p.position ? ` ${p.position}` : ''}
           </button>
         ))}
@@ -130,7 +138,7 @@ function NewChat({ onClose }) {
         {others.map((p) => (
           <button key={p.id} type="button"
             className={`person-chip${picked.includes(p.id) ? ' on' : ''}`} onClick={() => toggle(p.id)}>
-            <span className="avatar" aria-hidden="true">{(p.name || '?').slice(0, 1)}</span>
+            <span className={`avatar ava-${avatarTone(p.name)}`} aria-hidden="true">{(p.name || '?').slice(0, 1)}</span>
             {p.name}{p.position ? ` ${p.position}` : ''}
           </button>
         ))}

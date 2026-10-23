@@ -929,14 +929,22 @@ button.att-day:hover { background: var(--accent-soft); }
 /* ── 메신저 (지은님 2026-10-21) ─────────────────────────────────── */
 .roomlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .roomlist a {
-  display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px;
+  display: flex; align-items: center; gap: 13px; text-decoration: none; color: inherit;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px;
+  box-shadow: var(--shadow);
 }
 .roomlist a:hover { border-color: var(--line-2); background: var(--surface-2); }
 .room-ava {
-  width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center;
-  background: var(--brand); color: var(--on-brand); font-weight: 700; font-size: .95rem;
+  width: 42px; height: 42px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface-2); color: var(--ink-2); font-weight: 700; font-size: 1rem;
 }
+
+/* 이니셜 동그라미 색 — 사람·방마다 늘 같은 색이 나온다(lib/chat.js 의 avatarTone).
+   ⚠️ 색은 꾸밈이다. 누구인지는 옆 이름으로 알아본다. */
+.ava-purple { background: var(--purple-bg); color: var(--purple); }
+.ava-blue { background: var(--blue-bg); color: var(--blue); }
+.ava-green { background: var(--green-bg); color: var(--green); }
+.ava-pink { background: var(--pink-bg); color: var(--pink); }
 .room-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .room-main strong { display: flex; align-items: center; gap: 6px; font-size: .97rem; }
 .room-n { font-style: normal; font-size: .76rem; color: var(--muted); font-weight: 600; }
@@ -950,17 +958,19 @@ button.att-day:hover { background: var(--accent-soft); }
   border-radius: 99px; border: 1px solid var(--line); background: var(--surface);
   font-size: .87rem; font-weight: 600; color: var(--ink-2); cursor: pointer;
 }
-.person-chip:hover { border-color: var(--ink); color: var(--ink); }
-.person-chip.on { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.person-chip:hover { border-color: var(--line-2); color: var(--ink); background: var(--surface-2); }
+/* 고른 사람 — 노랑 바탕 + 네이비 글자(가이드). 노랑 위 흰 글자는 쓰지 않는다. */
+.person-chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
 .person-chip .avatar { width: 24px; height: 24px; font-size: .75rem; }
 
 /* 대화 화면 — 글 목록이 늘어나도 보내는 칸은 늘 아래에 */
 .chat-page { gap: 14px; }
-.chat-top h1 { font-size: 1.3rem; margin: 2px 0 0; }
+.chat-top h1 { font-size: 1.45rem; margin: 2px 0 0; }
 .chat-log {
   display: grid; gap: 3px; align-content: start;
-  background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px;
-  padding: 16px; min-height: 45vh; max-height: 62vh; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px; min-height: 45vh; max-height: 62vh; overflow-y: auto;
 }
 .chat-day { text-align: center; color: var(--muted); font-size: .78rem; margin: 14px 0 10px; }
 .bubble-row { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; }
@@ -974,7 +984,7 @@ button.att-day:hover { background: var(--accent-soft); }
 .bubble-line { display: flex; align-items: flex-end; gap: 6px; }
 .bubble-row.mine .bubble-line { flex-direction: row-reverse; }
 .bubble {
-  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px;
   padding: 9px 13px; font-size: .93rem; line-height: 1.55; white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

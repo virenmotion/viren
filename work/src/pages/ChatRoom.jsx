@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { clock, dayLabel, fileUrl, isImage, markRead, roomTitle, sameDay, sendFile, sendText } from '../lib/chat'
+import { avatarTone, clock, dayLabel, fileUrl, isImage, markRead, roomTitle, sameDay, sendFile, sendText } from '../lib/chat'
 import { ErrorBox } from '../components/ui'
 
 /* 대화 한 방. 들어오면 읽음 처리하고, 새 글은 Realtime 으로 바로 붙인다. */
@@ -135,7 +135,11 @@ export default function ChatRoom() {
                     <p className="chat-day">{dayLabel(m.created_at)}</p>
                   )}
                   <div className={`bubble-row${mine ? ' mine' : ''}${run ? ' run' : ''}`}>
-                    {!mine && !run && <span className="avatar sm" aria-hidden="true">{(empOf(m.sender_id)?.name || '?').slice(0, 1)}</span>}
+                    {!mine && !run && (
+                      <span className={`avatar sm ava-${avatarTone(empOf(m.sender_id)?.name)}`} aria-hidden="true">
+                        {(empOf(m.sender_id)?.name || '?').slice(0, 1)}
+                      </span>
+                    )}
                     <div className="bubble-wrap">
                       {!mine && !run && <span className="bubble-who">{empOf(m.sender_id)?.name || '퇴사자'}</span>}
                       <div className="bubble-line">

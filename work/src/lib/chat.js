@@ -7,6 +7,16 @@ import { supabase } from './supabase'
    방을 읽는 건 화면을 옮기는 일이 아니라서 따로 알려 줘야 한다. */
 export const UNREAD_EVENT = 'viren-unread'
 
+/* 동그란 이니셜의 색. 같은 사람·같은 방은 **언제나 같은 색**이 나오게
+   글자에서 뽑는다(무작위로 하면 새로 그릴 때마다 색이 바뀐다).
+   ⚠️ 색은 꾸밈이다. 누구인지는 옆에 적힌 이름으로 알아본다. */
+export function avatarTone(key) {
+  const s = String(key || '')
+  let n = 0
+  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) % 4
+  return ['purple', 'blue', 'green', 'pink'][n]
+}
+
 export const CHAT_BUCKET = 'chat-files'
 export const MAX_CHAT_MB = 20
 
