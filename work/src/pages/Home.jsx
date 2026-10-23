@@ -143,7 +143,11 @@ export default function Home() {
             </p>
           </div>
 
-          <span className="clock tnum">{hm(now)}</span>
+          {/* 라벨 없이 큰 숫자만 있으면 무슨 시각인지 모른다(2026-10-23 검토) */}
+          <p className="clock-wrap">
+            <span className="clock tnum">{hm(now)}</span>
+            <span className="clock-cap">현재 시각</span>
+          </p>
 
           {worked > 0 && (
             <div className="punch-bar">

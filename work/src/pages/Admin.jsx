@@ -21,8 +21,11 @@ export default function Admin() {
       <header className="page-head">
         <div><h1>관리</h1></div>
       </header>
-      <div className="tabs" role="tablist">
-        {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}
+      {/* 탭이 화면보다 길면 옆으로 민다 — 오른쪽 흐림으로 더 있다는 걸 알린다 */}
+      <div className="tabs-wrap">
+        <div className="tabs" role="tablist">
+          {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}
+        </div>
       </div>
       {tab === 'staff' && <Staff />}
       {tab === 'company' && <CompanyCard />}

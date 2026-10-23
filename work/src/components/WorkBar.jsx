@@ -13,8 +13,13 @@ import { FULL_MIN, workStat, workTone } from '../lib/worktime'
 export default function WorkBar({ minutes, height = 8, working = false }) {
   const s = workStat(minutes)
   const tone = workTone(s.min, working)
-  const label = `9시간 중 ${hoursText(s.min) || '0분'} · ${s.pct}%`
-    + (s.over > 0 ? ` · ${hoursText(s.over)} 초과` : working ? '' : ` · ${hoursText(s.left)} 부족`)
+  /* ⚠️ 세 가지를 갈라야 한다. 예전에는 '딱 채움' 도 부족 쪽으로 가서
+     9시간 00분·100% 인데 낭독기가 "·  부족" 이라고 읽었다(2026-10-23 검토). */
+  const tail = working ? ''
+    : s.over > 0 ? ` · ${hoursText(s.over)} 초과`
+      : s.left > 0 ? ` · ${hoursText(s.left)} 부족`
+        : ' · 채움'
+  const label = `9시간 중 ${hoursText(s.min) || '0분'} · ${s.pct}%${tail}`
 
   return (
     <span className="wbar" style={{ height: `${height}px` }} role="img" aria-label={label}>

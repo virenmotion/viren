@@ -144,6 +144,14 @@ export default function Calendar() {
     return out
   }, [items, from, to])
 
+  /* 달을 옮기면 고른 날짜도 그 달 안으로 데려온다.
+     이번 달이면 오늘, 아니면 1일. (안 그러면 '선택한 날짜' 가 지난 달에 남아
+     일정이 있는데도 0건으로 보인다 — 2026-10-23 검토에서 잡힌 문제) */
+  function goMonth(m) {
+    setMonth(m)
+    setPicked(m === ym(today()) ? today() : `${m}-01`)
+  }
+
   const openNew = () => setForm({ ...EMPTY, start_date: picked, end_date: picked })
   /* 달력에서 날짜를 누르면 그 날로 바로 쓰기 창을 연다.
      아래 '고른 날' 목록도 같이 그 날로 옮긴다(창을 닫으면 보인다). */
@@ -173,10 +181,10 @@ export default function Calendar() {
       <div className={`cal card${loading ? ' cal-loading' : ''}`}>
         <div className="row-between cal-head">
           <div className="cal-nav">
-            <button className="icon" aria-label="지난달" onClick={() => setMonth(ym(addMonths(firstOf(month), -1)))}>‹</button>
+            <button className="icon" aria-label="지난달" onClick={() => goMonth(ym(addMonths(firstOf(month), -1)))}>‹</button>
             <strong className="cal-month tnum">{month.replace('-', '년 ')}월</strong>
-            <button className="icon" aria-label="다음달" onClick={() => setMonth(ym(addMonths(firstOf(month), 1)))}>›</button>
-            <button className="btn small-btn" onClick={() => { setMonth(ym(today())); setPicked(today()) }}>오늘</button>
+            <button className="icon" aria-label="다음달" onClick={() => goMonth(ym(addMonths(firstOf(month), 1)))}>›</button>
+            <button className="btn small-btn" onClick={() => goMonth(ym(today()))}>오늘</button>
           </div>
           <button className="btn primary small-btn" onClick={openNew}>+ 일정</button>
         </div>

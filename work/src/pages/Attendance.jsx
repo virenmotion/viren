@@ -278,29 +278,32 @@ function AttCalendar({ ym, data, target, isAdmin, now, detail, onDetail, onPick 
           const s = workStat(min)
           const dow = parse(d).getUTCDay()
           const hol = holidayName(d)
-          const Cell = isAdmin && !out ? 'button' : 'div'
+          const canEdit = isAdmin && !out
           return (
-            <Cell
-              key={d} type={isAdmin && !out ? 'button' : undefined}
-              className={`att-day${out ? ' out' : ''}${d === today() ? ' now' : ''}${isWeekend(d) || hol ? ' off' : ''}${detail === d ? ' picked' : ''}`}
-              onClick={isAdmin && !out ? () => onPick(d, r) : undefined}
-              title={isAdmin && !out ? '눌러서 고치기' : undefined}
+            <div
+              key={d}
+              className={`att-day${out ? ' out' : ''}${d === today() ? ' now' : ''}${isWeekend(d) || hol ? ' off' : ''}${detail === d ? ' picked' : ''}${canEdit ? ' can-edit' : ''}`}
             >
+              {/* 칸 전체를 덮는 투명 버튼. 누르면 예전처럼 고치기 창이 뜬다. */}
+              {canEdit && (
+                <button
+                  type="button" className="att-hit" title="눌러서 고치기"
+                  aria-label={`${Number(d.slice(8))}일 출퇴근 시각 고치기`}
+                  onClick={() => onPick(d, r)}
+                />
+              )}
               <span className="att-top">
                 <span className={`cal-num tnum${hol || dow === 0 ? ' sun' : dow === 6 ? ' sat' : ''}`}>{Number(d.slice(8))}</span>
                 {d === today() && <span className="att-today">오늘</span>}
                 {hol && <span className="cal-hol">{hol}</span>}
                 {!out && min > 0 && (
-                  /* 날짜 누르기(고치기)로 번지지 않게 막는다 */
-                  <span
-                    className="att-more" role="button" tabIndex={0}
+                  /* 덮개 버튼의 **형제**다. 겹쳐 있을 뿐 안에 들어 있지 않다. */
+                  <button
+                    type="button" className="att-more"
                     aria-label={`${Number(d.slice(8))}일 상세`}
-                    onClick={(e) => { e.stopPropagation(); onDetail(detail === d ? null : d) }}
-                    onKeyDown={(e) => {
-                      if (e.key !== 'Enter' && e.key !== ' ') return
-                      e.preventDefault(); e.stopPropagation(); onDetail(detail === d ? null : d)
-                    }}
-                  ><span className="am-t">상세 </span>›</span>
+                    aria-expanded={detail === d}
+                    onClick={() => onDetail(detail === d ? null : d)}
+                  ><span className="am-t">상세 </span>›</button>
                 )}
               </span>
               {!out && (
@@ -323,7 +326,7 @@ function AttCalendar({ ym, data, target, isAdmin, now, detail, onDetail, onPick 
                   </span>
                 </>
               )}
-            </Cell>
+            </div>
           )
         })}
       </div>

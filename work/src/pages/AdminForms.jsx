@@ -7,7 +7,7 @@ import RichText from '../components/RichText'
 
 /* 관리 → 양식.  지은님이 결재 양식을 직접 만든다.
    · 칸을 넣고, 이름 붙이고, 종류 고르고, 순서 바꾸고, 필수 여부를 정한다.
-   · 저장하면 '새 문서' 화면에 탭으로 바로 나타난다.
+   · 저장하면 '새 문서' 화면의 **'회사 양식' 목록**에 바로 나타난다(탭이 아니라 카드다).
    ⚠️ 이미 문서가 올라간 양식의 **칸을 지우면** 그 문서에서 그 칸이 안 보인다
       (값은 DB 에 남아 있다). 그래서 지우기 전에 한 번 물어본다. */
 
@@ -55,7 +55,7 @@ export default function AdminForms() {
         <h2>양식</h2>
         <button className="btn primary" onClick={() => setEditing({ name: '', guide: '', fields: [], default_approvers: [], active: true, sort: rows.length + 1 })}>+ 새 양식</button>
       </div>
-      <p className="hint">여기서 만든 양식은 <strong>새 문서</strong> 화면에 탭으로 나타납니다.
+      <p className="hint">여기서 만든 양식은 <strong>새 문서 → 회사 양식</strong> 목록에 나타납니다.
         품의서 · 휴가신청서 · 지출결의서는 기본으로 들어 있는 양식이라 이 목록에 없습니다.</p>
 
       {!rows.length && <p className="muted">아직 만든 양식이 없습니다.</p>}

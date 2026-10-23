@@ -300,7 +300,15 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .ok { color: var(--ok); background: var(--ok-bg); padding: 10px 14px; border-radius: var(--radius-sm); font-size: .9rem; }
 .empty { color: var(--muted); padding: 18px 0 6px; text-align: center; font-size: .92rem; }
 
-.tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+/* 탭이 화면보다 길면 옆으로 민다. 오른쪽 끝을 흐리게 해서 **더 있다는 것**을 알린다
+   (휴대폰에서 탭 끝이 그냥 잘려 보여 못 찾는다는 지적, 2026-10-23). */
+.tabs-wrap { position: relative; min-width: 0; }
+.tabs-wrap::after {
+  content: ""; position: absolute; right: 0; top: 0; bottom: 2px; width: 28px;
+  background: linear-gradient(to right, rgba(247, 248, 252, 0), var(--bg));
+  pointer-events: none;
+}
+.tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; scroll-padding-inline: 24px; }
 .tabs::-webkit-scrollbar { display: none; }
 .tabs button {
   border: 1px solid var(--line-2); background: #fff; padding: 7px 14px; cursor: pointer; color: var(--ink-2);
@@ -334,6 +342,18 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .table .title-cell a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .table.compact th, .table.compact td { padding: 7px 8px; }
 .table.compact input { padding: 7px 9px; }
+
+/* 글을 적어 넣는 표(지출 내역·회사 양식의 표 칸)는 **칸마다 최소 폭**을 준다.
+   ⚠️ 안 그러면 좁은 화면에서 표가 통째로 줄어들어 입력칸이 25px 까지 눌린다
+      — 글자가 한 자도 안 보인다(2026-10-23 검토).
+   표만 옆으로 밀리게 두고(.table-wrap 이 구른다) 칸 자체는 읽을 수 있게 지킨다.
+   ⚠️ 보기만 하는 표에는 걸지 않는다. 입력칸이 든 칸에만. */
+.table td:has(> input),
+.table td:has(> .with-unit),
+.table td:has(> select) { min-width: 132px; }
+.table td:has(> input[type="date"]) { min-width: 150px; }
+.table td:has(> input[inputmode="numeric"]) { min-width: 104px; }
+.table td > input, .table td > select { width: 100%; min-width: 0; }
 /* ── 관리 → 직원: 왼쪽 목록 + 오른쪽 상세 (지은님 2026-10-23, 시안 15) ──
    전에는 한 줄에 17칸을 다 넣어 가로로 1500px 넘게 밀렸다. */
 .staff-2col { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 20px; align-items: start; }
@@ -453,7 +473,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .punch-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .punch-goal { font-size: .86rem; color: var(--muted); }
 .punch-goal strong { color: var(--ok); }
+.clock-wrap { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .clock { font-family: var(--display); font-size: 3.3rem; font-weight: 700; line-height: 1; letter-spacing: -.01em; }
+/* 큰 숫자만 있으면 무슨 시각인지 모른다 */
+.clock-cap { font-size: .84rem; color: var(--muted); }
 .punch-state { font-size: .82rem; font-weight: 600; padding: 4px 11px; border-radius: 99px; background: var(--surface-2); color: var(--muted); }
 .punch-state.st-working { background: var(--accent-soft); color: var(--accent-ink); }
 .punch-state.st-done { background: var(--ok-bg); color: var(--ok); }
@@ -553,6 +576,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 }
 
 @media (max-width: 760px) {
+  /* 일정 분류 — 이름을 한 줄 다 쓰게 하고 색·순서·버튼은 아랫줄로
+     (한 줄에 다 넣으면 긴 분류 이름이 잘려 어느 것인지 모른다, 2026-10-23) */
+  .cat-row { flex-wrap: wrap; row-gap: 8px; }
+  .cat-row > input[type="text"], .cat-row > input:not([type]) { order: -1; flex: 1 1 100%; min-width: 0; }
   .box-card .subtabs { padding-top: 14px; }
   .subtabs.pad-x { padding-left: 16px; padding-right: 16px; }
   .box-card .pad { padding: 16px; }
@@ -609,6 +636,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .att-more {
   margin-left: auto; font-size: .74rem; color: var(--muted); cursor: pointer;
   padding: 2px 4px; border-radius: 6px; white-space: nowrap;
+  border: 0; background: none; font-family: inherit; line-height: 1.4;
 }
 .att-more:hover { color: var(--ink); background: var(--surface-2); }
 .att-more:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
@@ -976,8 +1004,16 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .att-day.out { background: var(--surface-2); }
 .att-day.off { background: var(--surface-2); }
 .att-day.now { box-shadow: inset 0 0 0 2px var(--accent); }
-button.att-day { cursor: pointer; }
-button.att-day:hover { background: var(--accent-soft); }
+/* 칸 전체를 덮는 '고치기' 버튼. 안쪽 글자는 그 위에 뜬다.
+   ⚠️ 버튼 안에 버튼을 넣지 않으려고 **형제**로 둔 것이다. */
+.att-day { position: relative; }
+.att-hit { position: absolute; inset: 0; border: 0; background: none; cursor: pointer; z-index: 0; }
+.att-hit:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.att-day.can-edit:hover { background: var(--accent-soft); }
+.att-day > *:not(.att-hit) { position: relative; z-index: 1; }
+/* 글자 위를 지나가도 덮개가 눌리게 — 상세 버튼만 빼고 */
+.att-top, .att-body, .att-tags { pointer-events: none; }
+.att-more { pointer-events: auto; }
 /* 날짜·‘오늘’·‘상세’ 가 한 줄에 다 안 들어가면 줄을 바꾼다(잘라내지 않는다) */
 .att-top { display: flex; align-items: center; gap: 5px; row-gap: 2px; flex-wrap: wrap; min-width: 0; max-width: 100%; }
 .att-body { display: grid; gap: 4px; align-content: start; width: 100%; flex: 1; min-width: 0; }
@@ -1106,7 +1142,11 @@ button.att-day:hover { background: var(--accent-soft); }
 .bubble-row.mine { flex-direction: row-reverse; }
 .bubble-row.run:not(.mine) .bubble-wrap { margin-left: 36px; }
 .avatar.sm { width: 28px; height: 28px; font-size: .78rem; flex: none; }
-.bubble-wrap { max-width: min(560px, 76%); display: grid; gap: 3px; }
+/* ⚠️ min-width: 0 이 없으면 flex 칸이 안쪽 것 크기만큼 버텨서 밖으로 삐져나간다.
+   1024px 에서 사진 말풍선이 대화 칸을 넘어 가로 스크롤이 생겼다(2026-10-23 검토). */
+.bubble-wrap { max-width: min(560px, 76%); min-width: 0; display: grid; gap: 3px; }
+.bubble-line { min-width: 0; }
+.bubble { min-width: 0; }
 .bubble-row.mine .bubble-wrap { justify-items: end; }
 .bubble-who { font-size: .78rem; color: var(--muted); font-weight: 600; }
 .bubble-line { display: flex; align-items: flex-end; gap: 6px; }
@@ -1123,8 +1163,10 @@ button.att-day:hover { background: var(--accent-soft); }
   opacity: 0; transition: opacity .12s; padding: 0 2px;
 }
 .bubble-line:hover .bubble-del { opacity: 1; }
-.chat-img { max-width: 260px; max-height: 260px; border-radius: 10px; display: block; }
-.chat-file { color: var(--ink); text-decoration: underline; }
+.chat-img { width: 260px; max-width: 100%; max-height: 260px; border-radius: 10px; display: block; object-fit: contain; }
+/* 긴 파일 이름도 줄을 바꿔 칸 안에 들어오게 */
+.chat-file { color: var(--ink); text-decoration: underline; overflow-wrap: anywhere; }
+.gone { overflow-wrap: anywhere; }
 
 .chat-foot { border-top: 1px solid var(--line); padding: 14px 20px 16px; }
 .chat-foot .hint { margin-top: 8px; }
