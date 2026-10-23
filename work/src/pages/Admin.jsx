@@ -12,7 +12,7 @@ import StaffCard from '../components/StaffCard'
 import Certificate from '../components/Certificate'
 import CompanyCard from '../components/CompanyCard'
 
-const TABS = [['staff', '직원'], ['company', '회사 정보'], ['settings', '출근 설정'], ['forms', '양식'], ['cats', '일정 분류'], ['storage', '저장소'], ['backup', '백업']]
+const TABS = [['staff', '직원'], ['company', '회사 정보'], ['forms', '양식'], ['cats', '일정 분류'], ['etc', '기타 설정']]
 
 export default function Admin() {
   const [tab, setTab] = useState('staff')
@@ -26,11 +26,15 @@ export default function Admin() {
       </div>
       {tab === 'staff' && <Staff />}
       {tab === 'company' && <CompanyCard />}
-      {tab === 'settings' && <Settings />}
       {tab === 'forms' && <AdminForms />}
       {tab === 'cats' && <Categories />}
-      {tab === 'storage' && <StorageCard />}
-      {tab === 'backup' && <Backup />}
+      {tab === 'etc' && (
+        <section className="stack-sm">
+          <Settings />
+          <StorageCard />
+          <Backup />
+        </section>
+      )}
     </div>
   )
 }
@@ -442,7 +446,7 @@ function Settings() {
 
   if (!s) return <ErrorBox>{err}</ErrorBox>
   return (
-    <section className="card stack-sm narrow-form">
+    <section className="card stack-sm">
       <h2>사무실 인터넷 주소</h2>
       <p className="hint">여기 적은 주소에서 출근을 찍으면 ‘사무실’, 다른 곳이면 ‘외부’로 기록됩니다. 비워 두면 위치를 따지지 않습니다.</p>
       <p className="small">지금 접속한 주소: <strong className="tnum">{myIp || '확인 불가'}</strong>
@@ -487,7 +491,7 @@ function Backup() {
   }
 
   return (
-    <section className="card stack-sm narrow-form">
+    <section className="card stack-sm">
       <h2>데이터 백업</h2>
       <p>무료 서버에는 자동 백업이 없습니다. <strong>한 달에 한 번</strong> 아래 버튼으로 전체 기록(직원, 결재 문서, 결재선, 근태, 일정)을 내려받아 회사 Dropbox에 보관해 주세요.</p>
       <p className="hint">첨부파일 자체는 이 파일에 들어가지 않습니다. 첨부파일은 Supabase 대시보드 → Storage → approval-files 에서 따로 내려받을 수 있습니다.</p>

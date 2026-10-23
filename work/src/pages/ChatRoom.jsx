@@ -94,13 +94,19 @@ export default function ChatRoom() {
   return (
     <div className="stack chat-page">
       <div className="row-between chat-top">
-        <div>
+        <div className="chat-who">
           {/* 좁은 화면에서만. 넓은 화면은 왼쪽에 목록이 그대로 보인다. */}
-          <Link to="/chat" className="linkbtn back-list">← 목록</Link>
-          <h2 className="chat-title">{title}</h2>
-          {room.kind === 'group' && (
-            <p className="hint">{members.map((m) => empOf(m.user_id)?.name).filter(Boolean).join(', ')}</p>
-          )}
+          <Link to="/chat" className="linkbtn back-list">←</Link>
+          <span className={`avatar ava-${avatarTone(room.kind === 'group' ? room.id : title)}`} aria-hidden="true">
+            {room.kind === 'group' ? '#' : title.slice(0, 1)}
+          </span>
+          <div className="grow">
+            <h2 className="chat-title">{title}</h2>
+            <p className="chat-sub">
+              참여자 {members.length}명
+              {room.kind === 'group' && ` · ${members.map((m) => empOf(m.user_id)?.name).filter(Boolean).join(', ')}`}
+            </p>
+          </div>
         </div>
         {room.kind === 'group' && (
           <div className="actions">
@@ -161,6 +167,7 @@ export default function ChatRoom() {
         <div ref={endRef} />
       </div>
 
+      <div className="chat-foot">
       <ErrorBox>{err}</ErrorBox>
 
       <form className="chat-send" onSubmit={go}>
@@ -175,6 +182,7 @@ export default function ChatRoom() {
         <button className="btn primary" disabled={busy || !text.trim()}>보내기</button>
       </form>
       <p className="hint">Enter 로 보내고, Shift+Enter 로 줄을 바꿔요.</p>
+      </div>
     </div>
   )
 }

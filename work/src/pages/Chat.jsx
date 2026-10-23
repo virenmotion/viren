@@ -19,6 +19,10 @@ export default function ChatShell() {
   const [rooms, setRooms] = useState(null)
   const [err, setErr] = useState('')
   const [making, setMaking] = useState(false)
+  /* 찾기·거르기는 **이미 받아 둔 목록 안에서만** 한다. 서버에 다시 묻지 않는다.
+     6명 회사라 방이 몇 개 안 되므로 이걸로 충분하다. */
+  const [q, setQ] = useState('')
+  const [kind, setKind] = useState('all')   // all | group | direct
 
   const refresh = () => loadRooms().then(setRooms).catch(() => setErr('대화를 불러오지 못했어요.'))
 
@@ -35,6 +39,15 @@ export default function ChatShell() {
     }
   }, [])
 
+  /* 찾기 글자는 방 이름과 마지막 글에서 찾는다 */
+  const shown = (rooms || []).filter((r) => {
+    if (kind !== 'all' && r.kind !== kind) return false
+    const s = q.trim().toLowerCase()
+    if (!s) return true
+    const title = roomTitle(r, r.members, userId, empOf).toLowerCase()
+    return title.includes(s) || String(r.last_text || '').toLowerCase().includes(s)
+  })
+
   return (
     <div className="stack">
       {/* 휴대폰에서 대화를 열면 방 제목과 겹쳐서 감춘다(in-room) */}
@@ -43,19 +56,37 @@ export default function ChatShell() {
           <h1>메신저</h1>
           <p className="eyebrow">대화 내용은 바이렌워크 안에만 남습니다.</p>
         </div>
-        <button className="btn primary" onClick={() => setMaking(true)}>+ 새 대화</button>
       </header>
 
       <ErrorBox>{err}</ErrorBox>
 
       <div className={`chat-2col${inRoom ? ' in-room' : ''}`}>
         <aside className="chat-aside">
-          {/* ⚠️ 불러오는 중(null)과 진짜 0건을 구분한다 */}
+          <button className="btn primary chat-newbtn" onClick={() => setMaking(true)}>+ 새 대화</button>
+
+          <label className="chat-search">
+            <span className="sr-only">대화 검색</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
+              <circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 4 4" />
+            </svg>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="대화 검색" />
+          </label>
+
+          <div className="subtabs" role="tablist">
+            {[['all', '전체'], ['group', '그룹'], ['direct', '개인']].map(([k, label]) => (
+              <button key={k} role="tab" aria-selected={kind === k}
+                className={kind === k ? 'on' : ''} onClick={() => setKind(k)}>{label}</button>
+            ))}
+          </div>
+
+          {/* ⚠️ 불러오는 중(null)과 진짜 0건을 구분한다. 거른 결과가 0건인 것도 따로 적는다. */}
           {rooms === null ? null : rooms.length === 0 ? (
             <p className="hint">아직 대화가 없어요. ‘새 대화’ 로 시작해 보세요.</p>
+          ) : shown.length === 0 ? (
+            <p className="hint">찾는 대화가 없어요.</p>
           ) : (
-            <ul className="roomlist">
-              {rooms.map((r) => {
+            <ul className="roomlist chat-rooms">
+              {shown.map((r) => {
                 const title = roomTitle(r, r.members, userId, empOf)
                 return (
                   <li key={r.id}>
@@ -79,10 +110,10 @@ export default function ChatShell() {
             </ul>
           )}
 
-          <PeopleShortcut people={activeEmployees.filter((e) => e.id !== userId)} />
-          <p className="hint">
-            알림은 <strong>내 정보 → 기기 알림</strong>에서 기기마다 켤 수 있어요.
-          </p>
+          <div className="chat-quick">
+            <PeopleShortcut people={activeEmployees.filter((e) => e.id !== userId)} />
+            <p className="hint">알림은 <strong>내 정보 → 기기 알림</strong>에서 켤 수 있어요.</p>
+          </div>
         </aside>
 
         <div className="chat-main">
@@ -118,8 +149,8 @@ function PeopleShortcut({ people }) {
   }
   if (!people.length) return null
   return (
-    <section className="card stack-sm">
-      <h2>바로 대화 걸기</h2>
+    <section className="stack-sm">
+      <h3 className="quick-head">바로 대화 걸기</h3>
       <div className="people-row">
         {people.map((p) => (
           <button key={p.id} type="button" className="person-chip" disabled={busy === p.id} onClick={() => open(p.id)}>
