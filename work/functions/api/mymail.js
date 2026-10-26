@@ -38,8 +38,13 @@ const b64 = (buf) => {
 const unb64 = (s) => Uint8Array.from(atob(String(s)), (c) => c.charCodeAt(0))
 
 async function keyOf(env) {
-  const raw = unb64(env.MAIL_KEY)
-  if (raw.length !== 32) throw new Error('MAIL_KEY 가 32바이트가 아닙니다.')
+  let raw
+  try { raw = unb64(env.MAIL_KEY) } catch {
+    throw new Error('MAIL_KEY 가 base64 가 아닙니다. Cloudflare 설정을 다시 넣어 주세요.')
+  }
+  if (raw.length !== 32) {
+    throw new Error(`MAIL_KEY 가 32바이트가 아닙니다(지금 ${raw.length}바이트).`)
+  }
   return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt'])
 }
 
@@ -93,7 +98,18 @@ const safe = (row) => ({
   last_note: row?.last_note || '',
 })
 
-export async function onRequestPost({ request, env }) {
+/* ⚠️ 여기서 터진 오류를 그냥 두면 Cloudflare 가 **글자(HTML)로 된 500** 을 돌려주고,
+   화면은 그걸 못 읽어서 "잠시 뒤 다시 해 주세요" 만 띄운다 — 까닭을 영영 모른다.
+   무슨 일이 났는지 **글로 돌려준다.** (비밀번호는 여기 섞이지 않는다) */
+export async function onRequestPost(ctx) {
+  try {
+    return await handle(ctx)
+  } catch (e) {
+    return json({ error: `저장하지 못했습니다 — ${String(e.message || e).slice(0, 300)}` }, 500)
+  }
+}
+
+async function handle({ request, env }) {
   const missing = ['VITE_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'MAIL_KEY']
     .filter((k) => !env[k])
   if (missing.length) return json({ error: '개인 메일 알림 설정이 아직 없습니다.', missing }, 503)
@@ -119,9 +135,12 @@ export async function onRequestPost({ request, env }) {
   if (action === 'get') return json(safe(row))
 
   if (action === 'save') {
-    const user = String(input.imap_user || emp.email || '').trim()
+    /* ⚠️ 메일 주소는 **본인 것으로 고정한다.** 남의 주소를 넣게 두면, 그 사람 메일이
+       넣은 사람 방으로 간다(대표님 메일이 경영지원 방으로 가는 식). 화면에서도
+       고르지 못하게 했지만, 믿을 수 있는 건 여기뿐이다. */
+    const user = String(emp.email || '').trim()
     const pass = String(input.pass || '')
-    if (!user.includes('@')) return json({ error: '메일 주소를 정확히 넣어 주세요.' }, 400)
+    if (!user.includes('@')) return json({ error: '직원 정보에 메일 주소가 없습니다. 관리자에게 알려 주세요.' }, 400)
     if (!pass) return json({ error: 'IMAP 비밀번호를 넣어 주세요.' }, 400)
     /* 서버가 이미 보고 있는 메일함이면 두 번 보지 않는다 — 알림이 두 번 온다. */
     if (env.MAIL_USER && user.toLowerCase() === String(env.MAIL_USER).toLowerCase()) {

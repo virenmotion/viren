@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useSession } from '../lib/session'
 import { ErrorBox } from './ui'
 
 /* 내 개인 메일 알림 (2026-10-26, 대표님 승인).
@@ -21,7 +22,8 @@ const api = async (body) => {
     body: JSON.stringify(body),
   })
   const out = await r.json().catch(() => ({}))
-  if (!r.ok) throw new Error(out.error || '잠시 뒤 다시 해 주세요.')
+  // 까닭을 못 받으면 **적어도 번호라도** 보여 준다. 그래야 어디가 막혔는지 가린다.
+  if (!r.ok) throw new Error(out.error || `잠시 뒤 다시 해 주세요. (오류 ${r.status})`)
   return out
 }
 
@@ -34,8 +36,8 @@ const when = (iso) => {
 }
 
 export default function MyMailCard() {
+  const { me } = useSession()
   const [s, setS] = useState(null)        // null = 불러오는 중, false = 설정 전
-  const [addr, setAddr] = useState('')
   const [pass, setPass] = useState('')
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -45,7 +47,7 @@ export default function MyMailCard() {
   const load = useCallback(async () => {
     try {
       const out = await api({ action: 'get' })
-      setS(out); setAddr(out.imap_user || '')
+      setS(out)
     } catch { setS(false) }   // 아직 설정 전이면 카드만 조용히 접는다
   }, [])
   useEffect(() => { load() }, [load])
@@ -102,12 +104,13 @@ export default function MyMailCard() {
       {open && (
         <form className="stack-sm" onSubmit={(e) => {
           e.preventDefault()
-          run({ action: 'save', imap_user: addr.trim(), pass }, '켰습니다. 1분 안에 처음 확인합니다.')
+          run({ action: 'save', pass }, '켰습니다. 1분 안에 처음 확인합니다.')
         }}>
-          <label className="field"><span>내 메일 주소</span>
-            <input type="email" inputMode="email" autoComplete="username"
-              value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="이름@viren.kr" />
-          </label>
+          {/* ⚠️ 주소는 **내 것으로 고정**이다. 고를 수 있게 두면 남의 메일함을
+              내 방으로 끌어올 수 있다(서버에서도 한 번 더 막는다). */}
+          <div className="field"><span>내 메일 주소</span>
+            <p className="sd-val">{me.email}</p>
+          </div>
           <label className="field"><span>카카오워크 POP3/IMAP 비밀번호</span>
             <input type="password" autoComplete="off" value={pass}
               onChange={(e) => setPass(e.target.value)} placeholder="카카오워크에서 따로 만든 비밀번호" />
