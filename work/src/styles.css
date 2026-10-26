@@ -1160,9 +1160,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 /* 메일 알림 카드 (2026-10-26) — 카카오워크 메일 봇과 같은 모양.
    말풍선 안쪽 여백을 없애고 카드가 가장자리까지 차게 한다. */
 .bubble.mail-card { padding: 0; overflow: hidden; background: var(--surface); width: 100%; }
+/* 머리는 바이렌 노랑 + 남색 글씨(지은님 2026-10-26).
+   원색 노랑에는 흰 글씨가 안 보인다 — 글자는 반드시 --ink 로. */
 .mc-head {
   padding: 11px 14px; font-weight: 700; font-size: .9rem;
-  background: var(--brand); color: var(--on-brand);
+  background: var(--accent); color: var(--ink);
 }
 .mc-body { display: grid; gap: 10px; padding: 13px 14px 14px; }
 .mc-title { font-size: .98rem; line-height: 1.4; overflow-wrap: anywhere; }
