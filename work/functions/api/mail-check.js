@@ -2,31 +2,32 @@
  *
  * 카카오워크를 그대로 쓰되 "메일 왔다" 는 알림만 바이렌워크에서도 뜨게 한다(지은님).
  *
+ * 카카오워크 메일 봇처럼 **메신저의 '메일' 방으로** 글이 올라온다(지은님 2026-10-26).
+ * 기록이 남고, 휴대폰 알림은 메신저가 이미 보내고 있으니 길을 하나 더 만들지 않는다.
+ *
  * 흐름
- *   pg_cron(5분) → run_mail_check() → pg_net 이 여기를 부른다(x-push-secret)
- *     → IMAP 으로 **EXAMINE**(읽기 전용) INBOX
- *     → 지난번에 본 번호(UID)보다 큰 것만 머리글(보낸사람·제목)을 꺼낸다
- *     → 전 직원 기기로 알림
+ *   pg_cron(1분) → run_mail_check() → pg_net 이 여기를 부른다(x-push-secret)
+ *     → IMAP 으로 STATUS 한 번(가볍다). 새 게 없으면 여기서 끝.
+ *     → 새 게 있으면 **EXAMINE**(읽기 전용)하고 머리글(보낸사람·제목)만 꺼낸다
+ *     → post_mail() 로 '메일' 방에 글을 올린다 → 방아쇠가 알림까지 보낸다
  *     → 본 번호를 mail_state 에 적어 둔다
  *
  * 생각의 뼈대
- *   · **메일을 우리 DB 에 복사하지 않는다.** 보낸사람·제목도 알림으로 던지고 끝이다.
+ *   · **메일 본문은 가져오지도 않는다.** 보낸사람·제목 두 줄이 전부다.
  *   · **읽음 표시를 건드리지 않는다.** SELECT 가 아니라 EXAMINE 을 쓰고,
  *     BODY[] 가 아니라 BODY.PEEK[] 로 꺼낸다. 안 그러면 카카오워크에서
  *     안 읽은 메일이 저절로 읽음으로 바뀐다 — 절대 그러면 안 된다.
- *   · 이미 읽은 메일(\Seen)은 알리지 않는다. 5분 사이에 누가 먼저 봤으면 조용히 넘어간다.
+ *   · 이미 읽은 메일(\Seen)은 알리지 않는다. 1분 사이에 누가 먼저 봤으면 조용히 넘어간다.
  *   · 공용함 하나(viren@viren.kr)만 본다. 직원 개인 메일함은 각자 카카오워크에서.
- *   · 한 번에 많이 와도 알림은 **한 개**로 묶는다. 밤새 쌓인 걸 20번 울리면 안 된다.
+ *   · 1분마다 두드리므로 **새 게 없을 때가 싸야 한다** — STATUS 한 번으로 끝낸다.
  *
  * 환경변수 — /api/mail 과 같은 것을 쓴다 (Cloudflare Pages → Variables and Secrets)
  *   MAIL_IMAP_HOST · MAIL_IMAP_PORT(기본 993) · MAIL_USER · MAIL_PASS
  *   VITE_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY · PUSH_SECRET
- *   VITE_VAPID_PUBLIC · VAPID_PRIVATE   (알림 보내는 데 필요 — notify.js 와 같음)
  */
 
 import { connect } from 'cloudflare:sockets'
 import { Imap, q } from './mail.js'
-import { sendTo } from './notify.js'
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } })
@@ -127,17 +128,6 @@ export function fromName(s) {
   return (m ? m[2] : t).trim()
 }
 
-/* 알림에 쓸 한 줄. 여러 통이면 묶는다. */
-export function mailMessage(mails) {
-  if (!mails.length) return null
-  if (mails.length === 1) {
-    const [a] = mails
-    return { title: `새 메일 · ${a.from}`, body: a.subject || '(제목 없음)' }
-  }
-  const names = [...new Set(mails.map((x) => x.from))].slice(0, 3).join(' · ')
-  return { title: `새 메일 ${mails.length}통`, body: names }
-}
-
 /* ── Supabase (서비스 키로) ─────────────────────────────────────────── */
 function db(env) {
   const base = `${env.VITE_SUPABASE_URL}/rest/v1`
@@ -151,13 +141,18 @@ function db(env) {
     async patch(path, body) {
       await fetch(`${base}/${path}`, { method: 'PATCH', headers, body: JSON.stringify(body) })
     },
+    async rpc(name, body) {
+      const r = await fetch(`${base}/rpc/${name}`, { method: 'POST', headers, body: JSON.stringify(body) })
+      if (!r.ok) throw new Error(`${name}: ${await r.text()}`)
+      return r.json()
+    },
   }
 }
 
 /* ── 본체 ───────────────────────────────────────────────────────────── */
 export async function onRequestPost({ request, env }) {
   const missing = ['VITE_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'PUSH_SECRET',
-    'VITE_VAPID_PUBLIC', 'VAPID_PRIVATE', 'MAIL_IMAP_HOST', 'MAIL_USER', 'MAIL_PASS']
+    'MAIL_IMAP_HOST', 'MAIL_USER', 'MAIL_PASS']
     .filter((k) => !env[k])
   if (missing.length) return json({ error: '메일 알림 설정이 아직 없습니다.', missing }, 503)
 
@@ -182,8 +177,10 @@ export async function onRequestPost({ request, env }) {
     await im.hello()
     await im.cmd(`LOGIN ${q(env.MAIL_USER)} ${q(env.MAIL_PASS)}`, 'LOGIN')
 
-    /* ⚠️ SELECT 가 아니라 EXAMINE — 읽기 전용이다. 메일함을 건드리지 않는다. */
-    const box = await im.cmd('EXAMINE "INBOX"')
+    /* ① 먼저 **가볍게** 묻는다 — STATUS 는 메일함을 열지도 않는다.
+       1분마다 두드리는데 새 메일은 하루에 몇 통뿐이다. 거의 언제나 여기서 끝나야
+       메일 서버에 부담이 가지 않는다. */
+    const box = await im.cmd('STATUS "INBOX" (UIDVALIDITY UIDNEXT)')
     const validity = Number((box.match(/UIDVALIDITY (\d+)/) || [])[1] || 0)
     const next = Number((box.match(/UIDNEXT (\d+)/) || [])[1] || 0)
 
@@ -203,6 +200,10 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: true, new: 0 })
     }
 
+    /* ② 새 게 있을 때만 메일함을 연다.
+       ⚠️ SELECT 가 아니라 **EXAMINE** — 읽기 전용이다. 메일함을 건드리지 않는다. */
+    await im.cmd('EXAMINE "INBOX"')
+
     /* ⚠️ BODY.PEEK — 읽음 표시를 건드리지 않고 머리글만 본다.
        ⚠️ 'UID FETCH n:*' 는 해당하는 게 없어도 **마지막 한 통을 돌려준다.**
           그래서 받은 뒤에 uid > since 로 한 번 더 거른다. */
@@ -220,21 +221,20 @@ export async function onRequestPost({ request, env }) {
         subject: decodeWords(headerValue(x.header, 'Subject')).trim(),
       }))
 
+    if (!mails.length) {
+      await mark({ last_uid: Math.max(top, since) })
+      return json({ ok: true, new: items.length, posted: 0 })
+    }
+
+    /* 메신저 '메일' 방에 올린다. 전 직원이 그 방에 들어 있고(post_mail 이 챙긴다),
+       글이 들어가면 on_message 방아쇠가 휴대폰 알림까지 보낸다.
+       ⚠️ 여기서 알림을 따로 보내지 않는다 — 보내면 두 번 울린다. */
+    const posted = await d.rpc('post_mail', { p_items: mails })
+
+    /* ⚠️ **올린 뒤에** 본 번호를 적는다. 올리다 실패하면 번호를 안 올려서
+       다음 1분에 다시 시도한다. 먼저 적으면 그 메일은 영영 안 뜬다. */
     await mark({ last_uid: Math.max(top, since) })
-
-    const msg = mailMessage(mails)
-    if (!msg) return json({ ok: true, new: items.length, notified: 0 })
-
-    /* 전 직원에게 (지은님 2026-10-26). 알림을 켠 기기에만 실제로 간다. */
-    const staff = await d.get('employees?active=eq.true&select=id')
-    const out = await sendTo(env, {
-      users: staff.map((e) => e.id),
-      title: msg.title,
-      body: msg.body,
-      url: '/',
-      tag: 'mail',          // 메일 알림끼리는 덮어쓴다 — 줄줄이 쌓이지 않게
-    })
-    return json({ ok: true, new: items.length, notified: mails.length, ...out })
+    return json({ ok: true, new: items.length, posted })
   } catch (e) {
     try { await im?.bye() } catch { /* 그만 */ }
     // 실패해도 '언제 확인했는지' 와 까닭은 남긴다 — 안 오는 이유를 알아야 한다

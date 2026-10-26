@@ -997,7 +997,9 @@ create index if not exists room_members_user_idx on public.room_members (user_id
 create table if not exists public.messages (
   id         uuid primary key default gen_random_uuid(),
   room_id    uuid not null references public.rooms(id) on delete cascade,
-  sender_id  uuid not null references public.employees(id),
+  -- ⚠️ 비어 있으면 **시스템이 올린 글**이다(메일 알림, 2026-10-26).
+  --    사람은 못 넣는다 — 쓰기 정책이 sender_id = auth.uid() 라서 null 은 막힌다.
+  sender_id  uuid references public.employees(id),
   text       text not null default '',
   file       jsonb,                                  -- { path, name, size, type }
   created_at timestamptz not null default now()
@@ -1130,7 +1132,9 @@ language sql stable security definer set search_path = public as $$
   join room_members rm on rm.room_id = m.room_id and rm.user_id = auth.uid()
   where public.is_active_employee()
     and m.created_at > rm.last_read_at
-    and m.sender_id <> auth.uid()
+    -- ⚠️ `<>` 가 아니라 `is distinct from` 이다. 보낸 사람이 없는 글(메일 알림)은
+    --    `NULL <> 나` 가 참이 아니라서(SQL 3값 논리) **영원히 안 읽은 수에 안 잡힌다.**
+    and m.sender_id is distinct from auth.uid()
   group by m.room_id
 $$;
 
@@ -1278,7 +1282,9 @@ create table if not exists public.mail_state (
   uidvalidity bigint,        -- 메일함이 통째로 갈리면 이 번호가 바뀐다
   last_uid    bigint,        -- 여기까지는 이미 알렸다
   checked_at  timestamptz,
-  last_error  text
+  last_error  text,
+  -- 메신저 '메일' 방. 이름으로 찾으면 같은 이름의 방과 섞여서 id 로 붙든다.
+  room_id     uuid references public.rooms(id) on delete set null
 );
 insert into public.mail_state (id) values (1) on conflict (id) do nothing;
 alter table public.mail_state enable row level security;
@@ -1303,13 +1309,78 @@ end $$;
 
 revoke execute on function public.run_mail_check() from anon, public, authenticated;
 
+-- 메신저 '메일' 방 — 카카오워크 메일 봇처럼 글로 올라온다(지은님 2026-10-26).
+-- 알림 길을 따로 만들지 않는다. 글이 들어가면 on_message 방아쇠가 알림까지 보낸다.
+create or replace function public.mail_room() returns uuid
+language plpgsql security definer set search_path = public as $$
+declare v_id uuid; v_owner uuid;
+begin
+  select room_id into v_id from mail_state where id = 1;
+  if v_id is not null and not exists (select 1 from rooms where id = v_id) then
+    v_id := null;   -- 방이 지워졌으면 다시 만든다
+  end if;
+
+  if v_id is null then
+    select id into v_owner from employees
+     where active and role = 'admin' order by created_at limit 1;
+    if v_owner is null then
+      select id into v_owner from employees where active order by created_at limit 1;
+    end if;
+    if v_owner is null then raise exception '재직 중인 직원이 없습니다.'; end if;
+
+    insert into rooms (kind, name, created_by) values ('group', '메일', v_owner)
+    returning id into v_id;
+    update mail_state set room_id = v_id where id = 1;
+  end if;
+
+  -- 재직자 전원. 새로 들어온 직원도 다음 메일 때 저절로 들어온다.
+  -- ⚠️ 전 직원이 받는다는 결정이라, 방을 나가도 다시 들어온다.
+  insert into room_members (room_id, user_id)
+  select v_id, e.id from employees e
+   where e.active
+     and not exists (select 1 from room_members m where m.room_id = v_id and m.user_id = e.id);
+
+  return v_id;
+end $$;
+
+-- p_items 는 [{"from":"OpenAI","subject":"..."}, ...]
+create or replace function public.post_mail(p_items jsonb) returns int
+language plpgsql security definer set search_path = public as $$
+declare v_room uuid; v_n int := 0; it jsonb;
+begin
+  if jsonb_typeof(p_items) is distinct from 'array' or jsonb_array_length(p_items) = 0 then
+    return 0;
+  end if;
+  v_room := public.mail_room();
+
+  for it in select value from jsonb_array_elements(p_items) loop
+    insert into messages (room_id, sender_id, text)
+    values (v_room, null,
+      '새 메일 · ' || coalesce(nullif(btrim(it->>'from'), ''), '보낸사람 모름')
+      || E'\n' || coalesce(nullif(btrim(it->>'subject'), ''), '(제목 없음)'));
+    v_n := v_n + 1;
+  end loop;
+
+  -- 알림 기록이지 보관함이 아니다. 90일 지난 것은 치운다.
+  -- (지우기 정책이 sender_id = auth.uid() 라 사람은 못 지운다 — 여기서 치워야 한다)
+  delete from messages
+   where room_id = v_room and sender_id is null
+     and created_at < now() - interval '90 days';
+
+  return v_n;
+end $$;
+
+revoke execute on function public.mail_room() from anon, public, authenticated;
+revoke execute on function public.post_mail(jsonb) from anon, public, authenticated;
+grant execute on function public.post_mail(jsonb) to service_role;
+
 -- ⑥ 때맞춰 도는 것들 -------------------------------------------------------
 -- ⚠️ 예약(pg_cron)은 **설치 맨 끝에 따로** 돌린다. Supabase 쪽 설정에 따라
 --    실패할 수 있고, 한 덩어리로 돌리면 앞의 것까지 되돌아간다.
 --    supabase/migrations/2026-10-21l-cron.sql · 2026-10-26b-mail-cron.sql 참고.
 --      create extension if not exists pg_cron;
 --      select cron.schedule('viren-chat-cleanup', '0 18 * * *', $x$select public.run_chat_cleanup()$x$);
---      select cron.schedule('viren-mail-check', '*/5 * * * *', $x$select public.run_mail_check()$x$);
+--      select cron.schedule('viren-mail-check', '* * * * *', $x$select public.run_mail_check()$x$);
 
 -- ---------------------------------------------------------------------
 -- 인사기록 · 경력 (노션 직원현황관리·직원경력관리를 옮긴 것)

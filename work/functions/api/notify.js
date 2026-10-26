@@ -178,15 +178,17 @@ async function chatMessage(d, id) {
   if (!m) return null
   const [room] = await d.get(`rooms?id=eq.${m.room_id}&select=id,kind,name`)
   const members = await d.get(`room_members?room_id=eq.${m.room_id}&select=user_id`)
-  const [who] = await d.get(`employees?id=eq.${m.sender_id}&select=name,position`)
+  /* 보낸 사람이 없는 글 = 시스템이 올린 것(메일 알림). 방 이름이 곧 보낸 사람이다. */
+  const bot = !m.sender_id
+  const [who] = bot ? [] : await d.get(`employees?id=eq.${m.sender_id}&select=name,position`)
 
   const from = who ? `${who.name}${who.position || ''}` : '직원'
   const body = (m.text || '').trim() || (m.file ? '사진·파일을 보냈어요' : '')
   const group = room?.kind === 'group'
   return {
     users: members.map((x) => x.user_id).filter((u) => u !== m.sender_id),
-    title: group ? (room.name || '단체 대화') : from,
-    body: group ? `${from}: ${body}` : body,
+    title: bot ? (room?.name || '메일') : group ? (room.name || '단체 대화') : from,
+    body: bot ? body : group ? `${from}: ${body}` : body,
     url: `/chat/${m.room_id}`,
     // 같은 방 알림은 쌓이지 않고 덮어쓴다. 대화는 금방 여러 개가 온다.
     tag: `room-${m.room_id}`,
@@ -194,7 +196,7 @@ async function chatMessage(d, id) {
   }
 }
 
-export async function sendTo(env, msg) {
+async function sendTo(env, msg) {
   const d = db(env)
   const ids = [...new Set(msg.users)].filter(Boolean)
   if (!ids.length) return { sent: 0, gone: 0 }

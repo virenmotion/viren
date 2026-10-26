@@ -216,9 +216,11 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
    - ② **Cloudflare Pages → viren-work → Settings → Variables and Secrets** 에 3개:
          `MAIL_IMAP_HOST`(주소) · `MAIL_USER`(viren@viren.kr) · `MAIL_PASS`(**Secret 으로**).
          포트가 993 이 아니면 `MAIL_IMAP_PORT` 도. 넣은 뒤 **재배포 한 번** 해야 붙는다.
-   - ③ Supabase SQL Editor 에서 `2026-10-26a-mail-alert.sql` → `2026-10-26b-mail-cron.sql` 순서로.
+   - ③ Supabase SQL Editor 에서 **순서대로** `2026-10-26a-mail-alert.sql` →
+         `2026-10-26c-mail-room.sql` → `2026-10-26b-mail-cron.sql`.
+         (c 는 메신저 '메일' 방을 만든다. b 는 pg_cron 이라 맨 끝에 따로 — 2026-10-21l 과 같은 까닭)
    - 잘 되는지 보기: `select checked_at, last_uid, last_error from mail_state;`
-     (`last_error` 가 비어 있고 `checked_at` 이 5분 안쪽이면 돌고 있는 것)
+     (`last_error` 가 비어 있고 `checked_at` 이 1분 안쪽이면 돌고 있는 것)
    - ⚠️ 비밀번호는 **Cloudflare 에만.** 저장소·Supabase 에 넣지 않는다.
 
 4. **대표님 두 분 알림 켜기** — 각자 휴대폰·PC 에서 내 정보 → 휴대폰 알림. 안 켜면
@@ -245,9 +247,29 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 
 - **2026-10-26 대표메일 알림.** 카카오워크는 그대로 쓰고, "메일 왔다" 는 알림만
   바이렌워크에서도 뜨게 했다(지은님 결정: **전 직원**이 받는다).
-  · 길: `pg_cron`(5분) → `run_mail_check()` → `pg_net` → `/api/mail-check`
-    → IMAP 으로 `viren@viren.kr` 받은함을 보고 → 새 메일이 있으면 전 직원 기기로 알림.
-    알림 보내는 건 기존 `notify.js` 의 `sendTo` 를 그대로 쓴다(푸시 코드를 두 벌 두지 않는다).
+  · **카카오워크 메일 봇처럼 메신저의 '메일' 방으로 글이 올라온다**(지은님).
+    기록이 남아 지나간 메일을 거슬러 볼 수 있고, **휴대폰 알림은 메신저가 이미 보낸다** —
+    알림 길을 두 벌 만들지 않는다. 여러 통이 와도 같은 방 알림이라 휴대폰에서 덮어쓴다.
+  · 길: `pg_cron`(1분) → `run_mail_check()` → `pg_net` → `/api/mail-check`
+    → IMAP 으로 `viren@viren.kr` 받은함을 보고 → `post_mail()` 로 '메일' 방에 글
+    → `on_message` 방아쇠가 알림까지 보낸다.
+  · ⚠️ **1분마다 두드리므로 새 게 없을 때가 싸야 한다.** `STATUS "INBOX" (UIDVALIDITY UIDNEXT)`
+    한 번만 묻고 끝낸다. 새 게 있을 때만 메일함을 연다(EXAMINE).
+  · ⚠️ **본 번호(`last_uid`)는 글을 올린 *뒤에* 적는다.** 먼저 적으면 올리다 실패했을 때
+    그 메일은 영영 안 뜬다. 지금은 다음 1분에 다시 시도한다.
+  · 시스템이 올린 글 = `messages.sender_id` 가 **비어 있는** 글. 사람은 못 쓴다
+    (쓰기 정책이 `sender_id = auth.uid()` 라 null 은 막힌다). 지우기도 막혀서
+    `post_mail` 이 90일 지난 것을 스스로 치운다.
+  · ⚠️ **`unread_counts()` 를 같이 고쳤다.** 원래 `sender_id <> auth.uid()` 였는데,
+    보낸 사람이 없으면 `NULL <> 나` 가 참이 아니라서(SQL 3값 논리) **메일 알림이
+    영원히 안 읽은 수에 안 잡혔다.** `is distinct from` 으로 바꿨다. 같은 함정이
+    또 나올 수 있으니 null 이 들어갈 수 있는 칸은 `<>` 대신 `is distinct from`.
+  · 방 사람은 `mail_room()` 이 **재직자 전원으로 맞춘다.** 새 직원도 다음 메일 때 들어온다.
+    전 직원 정책이라 방을 나가도 다시 들어온다.
+  · 즉시 알림은 하지 않기로 했다(지은님 2026-10-26). viren.kr 도메인이 **카페24**에 있어서
+    Cloudflare 로 메일을 받으려면 도메인을 통째로 옮겨야 하고, 외부 업체를 쓰면 회사 메일
+    전문이 제3자를 지나간다. 1분이면 충분하다는 판단. 나중에 도메인을 Cloudflare 로
+    옮길 일이 생기면 그때 다시 본다.
   · ⚠️ **읽음 표시를 건드리지 않는다.** `SELECT` 가 아니라 **`EXAMINE`**(읽기 전용),
     `BODY[]` 가 아니라 **`BODY.PEEK[]`**. 안 그러면 카카오워크에서 안 읽은 메일이
     저절로 읽음으로 바뀐다. 고칠 때 **이 두 가지는 절대 바꾸지 말 것.**

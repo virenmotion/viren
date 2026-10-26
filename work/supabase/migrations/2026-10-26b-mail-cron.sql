@@ -1,5 +1,5 @@
 -- =====================================================================
--- VIREN WORK — 메일 확인을 5분마다 자동 실행.  2026-10-26
+-- VIREN WORK — 메일 확인을 1분마다 자동 실행.  2026-10-26
 --
 -- ⚠️ 2026-10-26a 를 먼저 Run 한 뒤에 하세요.
 --
@@ -17,8 +17,8 @@ begin
 exception when others then null;
 end $$;
 
--- 5분마다. 더 자주 하면 메일 서버가 싫어한다.
-select cron.schedule('viren-mail-check', '*/5 * * * *', $$select public.run_mail_check()$$);
+-- 1분마다. 새 게 없으면 STATUS 한 번만 묻고 끝나서 가볍다.
+select cron.schedule('viren-mail-check', '* * * * *', $$select public.run_mail_check()$$);
 
 -- 결과 확인
 select jobname as 이름, schedule as 시각, active as 켜짐

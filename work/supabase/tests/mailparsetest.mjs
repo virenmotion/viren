@@ -13,7 +13,7 @@ writeFileSync(copy, readFileSync(src, 'utf8')
   .replace(/^import .*from 'cloudflare:sockets'$/m, '')
   .replace(/^import .*from '\.\/mail\.js'$/m, '')
   .replace(/^import .*from '\.\/notify\.js'$/m, ''))
-const { parseFetch, headerValue, decodeWords, fromName, mailMessage } =
+const { parseFetch, headerValue, decodeWords, fromName } =
   await import(pathToFileURL(copy).href)
 
 let pass = 0, fail = 0
@@ -81,31 +81,25 @@ ok('이름이 빈 경우', fromName('<a@b.c>'), 'a@b.c')
 ok('한글 이름', fromName(`=?UTF-8?B?${b64('백승민')}?= <seung@viren.kr>`), '백승민')
 ok('빈 값', fromName(''), '보낸사람 모름')
 
-/* ── ⑤ 알림 문구 ───────────────────────────────────────────────────── */
-ok('없으면 안 보낸다', mailMessage([]), null)
-ok('한 통', mailMessage([{ from: 'OpenAI', subject: '구독 갱신' }]),
-  { title: '새 메일 · OpenAI', body: '구독 갱신' })
-ok('제목 없는 한 통', mailMessage([{ from: 'OpenAI', subject: '' }]),
-  { title: '새 메일 · OpenAI', body: '(제목 없음)' })
-ok('세 통', mailMessage([
-  { from: 'OpenAI', subject: 'a' }, { from: 'Dropbox', subject: 'b' }, { from: '백승민', subject: 'c' },
-]), { title: '새 메일 3통', body: 'OpenAI · Dropbox · 백승민' })
-ok('같은 사람 두 통은 이름 한 번', mailMessage([
-  { from: 'OpenAI', subject: 'a' }, { from: 'OpenAI', subject: 'b' },
-]), { title: '새 메일 2통', body: 'OpenAI' })
-ok('많으면 이름은 셋까지', mailMessage(
-  ['가', '나', '다', '라', '마'].map((x) => ({ from: x, subject: x }))),
-  { title: '새 메일 5통', body: '가 · 나 · 다' })
-
-/* ── ⑥ 처음부터 끝까지 한 번 ───────────────────────────────────────── */
+/* ── ⑤ 처음부터 끝까지 한 번 ───────────────────────────────────────── */
+/* 여기서 나온 {from, subject} 가 그대로 post_mail() 로 넘어가고,
+   DB 쪽에서 '새 메일 · 백승민\n10월 영상 시안' 두 줄로 바뀐다. */
 const korHead = `From: =?UTF-8?B?${b64('백승민')}?= <seung@viren.kr>\r\nSubject: =?UTF-8?B?${b64('10월 영상 시안')}?=\r\n\r\n`
 const korRaw = `* 20 FETCH (UID 500 FLAGS () BODY[HEADER.FIELDS (FROM SUBJECT)] {${korHead.length}}\r\n${korHead})\r\na1 OK`
 const got = parseFetch(korRaw).map((x) => ({
   from: fromName(headerValue(x.header, 'From')),
   subject: decodeWords(headerValue(x.header, 'Subject')).trim(),
 }))
-ok('한글 메일 한 통 전체', mailMessage(got),
-  { title: '새 메일 · 백승민', body: '10월 영상 시안' })
+ok('한글 메일 한 통 전체', got, [{ from: '백승민', subject: '10월 영상 시안' }])
+
+/* 이미 읽은 메일은 걸러진다 */
+const twoHead = 'From: a@b.c\r\nSubject: one\r\n\r\n'
+const twoRaw =
+  `* 1 FETCH (UID 10 FLAGS (\\Seen) BODY[HEADER.FIELDS (FROM SUBJECT)] {${twoHead.length}}\r\n${twoHead})\r\n` +
+  `* 2 FETCH (UID 11 FLAGS () BODY[HEADER.FIELDS (FROM SUBJECT)] {${twoHead.length}}\r\n${twoHead})\r\na1 OK`
+ok('읽은 건 빼고 센다', parseFetch(twoRaw).filter((x) => !x.seen).map((x) => x.uid), [11])
+/* 'UID FETCH n:*' 는 해당하는 게 없어도 마지막 한 통을 돌려준다 — 한 번 더 거른다 */
+ok('지난번에 본 것은 거른다', parseFetch(twoRaw).filter((x) => x.uid > 11).length, 0)
 
 console.log(`\n${pass}개 통과 · ${fail}개 실패`)
 process.exit(fail ? 1 : 0)

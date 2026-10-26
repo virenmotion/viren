@@ -229,12 +229,13 @@ export default function ChatRoom() {
                   )}
                   <div className={`bubble-row${mine ? ' mine' : ''}${run ? ' run' : ''}`}>
                     {!mine && !run && (
-                      <span className={`avatar sm ava-${avatarTone(empOf(m.sender_id)?.name)}`} aria-hidden="true">
-                        {(empOf(m.sender_id)?.name || '?').slice(0, 1)}
+                      <span className={`avatar sm ava-${avatarTone(m.sender_id ? empOf(m.sender_id)?.name : 'mail')}`} aria-hidden="true">
+                        {m.sender_id ? (empOf(m.sender_id)?.name || '?').slice(0, 1) : '메'}
                       </span>
                     )}
                     <div className="bubble-wrap">
-                      {!mine && !run && <span className="bubble-who">{empOf(m.sender_id)?.name || '퇴사자'}</span>}
+                      {/* 보낸 사람이 없는 글 = 시스템이 올린 것(메일 알림) */}
+                      {!mine && !run && <span className="bubble-who">{m.sender_id ? (empOf(m.sender_id)?.name || '퇴사자') : '메일'}</span>}
                       <div className="bubble-line">
                         <div className={`bubble${sticker ? ' mascot-bubble' : ''}`}>
                           {m.file ? <Attach file={m.file} />
