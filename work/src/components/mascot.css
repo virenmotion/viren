@@ -1,0 +1,64 @@
+/* 바이렌 마스코트 스티커 (2026-10-26)
+   ⚠️ 판은 입력칸 **위로** 띄운다. 아래로 열면 휴대폰에서 화면 밖으로 나간다.
+      그래서 .chat-foot 에 position: relative 가 걸려 있어야 한다(styles.css). */
+
+.mascot-picker {
+  position: absolute;
+  left: 20px; right: 20px; bottom: 100%;
+  z-index: 20;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-2);
+  padding: 12px;
+  margin-bottom: 8px;
+  min-width: 0;
+}
+.mascot-picker:focus { outline: none; }
+
+.mascot-heading {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mascot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+  max-height: min(38vh, 300px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+}
+
+.mascot-choice {
+  display: grid; justify-items: center; align-content: start; gap: 2px;
+  padding: 6px 4px; min-height: 106px; min-width: 0;
+  background: var(--surface-2);
+  border: 2px solid transparent; border-radius: 10px;
+  cursor: pointer; font: inherit; font-size: .78rem; color: var(--ink);
+  text-align: center;
+}
+.mascot-choice:hover:not(:disabled) { border-color: var(--line-2); background: var(--accent-soft); }
+.mascot-choice:disabled { opacity: .5; cursor: default; }
+.mascot-choice:focus-visible,
+.mascot-picker button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.mascot-image { display: block; object-fit: contain; max-width: 100%; width: 200px; height: 200px; }
+.mascot-image.preview { width: 72px; height: 72px; }
+
+/* 스티커 말풍선은 테두리·배경을 없앤다 — 그림만 뜨게 */
+.bubble.mascot-bubble,
+.bubble-row.mine .bubble.mascot-bubble { padding: 0; border: 0; background: none; box-shadow: none; }
+
+.mascot-fallback { display: inline-block; padding: 8px; }
+
+@media (max-width: 640px) {
+  /* ⚠️ 640px — styles.css 의 대화 화면 좁은 화면 규칙과 같은 기준을 쓴다 */
+  .mascot-picker { left: 12px; right: 12px; }
+  .mascot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+  .mascot-choice { padding: 4px; min-height: 96px; }
+  .mascot-image { width: 160px; height: 160px; }
+  .mascot-image.preview { width: 64px; height: 64px; }
+}

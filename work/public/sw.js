@@ -13,8 +13,13 @@ self.addEventListener('push', (e) => {
   try { d = e.data ? e.data.json() : {} } catch { d = { body: e.data && e.data.text() } }
   e.waitUntil(self.registration.showNotification(d.title || 'VIREN WORK', {
     body: d.body || '',
+    // 알림을 펼쳤을 때 나오는 큰 그림 — 원래 색 그대로
     icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    /* ⚠️ 안드로이드 알림줄의 **작은 아이콘**이다. 안드로이드는 이 그림을
+       색을 버리고 **흰색 실루엣 한 겹으로만** 그린다. 그래서 색이 든 아이콘을
+       주면 모양이 다 뭉개져 **하얀 네모**가 된다(2026-10-26 지은님 지적).
+       흰색 한 가지 색 + 투명 배경 PNG 여야 한다. */
+    badge: '/badge-96.png',
     tag: d.tag || 'viren-work',
     renotify: d.renotify !== false,
     data: { url: d.url || '/' },

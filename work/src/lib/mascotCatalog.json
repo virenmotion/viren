@@ -1,0 +1,22 @@
+[
+  { "id": "sticker_01", "kind": "sticker", "label": "확인했어요",   "src": "/mascot/v1/sticker_01.png" },
+  { "id": "sticker_02", "kind": "sticker", "label": "좋아요",       "src": "/mascot/v1/sticker_02.png" },
+  { "id": "sticker_03", "kind": "sticker", "label": "감사합니다",   "src": "/mascot/v1/sticker_03.png" },
+  { "id": "sticker_04", "kind": "sticker", "label": "수고했어요",   "src": "/mascot/v1/sticker_04.png" },
+  { "id": "sticker_05", "kind": "sticker", "label": "작업 중",      "src": "/mascot/v1/sticker_05.png" },
+  { "id": "sticker_06", "kind": "sticker", "label": "완료!",        "src": "/mascot/v1/sticker_06.png" },
+  { "id": "sticker_07", "kind": "sticker", "label": "잠시만요",     "src": "/mascot/v1/sticker_07.png" },
+  { "id": "sticker_08", "kind": "sticker", "label": "화이팅!",      "src": "/mascot/v1/sticker_08.png" },
+  { "id": "sticker_09", "kind": "sticker", "label": "넵!",          "src": "/mascot/v1/sticker_09.png" },
+  { "id": "sticker_10", "kind": "sticker", "label": "확인 중",      "src": "/mascot/v1/sticker_10.png" },
+  { "id": "sticker_11", "kind": "sticker", "label": "검토 부탁해요", "src": "/mascot/v1/sticker_11.png" },
+  { "id": "sticker_12", "kind": "sticker", "label": "수정할게요",   "src": "/mascot/v1/sticker_12.png" },
+  { "id": "sticker_13", "kind": "sticker", "label": "공유했어요",   "src": "/mascot/v1/sticker_13.png" },
+  { "id": "sticker_14", "kind": "sticker", "label": "회의 중",      "src": "/mascot/v1/sticker_14.png" },
+  { "id": "sticker_15", "kind": "sticker", "label": "곧 갈게요",    "src": "/mascot/v1/sticker_15.png" },
+  { "id": "sticker_16", "kind": "sticker", "label": "도움 요청!",   "src": "/mascot/v1/sticker_16.png" },
+  { "id": "sticker_17", "kind": "sticker", "label": "최고예요!",    "src": "/mascot/v1/sticker_17.png" },
+  { "id": "sticker_18", "kind": "sticker", "label": "죄송해요",     "src": "/mascot/v1/sticker_18.png" },
+  { "id": "sticker_19", "kind": "sticker", "label": "식사 맛있게!", "src": "/mascot/v1/sticker_19.png" },
+  { "id": "sticker_20", "kind": "sticker", "label": "내일 봬요",    "src": "/mascot/v1/sticker_20.png" }
+]

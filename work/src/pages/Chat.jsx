@@ -3,6 +3,7 @@ import { NavLink, Outlet, useMatch, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
 import { UNREAD_EVENT, avatarTone, loadRooms, roomTitle, shortTime } from '../lib/chat'
+import { mascotSummary } from '../lib/mascot'
 import { BigEmpty, ErrorBox } from '../components/ui'
 
 /* 메신저 틀 — 왼쪽 대화 목록 + 오른쪽 대화. (지은님 2026-10-23, 시안대로)
@@ -97,7 +98,8 @@ export default function ChatShell() {
                       <span className="room-main">
                         <strong>{title}
                           {r.kind === 'group' && <em className="room-n">{r.members.length}</em>}</strong>
-                        <span className="room-last">{r.last_text || '새 대화'}</span>
+                        {/* 스티커는 '바이렌 스티커 · 확인했어요' 로. 뒤에 붙은 식별자는 숨긴다. */}
+                        <span className="room-last">{r.last_text ? mascotSummary(r.last_text) : '새 대화'}</span>
                       </span>
                       <span className="room-side">
                         <span className="room-time">{shortTime(r.last_at)}</span>

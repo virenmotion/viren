@@ -1158,6 +1158,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 }
 .bubble-row.mine .bubble { background: var(--accent-soft); border-color: #f0dfa4; }
 .bubble-time { font-size: .72rem; color: var(--muted); flex: none; padding-bottom: 2px; }
+/* 내 글을 상대가 읽었는지. 색만으로 알리지 않고 글자로 적는다. */
+.read-mark { font-size: .72rem; color: var(--accent-ink); flex: none; padding-bottom: 2px; white-space: nowrap; }
+.read-mark.done { color: var(--muted); }
 .bubble-del {
   border: 0; background: none; color: var(--muted); cursor: pointer; font-size: .8rem;
   opacity: 0; transition: opacity .12s; padding: 0 2px;
@@ -1168,7 +1171,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .chat-file { color: var(--ink); text-decoration: underline; overflow-wrap: anywhere; }
 .gone { overflow-wrap: anywhere; }
 
-.chat-foot { border-top: 1px solid var(--line); padding: 14px 20px 16px; }
+/* ⚠️ relative — 스티커 고르는 판(.mascot-picker)이 이 칸을 기준으로 **위로** 뜬다 */
+.chat-foot { border-top: 1px solid var(--line); padding: 14px 20px 16px; position: relative; }
 .chat-foot .hint { margin-top: 8px; }
 .chat-send { display: flex; gap: 8px; align-items: flex-end; }
 .chat-send textarea {
@@ -1182,6 +1186,13 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   .chat-log { max-height: 56vh; padding: 12px; }
   .bubble-wrap { max-width: 82%; }
   .chat-img { max-width: 200px; max-height: 200px; }
+  /* 보내는 줄에 스티커 단추가 하나 늘었다(2026-10-26). 좁은 화면에서는
+     양옆 여백·단추·사이 간격을 조금씩 줄여 **글 쓰는 칸**을 지킨다. */
+  .chat-foot { padding-left: 12px; padding-right: 12px; }
+  .chat-send { gap: 6px; }
+  .chat-send textarea { min-width: 0; }
+  .icon-btn { width: 38px; }
+  .chat-send .btn.primary { padding-left: 13px; padding-right: 13px; }
 }
 
 /* 저장소 사용량 막대 */
