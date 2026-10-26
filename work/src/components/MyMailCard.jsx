@@ -27,6 +27,21 @@ const api = async (body) => {
   return out
 }
 
+/* 메일 서버가 보내오는 말은 영어라 알아보기 어렵다. 자주 나오는 것만 사람 말로.
+   ⚠️ 원문도 작게 같이 남긴다 — 처음 보는 오류일 때 그게 있어야 고친다. */
+function plainError(raw) {
+  const s = String(raw || '')
+  if (!s) return ''
+  if (/LOGIN/i.test(s)) {
+    return '비밀번호가 맞지 않거나, 카카오워크에서 IMAP 이 꺼져 있어요.\n'
+      + '카카오워크 → 환경설정 → POP3/IMAP 설정에서 ‘사용’ 인지 보시고, '
+      + 'POP3/IMAP 비밀번호를 새로 만들어 다시 넣어 주세요.'
+  }
+  if (/시간 초과|연결이 끊|답하지 않/.test(s)) return '메일 서버에 닿지 못했어요. 잠시 뒤 다시 확인합니다.'
+  if (/MAIL_KEY|설정/.test(s)) return '서버 설정 문제예요. 관리자에게 알려 주세요.'
+  return ''
+}
+
 const when = (iso) => {
   if (!iso) return '아직 없음'
   const m = Math.round((Date.now() - new Date(iso)) / 60000)
@@ -78,7 +93,12 @@ export default function MyMailCard() {
             <dt>상태</dt><dd>{s.on ? '켜짐' : '꺼둠'}</dd>
             <dt>마지막 확인</dt><dd>{when(s.checked_at)}</dd>
           </dl>
-          {s.last_error && <ErrorBox>{s.last_error}</ErrorBox>}
+          {s.last_error && (
+            <ErrorBox>
+              {plainError(s.last_error) || s.last_error}
+              {!!plainError(s.last_error) && <span className="raw-err">{s.last_error}</span>}
+            </ErrorBox>
+          )}
           <div className="actions start">
             {s.on
               ? <button className="btn" disabled={busy} onClick={() => run({ action: 'off' }, '껐습니다.')}>끄기</button>

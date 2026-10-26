@@ -296,7 +296,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .icon { border: 1px solid var(--line-2); background: #fff; border-radius: 6px; width: 30px; height: 30px; cursor: pointer; }
 .icon:disabled { opacity: .35; cursor: default; }
 
-.error { color: var(--bad); background: var(--bad-bg); padding: 10px 14px; border-radius: var(--radius-sm); font-size: .9rem; }
+.error { color: var(--bad); background: var(--bad-bg); padding: 10px 14px; border-radius: var(--radius-sm); font-size: .9rem; white-space: pre-line; }
+/* 서버가 보내온 원문. 사람 말로 바꿔 보여 주되, 처음 보는 오류를 고치려면 원문이 있어야 한다. */
+.raw-err { display: block; margin-top: 6px; font-size: .76rem; opacity: .7; white-space: normal; overflow-wrap: anywhere; }
 .ok { color: var(--ok); background: var(--ok-bg); padding: 10px 14px; border-radius: var(--radius-sm); font-size: .9rem; }
 .empty { color: var(--muted); padding: 18px 0 6px; text-align: center; font-size: .92rem; }
 
