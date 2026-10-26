@@ -11,8 +11,8 @@ const src = 'C:/Users/c/VIREN Dropbox/박지은/VIREN_경영/2. 디자인관련�
 const copy = process.env.SP + '/mailcheck.copy.mjs'
 writeFileSync(copy, readFileSync(src, 'utf8')
   .replace(/^import .*from 'cloudflare:sockets'$/m, '')
-  .replace(/^import .*from '\.\/mail\.js'$/m, '')
-  .replace(/^import .*from '\.\/notify\.js'$/m, ''))
+  // 이웃 파일에서 가져오는 줄은 전부 뗀다(onRequestPost 안에서만 쓰여서 상관없다)
+  .replace(/^import .*from '\.\/[a-z-]+\.js'$/gm, ''))
 const { parseFetch, headerValue, decodeWords, fromName, recipientText, forGroup,
   splitMime, decodeBody, tidy, previewOf, literalOf } = await import(pathToFileURL(copy).href)
 

@@ -1065,6 +1065,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .room-main strong { display: flex; align-items: center; gap: 6px; font-size: .97rem; }
 .room-n { font-style: normal; font-size: .76rem; color: var(--muted); font-weight: 600; }
 
+/* 차례대로 하는 안내 (내 정보의 '내 메일 알림' 등) */
+.howto { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.howto li { line-height: 1.55; }
+
 /* ── 메일 알림방을 일반 대화와 구분 (2026-10-26) ──────────────────────
    새 색은 만들지 않았다 — 쓰던 연노랑·네이비·회색선만 쓴다. */
 

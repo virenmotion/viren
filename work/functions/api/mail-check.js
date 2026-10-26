@@ -36,11 +36,14 @@
  *   MAIL_PASS       카카오워크 'POP3/IMAP 비밀번호' — **Secret 으로**
  *   MAIL_GROUP      알릴 공용 주소. 쉼표로 여러 개 (예: viren@viren.kr)
  *   MAIL_OWN        개인 메일 알림. 안 넣으면 켜짐. `off` 로 두면 끔.
+ *   MAIL_KEY        직원 각자 메일함(2단계)의 비밀번호를 푸는 열쇠 — **Secret 으로.**
+ *                   없으면 직원 개인 메일함은 그냥 건너뛴다(나머지는 그대로 돈다).
  *   VITE_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY · PUSH_SECRET
  */
 
 import { connect } from 'cloudflare:sockets'
 import { Imap, q } from './mail.js'
+import { unseal } from './mymail.js'
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } })
@@ -303,21 +306,9 @@ function db(env) {
   }
 }
 
-/* ── 본체 ───────────────────────────────────────────────────────────── */
-export async function onRequestPost({ request, env }) {
-  /* ⚠️ MAIL_GROUP 도 **반드시** 있어야 한다. 없으면 그 사람의 개인 메일까지
-     전 직원에게 알림으로 나간다. 빠뜨렸으면 차라리 아무것도 안 하는 게 낫다. */
-  const missing = ['VITE_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'PUSH_SECRET',
-    'MAIL_IMAP_HOST', 'MAIL_USER', 'MAIL_PASS', 'MAIL_GROUP']
-    .filter((k) => !env[k])
-  if (missing.length) return json({ error: '메일 알림 설정이 아직 없습니다.', missing }, 503)
-
-  // 부르는 쪽은 DB(pg_cron) 뿐이다. 사람이 직접 부를 일은 없다.
-  if (!sameSecret(request.headers.get('x-push-secret') || '', env.PUSH_SECRET || '\0')) {
-    return json({ error: 'no' }, 401)
-  }
-
-  const d = db(env)
+/* ── ① 서버가 늘 보는 메일함 하나 (MAIL_USER) ──────────────────────────
+   공용 메일은 모두가 보는 방으로, 그 밖의 개인 메일은 주인만 보는 방으로. */
+async function checkMain(env, d) {
   const [state] = await d.get('mail_state?id=eq.1&select=uidvalidity,last_uid')
   // 잘 돌았으면 지난 실패 기록은 지운다
   const mark = (more) => d.patch('mail_state?id=eq.1',
@@ -346,14 +337,14 @@ export async function onRequestPost({ request, env }) {
     if (fresh) {
       await im.bye()
       await mark({ uidvalidity: validity, last_uid: Math.max(0, next - 1) })
-      return json({ ok: true, first: true, uidvalidity: validity, last_uid: Math.max(0, next - 1) })
+      return { first: true, uidvalidity: validity, last_uid: Math.max(0, next - 1) }
     }
 
     const since = Number(state.last_uid || 0)
     if (next && next - 1 <= since) {       // 새 것이 없다
       await im.bye()
       await mark()
-      return json({ ok: true, new: 0 })
+      return { new: 0 }
     }
 
     /* ② 새 게 있을 때만 메일함을 연다.
@@ -404,7 +395,7 @@ export async function onRequestPost({ request, env }) {
 
     if (!mails.length && !mine.length) {
       await mark({ last_uid: Math.max(top, since), last_note: note })
-      return json({ ok: true, new: items.length, posted: 0, own: 0 })
+      return { new: items.length, posted: 0, own: 0 }
     }
 
     /* 메신저 '메일' 방에 올린다. 전 직원이 그 방에 들어 있고(post_mail 이 챙긴다),
@@ -424,12 +415,115 @@ export async function onRequestPost({ request, env }) {
     /* ⚠️ **둘 다 올린 뒤에** 본 번호를 적는다. 올리다 실패하면 번호를 안 올려서
        다음 1분에 다시 시도한다. 먼저 적으면 그 메일은 영영 안 뜬다. */
     await mark({ last_uid: Math.max(top, since), last_note: note })
-    return json({ ok: true, new: items.length, posted, own })
+    return { new: items.length, posted, own }
   } catch (e) {
     try { await im?.bye() } catch { /* 그만 */ }
     // 실패해도 '언제 확인했는지' 와 까닭은 남긴다 — 안 오는 이유를 알아야 한다
     try { await d.patch('mail_state?id=eq.1',
       { checked_at: new Date().toISOString(), last_error: String(e.message || e).slice(0, 300) }) } catch { /* 그만 */ }
-    return json({ ok: false, error: String(e.message || e) }, 502)
+    return { error: String(e.message || e) }
   }
+}
+
+/* ── ② 직원 각자의 메일함 (2026-10-26, 대표님 승인) ──────────────────
+   내 정보에서 켠 사람만. 각자 **자기만 들어가는 방**으로 간다.
+
+   🔴 비밀번호는 DB 에 암호문으로만 있고, 푸는 열쇠(MAIL_KEY)는 Cloudflare 에만 있다.
+   ⚠️ 공용함(MAIL_GROUP)으로 온 메일은 **건너뛴다.** 그건 ①이 이미 올렸다 — 안 그러면
+      같은 메일이 '대표메일 알림' 과 '내 메일 알림' 에 두 번 뜬다.
+   ⚠️ 개인 메일은 **본문을 들여다보지 않는다.** 미리보기 없이 보낸사람·제목까지만.
+   ⚠️ 한 사람이 실패해도 **나머지는 계속한다.** 비밀번호 하나 틀렸다고 전체가 멈추면 안 된다. */
+const MAX_BOXES = 8   // 1분 안에 끝나야 한다. 더 늘어나면 나눠서 돌릴 것.
+
+async function checkStaff(env, d) {
+  if (!env.MAIL_KEY) return { skip: 'MAIL_KEY 없음' }
+  const rows = await d.get('user_mail?on_off=is.true&secret=not.is.null'
+    + '&select=user_id,imap_user,secret,uidvalidity,last_uid&limit=' + MAX_BOXES)
+  if (!rows.length) return { boxes: 0 }
+
+  let posted = 0
+  const fails = []
+  for (const r of rows) {
+    const stamp = (more) => d.patch(`user_mail?user_id=eq.${r.user_id}`,
+      { checked_at: new Date().toISOString(), ...more })
+    let im
+    try {
+      const pass = await unseal(env, r.secret)
+      const socket = connect(
+        { hostname: env.MAIL_IMAP_HOST, port: Number(env.MAIL_IMAP_PORT || 993) },
+        { secureTransport: 'on', allowHalfOpen: false },
+      )
+      im = new Imap(socket)
+      await im.hello()
+      await im.cmd(`LOGIN ${q(r.imap_user)} ${q(pass)}`, 'LOGIN')
+
+      const box = await im.cmd('STATUS "INBOX" (UIDVALIDITY UIDNEXT)')
+      const validity = Number((box.match(/UIDVALIDITY (\d+)/) || [])[1] || 0)
+      const next = Number((box.match(/UIDNEXT (\d+)/) || [])[1] || 0)
+
+      /* 처음 켠 때는 **묵은 메일을 쏟지 않는다.** 지금 자리만 적고 끝낸다. */
+      if (!r.uidvalidity || r.uidvalidity !== validity) {
+        await im.bye()
+        await stamp({ uidvalidity: validity, last_uid: Math.max(0, next - 1),
+          last_error: null, last_note: '처음 맞춤' })
+        continue
+      }
+
+      const since = Number(r.last_uid || 0)
+      if (next && next - 1 <= since) {        // 새 것이 없다
+        await im.bye()
+        await stamp({ last_error: null })
+        continue
+      }
+
+      await im.cmd('EXAMINE "INBOX"')         // ⚠️ 읽기 전용
+      const raw = await im.cmd(`UID FETCH ${since + 1}:* (UID FLAGS BODY.PEEK[HEADER.FIELDS `
+        + `(FROM SUBJECT TO CC DELIVERED-TO X-ORIGINAL-TO X-FORWARDED-TO)])`)
+      await im.bye()
+
+      const items = parseFetch(raw).filter((x) => x.uid > since)
+      const top = items.length ? Math.max(...items.map((x) => x.uid)) : since
+      const unread = items.filter((x) => !x.seen)
+      // 공용함 메일은 ①이 이미 올렸다
+      const mine = unread.filter((x) => !forGroup(x.header, env.MAIL_GROUP)).map((x) => ({
+        from: fromName(headerValue(x.header, 'From')),
+        subject: decodeWords(headerValue(x.header, 'Subject')).trim(),
+      }))
+      const note = `새 ${items.length} · 올림 ${mine.length}`
+        + ` · 공용 ${unread.length - mine.length} · 읽음 ${items.length - unread.length}`
+
+      // ⚠️ 올린 **뒤에** 본 번호를 적는다. 먼저 적으면 실패한 메일이 영영 안 뜬다.
+      if (mine.length) {
+        posted += await d.rpc('post_user_mail',
+          { p_user: r.user_id, p_addr: r.imap_user, p_items: mine })
+      }
+      await stamp({ last_uid: Math.max(top, since), last_error: null, last_note: note })
+    } catch (e) {
+      try { await im?.bye() } catch { /* 그만 */ }
+      fails.push(r.user_id)
+      try { await stamp({ last_error: String(e.message || e).slice(0, 300) }) } catch { /* 그만 */ }
+    }
+  }
+  return { boxes: rows.length, posted, fails: fails.length }
+}
+
+/* ── 창구 ───────────────────────────────────────────────────────────── */
+export async function onRequestPost({ request, env }) {
+  /* ⚠️ MAIL_GROUP 도 **반드시** 있어야 한다. 없으면 그 사람의 개인 메일까지
+     전 직원에게 알림으로 나간다. 빠뜨렸으면 차라리 아무것도 안 하는 게 낫다. */
+  const missing = ['VITE_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'PUSH_SECRET',
+    'MAIL_IMAP_HOST', 'MAIL_USER', 'MAIL_PASS', 'MAIL_GROUP']
+    .filter((k) => !env[k])
+  if (missing.length) return json({ error: '메일 알림 설정이 아직 없습니다.', missing }, 503)
+
+  // 부르는 쪽은 DB(pg_cron) 뿐이다. 사람이 직접 부를 일은 없다.
+  if (!sameSecret(request.headers.get('x-push-secret') || '', env.PUSH_SECRET || '\0')) {
+    return json({ error: 'no' }, 401)
+  }
+
+  const d = db(env)
+  /* ⚠️ 둘은 서로 모른다. 하나가 실패해도 다른 하나는 돈다. */
+  const main = await checkMain(env, d).catch((e) => ({ error: String(e.message || e) }))
+  const staff = await checkStaff(env, d).catch((e) => ({ error: String(e.message || e) }))
+  return json({ ok: !main.error, main, staff })
 }
