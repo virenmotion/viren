@@ -58,7 +58,9 @@ export default function CompanyCard() {
       .update({ ...patch, updated_at: new Date().toISOString() }).eq('id', 1)
     setBusy(false)
     if (error) return setErr(errText(error))
-    setMsg('저장했습니다. 다음에 뽑는 증명서부터 이 내용으로 나갑니다.')
+    // ⚠️ 이 칸에는 증명서와 상관없는 것(AI 사무실·메일함 주소)도 있다.
+    //    "증명서가 바뀐다" 고만 적으면 주소를 고친 사람이 헷갈린다.
+    setMsg('저장했습니다. 증명서는 다음에 뽑는 것부터 바뀐 내용으로 나갑니다.')
   }
 
   async function putSeal(file) {
