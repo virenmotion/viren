@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { NavLink, Outlet, useMatch, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { UNREAD_EVENT, avatarTone, loadRooms, roomTitle, shortTime } from '../lib/chat'
+import { FEED_TAG, UNREAD_EVENT, avatarTone, loadRooms, mailFeed, roomTitle, shortTime } from '../lib/chat'
 import { mascotSummary } from '../lib/mascot'
-import { BigEmpty, ErrorBox } from '../components/ui'
+import { BigEmpty, ErrorBox, MailIcon } from '../components/ui'
 
 /* 메신저 틀 — 왼쪽 대화 목록 + 오른쪽 대화. (지은님 2026-10-23, 시안대로)
 
@@ -41,12 +41,21 @@ export default function ChatShell() {
   }, [])
 
   /* 찾기 글자는 방 이름과 마지막 글에서 찾는다 */
-  const shown = (rooms || []).filter((r) => {
-    if (kind !== 'all' && r.kind !== kind) return false
+  const hit = (r) => {
     const s = q.trim().toLowerCase()
     if (!s) return true
     const title = roomTitle(r, r.members, userId, empOf).toLowerCase()
     return title.includes(s) || String(r.last_text || '').toLowerCase().includes(s)
+  }
+
+  /* 메일 알림방은 **위쪽 묶음에만** 둔다.
+     ⚠️ 아래 목록에 그냥 두면 공용 메일방이 '그룹' 탭에, 개인 메일방이 '개인' 탭에
+        섞여 나와서 사람과 하는 대화인 줄 안다. 그래서 아래에서는 아예 뺀다.
+     검색은 두 묶음 모두에 걸린다. */
+  const feeds = (rooms || []).filter((r) => mailFeed(r)).filter(hit)
+  const shown = (rooms || []).filter((r) => !mailFeed(r)).filter((r) => {
+    if (kind !== 'all' && r.kind !== kind) return false
+    return hit(r)
   })
 
   return (
@@ -73,44 +82,37 @@ export default function ChatShell() {
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="대화 검색" />
           </label>
 
-          <div className="subtabs" role="tablist">
-            {[['all', '전체'], ['group', '그룹'], ['direct', '개인']].map(([k, label]) => (
-              <button key={k} role="tab" aria-selected={kind === k}
-                className={kind === k ? 'on' : ''} onClick={() => setKind(k)}>{label}</button>
-            ))}
-          </div>
-
-          {/* ⚠️ 불러오는 중(null)과 진짜 0건을 구분한다. 거른 결과가 0건인 것도 따로 적는다. */}
-          {rooms === null ? null : rooms.length === 0 ? (
-            <p className="hint">아직 대화가 없어요. ‘새 대화’ 로 시작해 보세요.</p>
-          ) : shown.length === 0 ? (
-            <p className="hint">찾는 대화가 없어요.</p>
-          ) : (
-            <ul className="roomlist chat-rooms">
-              {shown.map((r) => {
-                const title = roomTitle(r, r.members, userId, empOf)
-                return (
-                  <li key={r.id}>
-                    <NavLink to={`/chat/${r.id}`}>
-                      <span className={`room-ava ava-${avatarTone(r.kind === 'group' ? r.id : title)}`} aria-hidden="true">
-                        {r.kind === 'group' ? '#' : title.slice(0, 1)}
-                      </span>
-                      <span className="room-main">
-                        <strong>{title}
-                          {r.kind === 'group' && <em className="room-n">{r.members.length}</em>}</strong>
-                        {/* 스티커는 '바이렌 스티커 · 확인했어요' 로. 뒤에 붙은 식별자는 숨긴다. */}
-                        <span className="room-last">{r.last_text ? mascotSummary(r.last_text) : '새 대화'}</span>
-                      </span>
-                      <span className="room-side">
-                        <span className="room-time">{shortTime(r.last_at)}</span>
-                        {r.unread > 0 && <span className="badge">{r.unread}</span>}
-                      </span>
-                    </NavLink>
-                  </li>
-                )
-              })}
-            </ul>
+          {/* ① 메일 알림 — 일반 대화와 섞이지 않게 따로 묶는다 */}
+          {feeds.length > 0 && (
+            <div className="list-sec">
+              <h3>메일 알림</h3>
+              <ul className="roomlist">
+                {feeds.map((r) => <RoomRow key={r.id} r={r} userId={userId} empOf={empOf} />)}
+              </ul>
+            </div>
           )}
+
+          {/* ② 사람과 하는 대화 */}
+          <div className="list-sec">
+            {feeds.length > 0 && <h3>대화</h3>}
+            <div className="subtabs" role="tablist">
+              {[['all', '전체'], ['group', '그룹'], ['direct', '개인']].map(([k, label]) => (
+                <button key={k} role="tab" aria-selected={kind === k}
+                  className={kind === k ? 'on' : ''} onClick={() => setKind(k)}>{label}</button>
+              ))}
+            </div>
+
+            {/* ⚠️ 불러오는 중(null)과 진짜 0건을 구분한다. 거른 결과가 0건인 것도 따로 적는다. */}
+            {rooms === null ? null : rooms.length === 0 ? (
+              <p className="hint">아직 대화가 없어요. ‘새 대화’ 로 시작해 보세요.</p>
+            ) : shown.length === 0 ? (
+              <p className="hint">찾는 대화가 없어요.</p>
+            ) : (
+              <ul className="roomlist chat-rooms">
+                {shown.map((r) => <RoomRow key={r.id} r={r} userId={userId} empOf={empOf} />)}
+              </ul>
+            )}
+          </div>
 
           <div className="chat-quick">
             <PeopleShortcut people={activeEmployees.filter((e) => e.id !== userId)} />
@@ -129,6 +131,39 @@ export default function ChatShell() {
 }
 
 /* 아직 아무 대화도 안 골랐을 때 (/chat) */
+/* 목록 한 줄. 메일 알림방과 보통 대화가 같은 틀을 쓰되 아이콘·표만 다르다. */
+function RoomRow({ r, userId, empOf }) {
+  const feed = mailFeed(r)
+  const title = roomTitle(r, r.members, userId, empOf)
+  return (
+    <li>
+      <NavLink to={`/chat/${r.id}`}>
+        {feed
+          ? <span className="room-ava mail" aria-hidden="true"><MailIcon /></span>
+          : (
+            <span className={`room-ava ava-${avatarTone(r.kind === 'group' ? r.id : title)}`} aria-hidden="true">
+              {r.kind === 'group' ? '#' : title.slice(0, 1)}
+            </span>
+          )}
+        <span className="room-main">
+          <strong>{title}
+            {feed
+              ? <em className="room-tag">{FEED_TAG[feed.scope]}</em>
+              /* ⚠️ 숫자만 적으면 안 읽은 수처럼 보인다. '명' 을 붙인다. */
+              : r.kind === 'group' && <em className="room-n">{r.members.length}명</em>}</strong>
+          {/* 스티커는 '바이렌 스티커 · 확인했어요' 로. 뒤에 붙은 식별자는 숨긴다. */}
+          <span className="room-last">{r.last_text ? mascotSummary(r.last_text) : feed ? '아직 온 메일이 없어요' : '새 대화'}</span>
+        </span>
+        <span className="room-side">
+          <span className="room-time">{shortTime(r.last_at)}</span>
+          {r.unread > 0 && <span className="badge">{r.unread}</span>}
+        </span>
+      </NavLink>
+    </li>
+  )
+}
+
+
 export function ChatEmpty() {
   return (
     <section className="card flush chat-blank">

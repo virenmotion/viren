@@ -983,7 +983,11 @@ create table if not exists public.rooms (
   created_by uuid not null references public.employees(id),
   created_at timestamptz not null default now(),
   last_at    timestamptz not null default now(),     -- 목록 정렬용
-  last_text  text                                    -- 목록 미리보기
+  last_text  text,                                   -- 목록 미리보기
+  -- 메일 알림방 표시. {"kind":"mail","scope":"group|own","addr":"…"} · 보통 방은 비어 있다.
+  -- ⚠️ 화면은 **이것만** 보고 메일방을 가린다. 이름이 '대표메일 알림' 인지로 가리지 않는다.
+  --    이 값은 mail_room·mail_room_own 만 붙인다(둘 다 security definer).
+  feed       jsonb
 );
 create index if not exists rooms_last_idx on public.rooms (last_at desc);
 
@@ -1319,7 +1323,7 @@ revoke execute on function public.run_mail_check() from anon, public, authentica
 
 -- 메신저 '메일' 방 — 카카오워크 메일 봇처럼 글로 올라온다(지은님 2026-10-26).
 -- 알림 길을 따로 만들지 않는다. 글이 들어가면 on_message 방아쇠가 알림까지 보낸다.
-create or replace function public.mail_room() returns uuid
+create or replace function public.mail_room(p_addr text default null) returns uuid
 language plpgsql security definer set search_path = public as $$
 declare v_id uuid; v_owner uuid;
 begin
@@ -1336,10 +1340,17 @@ begin
     end if;
     if v_owner is null then raise exception '재직 중인 직원이 없습니다.'; end if;
 
-    insert into rooms (kind, name, created_by) values ('group', '메일', v_owner)
+    insert into rooms (kind, name, created_by) values ('group', '대표메일 알림', v_owner)
     returning id into v_id;
     update mail_state set room_id = v_id where id = 1;
   end if;
+
+  -- 이름·표시는 늘 맞춰 둔다(주소가 바뀌어도 따라간다)
+  update rooms
+     set name = '대표메일 알림',
+         feed = jsonb_build_object('kind', 'mail', 'scope', 'group',
+                                   'addr', nullif(btrim(coalesce(p_addr, '')), ''))
+   where id = v_id;
 
   -- 재직자 전원. 새로 들어온 직원도 다음 메일 때 저절로 들어온다.
   -- ⚠️ 전 직원이 받는다는 결정이라, 방을 나가도 다시 들어온다.
@@ -1352,14 +1363,14 @@ begin
 end $$;
 
 -- p_items 는 [{"from":"OpenAI","subject":"...","preview":"..."}, ...]
-create or replace function public.post_mail(p_items jsonb) returns int
+create or replace function public.post_mail(p_items jsonb, p_addr text default null) returns int
 language plpgsql security definer set search_path = public as $$
 declare v_room uuid; v_n int := 0; it jsonb; v_from text; v_subj text; v_prev text;
 begin
   if jsonb_typeof(p_items) is distinct from 'array' or jsonb_array_length(p_items) = 0 then
     return 0;
   end if;
-  v_room := public.mail_room();
+  v_room := public.mail_room(p_addr);
 
   for it in select value from jsonb_array_elements(p_items) loop
     v_from := coalesce(nullif(btrim(it->>'from'), ''), '보낸사람 모름');
@@ -1376,6 +1387,10 @@ begin
     v_n := v_n + 1;
   end loop;
 
+  -- ⚠️ on_message 방아쇠가 last_text 를 글 앞 80자로 적는다. 그대로 두면 목록에
+  --    '새 메일 · 보낸사람' 까지만 보인다. 다 올린 뒤 '보낸사람 · 제목' 으로 고쳐 적는다.
+  update rooms set last_text = left(v_from || ' · ' || v_subj, 80) where id = v_room;
+
   -- 알림 기록이지 보관함이 아니다. 90일 지난 것은 치운다.
   -- (지우기 정책이 sender_id = auth.uid() 라 사람은 못 지운다 — 여기서 치워야 한다)
   delete from messages
@@ -1388,7 +1403,7 @@ end $$;
 -- 개인 메일은 **메일함 주인만** 보는 '내 메일' 방으로 (2026-10-26).
 -- ⚠️ kind = 'direct' 로 만든다. 단체방이면 화면에 '+ 초대' 가 떠서, 누가 남을 넣으면
 --    그 뒤로 오는 개인 메일이 그 사람에게도 간다. direct 방에는 그 단추가 없다.
-create or replace function public.mail_room_own(p_user uuid) returns uuid
+create or replace function public.mail_room_own(p_user uuid, p_addr text default null) returns uuid
 language plpgsql security definer set search_path = public as $$
 declare v_id uuid;
 begin
@@ -1400,11 +1415,18 @@ begin
     v_id := null;   -- 방이 없어졌거나 주인이 바뀌었다
   end if;
   if v_id is null then
-    insert into rooms (kind, name, created_by) values ('direct', '내 메일', p_user)
+    insert into rooms (kind, name, created_by) values ('direct', '내 메일 알림', p_user)
     returning id into v_id;
     insert into room_members (room_id, user_id) values (v_id, p_user);
     update mail_state set own_room_id = v_id where id = 1;
   end if;
+
+  update rooms
+     set name = '내 메일 알림',
+         feed = jsonb_build_object('kind', 'mail', 'scope', 'own',
+                                   'addr', nullif(btrim(coalesce(p_addr, '')), ''))
+   where id = v_id;
+
   return v_id;
 end $$;
 
@@ -1419,7 +1441,7 @@ begin
   select id into v_user from employees
    where lower(email) = lower(btrim(coalesce(p_email, ''))) and active limit 1;
   if v_user is null then return 0; end if;
-  v_room := public.mail_room_own(v_user);
+  v_room := public.mail_room_own(v_user, p_email);
 
   for it in select value from jsonb_array_elements(p_items) loop
     v_from := coalesce(nullif(btrim(it->>'from'), ''), '보낸사람 모름');
@@ -1431,6 +1453,8 @@ begin
     v_n := v_n + 1;
   end loop;
 
+  update rooms set last_text = left(v_from || ' · ' || v_subj, 80) where id = v_room;
+
   delete from messages
    where room_id = v_room and sender_id is null
      and created_at < now() - interval '90 days';
@@ -1438,11 +1462,11 @@ begin
   return v_n;
 end $$;
 
-revoke execute on function public.mail_room() from anon, public, authenticated;
-revoke execute on function public.post_mail(jsonb) from anon, public, authenticated;
-grant execute on function public.post_mail(jsonb) to service_role;
-revoke execute on function public.mail_room_own(uuid) from anon, public, authenticated;
+revoke execute on function public.mail_room(text) from anon, public, authenticated;
+revoke execute on function public.mail_room_own(uuid, text) from anon, public, authenticated;
+revoke execute on function public.post_mail(jsonb, text) from anon, public, authenticated;
 revoke execute on function public.post_own_mail(text, jsonb) from anon, public, authenticated;
+grant execute on function public.post_mail(jsonb, text) to service_role;
 grant execute on function public.post_own_mail(text, jsonb) to service_role;
 
 -- ⑥ 때맞춰 도는 것들 -------------------------------------------------------

@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { MAX_CHAT_MB, avatarTone, clock, dayLabel, fileSize, fileUrl, isImage, markRead, roomTitle, sameDay, sendFile, sendText } from '../lib/chat'
+import { FEED_TAG, MAX_CHAT_MB, avatarTone, clock, dayLabel, fileSize, fileUrl, isImage, mailFeed, markRead, roomTitle, sameDay, sendFile, sendText } from '../lib/chat'
 import { mascotText, readMascot } from '../lib/mascot'
 import MascotPicker, { MascotImage } from '../components/MascotPicker'
-import { ErrorBox } from '../components/ui'
+import { ErrorBox, MailIcon } from '../components/ui'
 
 /* 대화 한 방. 들어오면 읽음 처리하고, 새 글은 Realtime 으로 바로 붙인다. */
 
@@ -177,6 +177,7 @@ export default function ChatRoom() {
   }
 
   const title = roomTitle(room, members, userId, empOf)
+  const feed = mailFeed(room)
   const notIn = activeEmployees.filter((e) => !members.some((m) => m.user_id === e.id))
   const others = members.filter((m) => m.user_id !== userId)
   /* 내 글을 아직 안 읽은 사람 수 */
@@ -189,14 +190,33 @@ export default function ChatRoom() {
         <div className="chat-who">
           {/* 좁은 화면에서만. 넓은 화면은 왼쪽에 목록이 그대로 보인다. */}
           <Link to="/chat" className="linkbtn back-list">←</Link>
-          <span className={`avatar ava-${avatarTone(room.kind === 'group' ? room.id : title)}`} aria-hidden="true">
-            {room.kind === 'group' ? '#' : title.slice(0, 1)}
-          </span>
+          {feed
+            ? <span className="room-ava mail big" aria-hidden="true"><MailIcon /></span>
+            : (
+              <span className={`avatar ava-${avatarTone(room.kind === 'group' ? room.id : title)}`} aria-hidden="true">
+                {room.kind === 'group' ? '#' : title.slice(0, 1)}
+              </span>
+            )}
           <div className="grow">
-            <h2 className="chat-title">{title}</h2>
+            <div className="chat-title-row">
+              <h2 className="chat-title">{title}</h2>
+              {feed && <em className="room-tag">{FEED_TAG[feed.scope]}</em>}
+            </div>
+            {/* 메일방은 '어느 주소에 걸려 있고 누가 보는지' 를 적는다 */}
             <p className="chat-sub">
-              참여자 {members.length}명
-              {room.kind === 'group' && ` · ${members.map((m) => empOf(m.user_id)?.name).filter(Boolean).join(', ')}`}
+              {feed ? (
+                <>
+                  {feed.addr && <><span className="mail-addr">{feed.addr}</span> · </>}
+                  {feed.scope === 'own'
+                    ? '나만 봅니다'
+                    : `재직 중인 직원 ${members.length}명이 함께 봅니다`}
+                </>
+              ) : (
+                <>
+                  참여자 {members.length}명
+                  {room.kind === 'group' && ` · ${members.map((m) => empOf(m.user_id)?.name).filter(Boolean).join(', ')}`}
+                </>
+              )}
             </p>
           </div>
         </div>

@@ -11,7 +11,7 @@ const lib = 'C:/Users/c/VIREN Dropbox/박지은/VIREN_경영/2. 디자인관련�
 const copy = `${process.env.SP}/chat.copy.mjs`
 writeFileSync(copy, readFileSync(`${lib}chat.js`, 'utf8')
   .replace(/^import .*from '\.\/supabase'$/m, 'const supabase = null'))
-const { roomTitle, fileSize } = await import(pathToFileURL(copy).href)
+const { roomTitle, fileSize, mailFeed } = await import(pathToFileURL(copy).href)
 
 let pass = 0, fail = 0
 const ok = (name, got, want) => {
@@ -43,6 +43,27 @@ ok('내 메일 — 이름이 뜬다',
   roomTitle({ kind: 'direct', name: '내 메일' }, mem(ME), ME, empOf), '내 메일')
 ok('내 메일 — 상대를 찾지 않는다',
   roomTitle({ kind: 'direct', name: '내 메일' }, [], ME, empOf), '내 메일')
+
+/* ── 메일 알림방 가리기 (2026-10-26) ────────────────────────────────
+   ⚠️ **이름으로 가리면 안 된다.** 누가 방 이름을 '대표메일 알림' 이라 지어도
+      메일방 행세를 못 해야 한다. 방에 달린 표시(rooms.feed)만 본다. */
+ok('공용 메일방',
+  mailFeed({ name: '대표메일 알림', feed: { kind: 'mail', scope: 'group', addr: 'viren@viren.kr' } }),
+  { scope: 'group', addr: 'viren@viren.kr' })
+ok('개인 메일방',
+  mailFeed({ name: '내 메일 알림', feed: { kind: 'mail', scope: 'own', addr: 'a@b.kr' } }),
+  { scope: 'own', addr: 'a@b.kr' })
+ok('주소가 없어도 된다',
+  mailFeed({ feed: { kind: 'mail', scope: 'group' } }), { scope: 'group', addr: '' })
+ok('scope 가 이상하면 공용으로',
+  mailFeed({ feed: { kind: 'mail', scope: '뭔가' } }), { scope: 'group', addr: '' })
+
+ok('🔴 보통 단체방', mailFeed({ kind: 'group', name: '전체 공지' }), null)
+ok('🔴 이름만 흉내 낸 방', mailFeed({ kind: 'group', name: '대표메일 알림' }), null)
+ok('🔴 표시가 비어 있음', mailFeed({ name: 'x', feed: null }), null)
+ok('🔴 kind 가 다름', mailFeed({ feed: { kind: 'notice', scope: 'group' } }), null)
+ok('🔴 표시가 글자', mailFeed({ feed: 'mail' }), null)
+ok('🔴 방이 없음', mailFeed(null), null)
 
 /* ── 파일 크기 ──────────────────────────────────────────────────── */
 ok('바이트', fileSize(500), '500B')

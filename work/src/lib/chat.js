@@ -22,6 +22,17 @@ export const MAX_CHAT_MB = 20
 
 /* 방 이름 — 1:1 은 상대 이름을 그때그때 만든다.
    DB 에 이름을 적어 두면 보는 사람마다 달라야 하는 걸 한 줄에 못 담는다. */
+/* 메일 알림방인가? 맞으면 그 표시({kind,scope,addr})를, 아니면 null.
+   ⚠️ **이름으로 가리지 않는다.** 누가 방 이름을 '대표메일 알림' 이라 지어도
+      메일방 행세를 못 하게, 방에 달린 표시(rooms.feed)만 본다.
+      그 표시는 서버 함수(mail_room·mail_room_own)만 붙인다. */
+export function mailFeed(room) {
+  const f = room?.feed
+  if (!f || typeof f !== 'object' || f.kind !== 'mail') return null
+  return { scope: f.scope === 'own' ? 'own' : 'group', addr: f.addr || '' }
+}
+export const FEED_TAG = { group: '공용', own: '개인' }
+
 export function roomTitle(room, members, userId, empOf) {
   /* 이름이 적힌 방은 그 이름을 쓴다. 단체방은 늘 이름이 있고,
      '내 메일'(혼자 쓰는 direct 방, 2026-10-26)도 이 길로 온다. */

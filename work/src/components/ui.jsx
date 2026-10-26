@@ -1,5 +1,16 @@
 import { DOC_STATUS } from '../lib/labels'
 
+/* 메일 알림방 아이콘. 목록과 방 머리줄에서 같이 쓴다(2026-10-26). */
+export function MailIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+      fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="m3.5 7.5 8.5 6 8.5-6" />
+    </svg>
+  )
+}
+
 export function StatusPill({ status }) {
   return <span className={`pill st-${status}`}>{DOC_STATUS[status] || status}</span>
 }

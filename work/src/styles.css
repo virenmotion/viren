@@ -1064,6 +1064,32 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .room-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .room-main strong { display: flex; align-items: center; gap: 6px; font-size: .97rem; }
 .room-n { font-style: normal; font-size: .76rem; color: var(--muted); font-weight: 600; }
+
+/* ── 메일 알림방을 일반 대화와 구분 (2026-10-26) ──────────────────────
+   새 색은 만들지 않았다 — 쓰던 연노랑·네이비·회색선만 쓴다. */
+
+/* 목록을 '메일 알림' 과 '대화' 두 묶음으로 */
+.list-sec { display: grid; gap: 4px; }
+.list-sec + .list-sec { margin-top: 14px; }
+.list-sec > h3 {
+  margin: 0; padding: 0 12px 2px;
+  font-size: .76rem; font-weight: 700; color: var(--muted); letter-spacing: .02em;
+}
+
+/* 연노랑 동그라미 + 네이비 봉투 */
+.room-ava.mail { background: var(--accent-soft); color: var(--ink); }
+.room-ava.mail svg { width: 21px; height: 21px; }
+.room-ava.mail.big { width: 42px; height: 42px; }
+
+/* '공용' · '개인' 표.
+   ⚠️ 안 읽은 수(노란 알약)와 헷갈리지 않게 **테두리만** 쓴다. 채우지 말 것. */
+.room-tag {
+  font-style: normal; font-size: .7rem; font-weight: 700; line-height: 1.35; flex: none;
+  color: var(--muted); border: 1px solid var(--line-2); border-radius: 6px; padding: 1px 5px;
+}
+
+/* 방 머리줄 — 이름 옆에 표 */
+.chat-title-row { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .room-last { color: var(--muted); font-size: .86rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .room-side { display: grid; justify-items: end; gap: 5px; flex: none; }
 .room-time { color: var(--muted); font-size: .76rem; }
@@ -1096,7 +1122,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 
 /* 대화 찾기 — 이미 받아 둔 목록에서 거르기만 한다(서버에 다시 묻지 않는다) */
 .chat-search { position: relative; }
-.chat-search input { width: 100%; padding-left: 36px; }
+/* ⚠️ `.chat-search input` 만으로는 안 먹는다. 공통 규칙
+   `input:not([type="checkbox"]):not([type="file"])` 가 더 세서(0,2,1 > 0,1,1)
+   왼쪽 여백이 묻히고 **돋보기가 글자를 덮었다**(2026-10-26 발견).
+   :not() 을 하나 붙여 같은 세기로 맞춘다. 떼면 다시 겹친다. */
+.chat-search input:not([type="checkbox"]) { width: 100%; padding-left: 36px; }
 .chat-search svg {
   position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
   width: 16px; height: 16px; color: var(--muted); pointer-events: none;
@@ -1159,7 +1189,13 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .bubble-row.mine .bubble { background: var(--accent-soft); border-color: #f0dfa4; }
 /* 메일 알림 카드 (2026-10-26) — 카카오워크 메일 봇과 같은 모양.
    말풍선 안쪽 여백을 없애고 카드가 가장자리까지 차게 한다. */
-.bubble.mail-card { padding: 0; overflow: hidden; background: var(--surface); width: 100%; }
+/* ⚠️ white-space: normal — 말풍선은 줄바꿈을 그대로 살린다(pre-wrap).
+   카드 안에 줄바꿈이 하나라도 섞이면 **빈 줄**로 그려져 위가 벌어진다.
+   카드는 글이 아니라 상자라 그 규칙이 필요 없다. */
+.bubble.mail-card {
+  padding: 0; overflow: hidden; background: var(--surface); width: 100%;
+  white-space: normal;
+}
 /* 머리는 바이렌 노랑 + 남색 글씨(지은님 2026-10-26).
    원색 노랑에는 흰 글씨가 안 보인다 — 글자는 반드시 --ink 로. */
 .mc-head {

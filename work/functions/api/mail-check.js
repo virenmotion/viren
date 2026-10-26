@@ -410,7 +410,10 @@ export async function onRequestPost({ request, env }) {
     /* 메신저 '메일' 방에 올린다. 전 직원이 그 방에 들어 있고(post_mail 이 챙긴다),
        글이 들어가면 on_message 방아쇠가 휴대폰 알림까지 보낸다.
        ⚠️ 여기서 알림을 따로 보내지 않는다 — 보내면 두 번 울린다. */
-    const posted = mails.length ? await d.rpc('post_mail', { p_items: mails }) : 0
+    /* p_addr 은 화면에 "어느 주소에 걸려 있는지" 를 보여 주려고 같이 넘긴다 */
+    const posted = mails.length
+      ? await d.rpc('post_mail', { p_items: mails, p_addr: env.MAIL_GROUP })
+      : 0
 
     /* 개인 메일은 **메일함 주인만 들어 있는 '내 메일' 방**으로. 남은 못 본다.
        주인이 재직 중인 직원이 아니면 post_own_mail 이 0 을 돌려주고 끝난다. */
