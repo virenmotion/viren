@@ -22,10 +22,12 @@
  *
  * ⚠️ **어느 메일함을 보는가 (2026-10-26 지은님 확인)**
  *   viren@viren.kr 은 **그룹메일**이다 — 들여다볼 메일함이 따로 없고, 받는 사람들의
- *   개인 메일함으로 들어간다. 그래서 받는 사람 한 명의 메일함(MAIL_USER)에 붙되,
- *   **MAIL_GROUP 주소로 온 것만** 골라 낸다. 그 사람의 개인 메일은 건드리지 않는다.
- *   ⚠️ MAIL_GROUP 을 비우면 **그 사람의 모든 메일**이 전 직원에게 알림으로 나간다.
- *      비워 두지 말 것.
+ *   개인 메일함으로 들어간다. 그래서 받는 사람 한 명의 메일함(MAIL_USER)에 붙어
+ *   **받는사람으로 나눈다.**
+ *     · MAIL_GROUP 으로 온 것 → 모두가 보는 '메일' 방 (내용 미리보기까지)
+ *     · 그 밖의 개인 메일     → **주인만 보는 '내 메일' 방** (보낸사람·제목까지만)
+ *   ⚠️ MAIL_GROUP 을 비우면 **그 사람의 모든 메일**이 전 직원에게 나간다. 비워 두지 말 것.
+ *   ⚠️ 개인 메일 알림이 싫으면 MAIL_OWN 을 `off` 로 두면 된다(그러면 그냥 버린다).
  *
  * 환경변수 (Cloudflare Pages → Variables and Secrets)
  *   MAIL_IMAP_HOST  imap.kakaowork.com
@@ -33,6 +35,7 @@
  *   MAIL_USER       붙을 사람의 계정 (예: jieunp711@viren.kr)
  *   MAIL_PASS       카카오워크 'POP3/IMAP 비밀번호' — **Secret 으로**
  *   MAIL_GROUP      알릴 공용 주소. 쉼표로 여러 개 (예: viren@viren.kr)
+ *   MAIL_OWN        개인 메일 알림. 안 넣으면 켜짐. `off` 로 두면 끔.
  *   VITE_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY · PUSH_SECRET
  */
 
@@ -368,44 +371,57 @@ export async function onRequestPost({ request, env }) {
 
     const unread = items.filter((x) => !x.seen)        // 벌써 읽은 건 알리지 않는다
     const ours = unread.filter((x) => forGroup(x.header, env.MAIL_GROUP))
-    const skipped = unread.length - ours.length        // 개인 메일 — 아무것도 남기지 않는다
+    /* 공용함으로 온 게 아닌 것 = 메일함 주인의 **개인 메일**.
+       MAIL_OWN 이 'off' 면 예전처럼 그냥 버린다. */
+    const ownOn = String(env.MAIL_OWN || '').toLowerCase() !== 'off'
+    const mineRaw = ownOn ? unread.filter((x) => !ours.includes(x)) : []
+    const dropped = unread.length - ours.length - mineRaw.length
 
-    /* 미리보기는 **올릴 메일만** 한 통씩 더 받아 온다.
+    /* 미리보기는 **공용 메일만** 한 통씩 더 받아 온다.
+       ⚠️ 개인 메일은 미리보기를 만들지 않는다 — 본문을 들여다보지 않는다.
        ⚠️ 머리글 받아오기와 섞지 않는다. 머리글은 영문자뿐이라 길이가 정확한데,
           본문에는 한글이 섞여 글자 수와 바이트 수가 어긋난다. 한 통씩 따로 받으면
           그 어긋남이 그 통 꼬리에만 생겨서 아무 탈이 없다. */
+    const head = (x) => ({
+      from: fromName(headerValue(x.header, 'From')),
+      subject: decodeWords(headerValue(x.header, 'Subject')).trim(),
+    })
     const mails = []
     for (const x of ours) {
       let preview = ''
       try {
         preview = previewOf(literalOf(await im.cmd(`UID FETCH ${x.uid} (BODY.PEEK[]<0.16384>)`)))
       } catch { /* 미리보기가 없어도 알림은 보낸다 */ }
-      mails.push({
-        from: fromName(headerValue(x.header, 'From')),
-        subject: decodeWords(headerValue(x.header, 'Subject')).trim(),
-        preview,
-      })
+      mails.push({ ...head(x), preview })
     }
+    const mine = mineRaw.map(head)
     await im.bye()   // 미리보기까지 다 받은 뒤에 끊는다
 
     /* 숫자만 적는다. 왜 안 뜨는지 알아보려면 이게 있어야 한다
        (새 메일은 있는데 올린 게 0 이면 공용함 거르기가 안 맞는 것). */
-    const note = `새 ${items.length} · 올림 ${mails.length} · 개인 ${skipped} · 읽음 ${items.length - unread.length}`
+    const note = `새 ${items.length} · 공용 ${mails.length} · 개인 ${mine.length}`
+      + `${dropped ? ` · 버림 ${dropped}` : ''} · 읽음 ${items.length - unread.length}`
 
-    if (!mails.length) {
+    if (!mails.length && !mine.length) {
       await mark({ last_uid: Math.max(top, since), last_note: note })
-      return json({ ok: true, new: items.length, posted: 0, skipped })
+      return json({ ok: true, new: items.length, posted: 0, own: 0 })
     }
 
     /* 메신저 '메일' 방에 올린다. 전 직원이 그 방에 들어 있고(post_mail 이 챙긴다),
        글이 들어가면 on_message 방아쇠가 휴대폰 알림까지 보낸다.
        ⚠️ 여기서 알림을 따로 보내지 않는다 — 보내면 두 번 울린다. */
-    const posted = await d.rpc('post_mail', { p_items: mails })
+    const posted = mails.length ? await d.rpc('post_mail', { p_items: mails }) : 0
 
-    /* ⚠️ **올린 뒤에** 본 번호를 적는다. 올리다 실패하면 번호를 안 올려서
+    /* 개인 메일은 **메일함 주인만 들어 있는 '내 메일' 방**으로. 남은 못 본다.
+       주인이 재직 중인 직원이 아니면 post_own_mail 이 0 을 돌려주고 끝난다. */
+    const own = mine.length
+      ? await d.rpc('post_own_mail', { p_email: env.MAIL_USER, p_items: mine })
+      : 0
+
+    /* ⚠️ **둘 다 올린 뒤에** 본 번호를 적는다. 올리다 실패하면 번호를 안 올려서
        다음 1분에 다시 시도한다. 먼저 적으면 그 메일은 영영 안 뜬다. */
     await mark({ last_uid: Math.max(top, since), last_note: note })
-    return json({ ok: true, new: items.length, posted, skipped })
+    return json({ ok: true, new: items.length, posted, own })
   } catch (e) {
     try { await im?.bye() } catch { /* 그만 */ }
     // 실패해도 '언제 확인했는지' 와 까닭은 남긴다 — 안 오는 이유를 알아야 한다

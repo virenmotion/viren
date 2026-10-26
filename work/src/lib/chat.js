@@ -23,7 +23,10 @@ export const MAX_CHAT_MB = 20
 /* 방 이름 — 1:1 은 상대 이름을 그때그때 만든다.
    DB 에 이름을 적어 두면 보는 사람마다 달라야 하는 걸 한 줄에 못 담는다. */
 export function roomTitle(room, members, userId, empOf) {
-  if (room.kind === 'group') return room.name || '단체 대화'
+  /* 이름이 적힌 방은 그 이름을 쓴다. 단체방은 늘 이름이 있고,
+     '내 메일'(혼자 쓰는 direct 방, 2026-10-26)도 이 길로 온다. */
+  if (room.name) return room.name
+  if (room.kind === 'group') return '단체 대화'
   const other = (members || []).find((m) => m.user_id !== userId)
   const e = other && empOf(other.user_id)
   if (!e) return '대화'
