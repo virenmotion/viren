@@ -667,27 +667,111 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .line-edit:empty { display: none; }
 .step-no { width: 24px; height: 24px; border-radius: 50%; background: var(--brand); color: var(--accent); display: grid; place-items: center; font-size: .75rem; font-weight: 700; font-family: var(--display); }
 
-/* ---------- 문서 보기 (종이 결재 서류 느낌) ---------- */
-.doc { gap: 20px; padding: 34px 36px; max-width: 900px; width: 100%; margin: 0 auto; }
-.doc-head { display: flex; justify-content: space-between; gap: 16px; align-items: start; padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
-.doc-head h1 { font-size: 1.45rem; margin: 4px 0 6px; }
-.signbox-wrap { overflow-x: auto; display: flex; justify-content: flex-end; }
-.signbox { border-collapse: collapse; }
-.signbox th, .signbox td { border: 1px solid var(--line-2); text-align: center; min-width: 80px; padding: 4px 8px; }
-.signbox th { font-size: .74rem; font-weight: 600; background: var(--surface-2); color: var(--ink-2); }
-.signbox .sign { font-weight: 700; padding-top: 8px; }
-.signbox .sign-st { font-size: .74rem; color: var(--muted); padding-bottom: 6px; }
-.signbox td.ss-approved .sign-st { color: var(--ok); font-weight: 700; }
-.signbox td.ss-rejected .sign-st { color: var(--bad); font-weight: 700; }
-.signbox td.ss-pending { background: var(--accent-soft); }
-.signbox td.ss-pending .sign-st { color: var(--accent-ink); font-weight: 600; }
-.signbox .sign-date td { font-size: .72rem; color: var(--muted); height: 24px; background: none; }
-.doc-data { background: var(--surface-2); border: 1px solid var(--line); padding: 16px 18px; border-radius: var(--radius-sm); }
-.doc-body { white-space: pre-wrap; border-top: 1px solid var(--line); padding-top: 18px; line-height: 1.85; }
-.files ul, .comments ul { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
-.comments li p { white-space: pre-wrap; margin-top: 2px; }
-.files, .comments { border-top: 1px solid var(--line); padding-top: 16px; }
-@media (max-width: 760px) { .doc { padding: 22px 18px; } }
+/* ---------- 문서 보기 (2026-10-26 개편, 시안 확인 후) ----------------
+   위에서부터 ① 제목·상태 ② 기본 정보 ③ 결재선 ④ 신청 내용 ⑤ 의견·처리 이력.
+   흰 카드 · 네이비 글자 · 노랑 포인트 · 둥근 모서리는 그대로. 새 색은 없다. */
+
+/* 단추 줄을 **카드와 같은 너비**로. 안 그러면 좌우가 카드와 어긋난다. */
+.doc-bar { max-width: 900px; width: 100%; margin: 0 auto; }
+
+/* 구역마다 선으로 나누려고 안쪽 여백은 구역이 갖는다 */
+.doc2 { gap: 0; padding: 0; max-width: 900px; width: 100%; margin: 0 auto; overflow: hidden; }
+
+/* ① 제목 + 진행 상태 */
+.d2-head {
+  display: flex; gap: 14px; align-items: flex-start; justify-content: space-between;
+  padding: 24px 28px 18px; border-bottom: 1px solid var(--line);
+}
+.d2-form { font-size: .8rem; color: var(--ink-2); font-weight: 600; margin: 0 0 6px; }
+.d2-head h1 { font-size: 1.3rem; line-height: 1.35; margin: 0; }
+
+/* ② 기본 정보 — 항목명은 작게 위, 값은 또렷하게 아래 */
+.d2-meta {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px 24px;
+  padding: 16px 28px; background: var(--surface-2); border-bottom: 1px solid var(--line);
+}
+/* ⚠️ 항목명은 --muted 가 아니라 --ink-2. 더 흐리면 읽기 어렵다. */
+.d2-k { display: block; font-size: .78rem; color: var(--ink-2); margin-bottom: 2px; }
+.d2-v { font-size: .95rem; }
+
+.d2-sec { display: grid; gap: 12px; padding: 20px 28px; border-bottom: 1px solid var(--line); }
+.d2-sec:last-child { border-bottom: 0; }
+.d2-sec > h2 { font-size: .92rem; }
+
+/* ③ 결재선 — 지금 누구 차례인지 한 줄 + 가로 카드 */
+.d2-now {
+  font-size: .92rem; line-height: 1.5; color: var(--ink);
+  background: var(--accent-soft); border: 1px solid #f0dfa4; border-radius: 10px; padding: 9px 12px;
+}
+.d2-now.plain { background: var(--surface-2); border-color: var(--line); color: var(--ink-2); }
+.line-cards {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 10px;
+}
+.lc {
+  display: grid; gap: 2px; padding: 12px 14px; background: var(--surface);
+  border: 1px solid var(--line-2); border-radius: 12px; break-inside: avoid;
+}
+.lc-role { font-size: .74rem; font-weight: 700; color: var(--ink-2); }
+.lc-name { font-size: 1rem; }
+.lc-pos { font-size: .78rem; color: var(--ink-2); }
+/* ⚠️ 종류 이름을 `lc--done` 처럼 길게 쓴다. `.ok` 같은 짧은 이름을 붙이면 전역의
+   '성공 메시지(.ok)' 규칙에 걸려 **이름·배경까지 초록**이 된다(2026-10-26 겪음).
+   ⚠️ 색만으로 구분하지 않는다 — 글자로도 적는다(상신·승인·결재 차례·대기·반려). */
+.lc-state { margin-top: 5px; font-size: .82rem; font-weight: 700; color: var(--muted); }
+.lc-at { font-size: .76rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lc--now { background: var(--accent-soft); border-color: var(--accent); }
+.lc--now .lc-state { color: var(--accent-ink); }
+.lc--done .lc-state { color: var(--ok); }
+.lc--rej { border-color: #f0bcc2; }
+.lc--rej .lc-state { color: var(--bad); }
+
+/* ④ 신청 내용 — 중요한 값은 보조 항목명보다 또렷하게 */
+.d2-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 14px 24px; }
+.d2-big { font-size: 1.08rem; font-weight: 700; line-height: 1.4; }
+.d2-reason { white-space: pre-wrap; line-height: 1.75; font-size: .95rem; margin: 0; }
+
+/* ⑤ 결재 의견 및 처리 이력 */
+.d2-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.d2-log li {
+  display: grid; gap: 2px; padding: 11px 13px; break-inside: avoid;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+}
+.d2-log .who { font-size: .92rem; font-weight: 700; }
+.d2-log .meta { font-size: .78rem; color: var(--ink-2); }
+.d2-log p { margin: 5px 0 0; white-space: pre-wrap; font-size: .92rem; line-height: 1.65; }
+.log-ok { color: var(--ok); font-weight: 700; }
+.log-no { color: var(--bad); font-weight: 700; }
+.log-plain { color: var(--ink-2); font-weight: 700; }
+
+.d2-files { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: .92rem; }
+
+/* 좁은 화면 — 글자를 줄이지 않고 줄만 바꾼다 */
+@media (max-width: 640px) {
+  .d2-head, .d2-meta, .d2-sec { padding-left: 18px; padding-right: 18px; }
+  .d2-head { flex-direction: column; gap: 10px; }
+  .line-cards { grid-template-columns: 1fr; }
+  .d2-facts { grid-template-columns: 1fr 1fr; }
+}
+
+/* 인쇄 — 조작 단추는 빼고(.no-print), 카드가 쪼개지지 않게 */
+@media print {
+  .doc2 { max-width: none; }
+  .d2-meta { background: none; }
+  .line-cards { grid-template-columns: repeat(3, 1fr); }
+  .lc--now { background: none; border: 1px solid #999; }
+  .d2-head, .d2-meta, .d2-sec { break-inside: avoid; }
+}
+
+/* 목록 — 제목이 먼저 보이게 */
+.ap-title { display: grid; gap: 2px; }
+.ap-title a { font-size: .97rem; font-weight: 700; color: var(--ink); text-decoration: none; }
+.ap-title a:hover { text-decoration: underline; }
+.ap-no { font-size: .76rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.table td.ap-cell { padding-top: 11px; padding-bottom: 11px; }
+
+/* 옛 문서 보기(`.doc` · `.signbox` · `.doc-data` · `.doc-body` · `.files` · `.comments`)는
+   2026-10-26 개편으로 쓰는 곳이 없어져 지웠다. 필요하면 git 기록에서 꺼낼 것. */
 
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
 .kv dt { color: var(--muted); }

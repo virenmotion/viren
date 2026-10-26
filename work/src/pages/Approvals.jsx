@@ -76,17 +76,23 @@ export default function Approvals() {
         <>
           <div className="table-wrap only-wide">
             <table className="table">
+              {/* 제목이 먼저 눈에 들어와야 한다. 문서번호는 제목 아래 작게
+                  (지은님 2026-10-26 시안 확인). */}
               <thead>
-                <tr><th>문서번호</th><th>양식</th><th>제목</th><th>기안자</th><th>기안일</th><th>현재 결재자</th><th>상태</th></tr>
+                <tr><th>제목</th><th>양식</th><th>기안자</th><th>기안일</th><th>현재 결재자</th><th>상태</th></tr>
               </thead>
               <tbody>
                 {docs.map((d) => {
                   const cur = d.approval_steps?.find((s) => s.status === 'pending')
                   return (
                     <tr key={d.id}>
-                      <td className="tnum muted">{d.doc_no}</td>
+                      <td className="ap-cell">
+                        <span className="ap-title">
+                          <Link to={`/approval/${d.id}`}>{d.title}</Link>
+                          <span className="ap-no">{d.doc_no}</span>
+                        </span>
+                      </td>
                       <td><span className="tag">{formName(d)}</span></td>
-                      <td className="title-cell"><Link to={`/approval/${d.id}`}>{d.title}</Link></td>
                       <td>{nameOf(d.drafter_id)}</td>
                       <td className="tnum">{dot(ymd(new Date(d.created_at)))}</td>
                       <td>{cur ? nameOf(cur.approver_id) : '—'}</td>
@@ -105,7 +111,8 @@ export default function Approvals() {
                   <Link to={`/approval/${d.id}`}>
                     <div className="row-between"><span className="tag">{formName(d)}</span><StatusPill status={d.status} /></div>
                     <strong>{d.title}</strong>
-                    <span className="muted small tnum">
+                    <span className="ap-no">{d.doc_no}</span>
+                    <span className="small tnum">
                       {nameOf(d.drafter_id)} · {dot(ymd(new Date(d.created_at)))}{cur && ` · 지금 ${nameOf(cur.approver_id)} 차례`}
                     </span>
                   </Link>
