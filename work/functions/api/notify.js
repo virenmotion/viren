@@ -194,7 +194,7 @@ async function chatMessage(d, id) {
   }
 }
 
-async function sendTo(env, msg) {
+export async function sendTo(env, msg) {
   const d = db(env)
   const ids = [...new Set(msg.users)].filter(Boolean)
   if (!ids.length) return { sent: 0, gone: 0 }

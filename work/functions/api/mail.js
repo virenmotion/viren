@@ -29,7 +29,7 @@ const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } })
 
 /* IMAP 은 줄 단위 대화다. 보낸 꼬리표(a1, a2…)가 붙은 줄이 올 때까지 읽는다. */
-class Imap {
+export class Imap {
   constructor(socket) {
     this.sock = socket
     this.w = socket.writable.getWriter()
@@ -74,7 +74,7 @@ class Imap {
 }
 
 /* IMAP 문자열 따옴표 — 비밀번호에 " 나 \ 가 들어 있어도 깨지지 않게 */
-const q = (s) => `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+export const q = (s) => `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
 
 export async function onRequestPost({ request, env }) {
   const missing = ['VITE_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY',

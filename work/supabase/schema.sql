@@ -910,6 +910,7 @@ create table if not exists public.push_config (
   id          int primary key default 1 check (id = 1),
   url         text,
   cleanup_url text,
+  mail_url    text,          -- 대표메일 확인(2026-10-26)
   secret      text
 );
 insert into public.push_config (id) values (1) on conflict (id) do nothing;
@@ -1267,12 +1268,48 @@ $$;
 
 grant execute on function public.storage_usage() to authenticated;
 
--- ⑤ 매일 새벽 3시(한국) ---------------------------------------------------
+-- ⑤ 대표메일 알림 (2026-10-26) ------------------------------------------
+-- 카카오워크를 그대로 쓰되 "메일 왔다" 알림만 바이렌워크에서도 뜨게 한다.
+-- **메일은 우리 DB 에 들어오지 않는다.** 여기 적히는 건 '몇 번까지 봤는지' 뿐이다.
+-- ⚠️ 정책을 하나도 두지 않는다 → 로그인한 사람도 직접 못 읽는다.
+--    서비스 키를 쓰는 /api/mail-check 만 들여다본다.
+create table if not exists public.mail_state (
+  id          int primary key default 1 check (id = 1),
+  uidvalidity bigint,        -- 메일함이 통째로 갈리면 이 번호가 바뀐다
+  last_uid    bigint,        -- 여기까지는 이미 알렸다
+  checked_at  timestamptz,
+  last_error  text
+);
+insert into public.mail_state (id) values (1) on conflict (id) do nothing;
+alter table public.mail_state enable row level security;
+revoke all on public.mail_state from anon, authenticated;
+
+create or replace function public.run_mail_check() returns void
+language plpgsql security definer set search_path = public as $$
+declare c public.push_config;
+begin
+  select * into c from public.push_config where id = 1;
+  if c.mail_url is null or c.mail_url = '' then return; end if;
+  perform net.http_post(
+    url     := c.mail_url,
+    headers := jsonb_build_object('Content-Type', 'application/json',
+                                  'x-push-secret', coalesce(c.secret, '')),
+    body    := '{}'::jsonb,
+    timeout_milliseconds := 20000
+  );
+exception when others then
+  null;  -- 메일 확인이 실패해도 나머지는 돌아야 한다
+end $$;
+
+revoke execute on function public.run_mail_check() from anon, public, authenticated;
+
+-- ⑥ 때맞춰 도는 것들 -------------------------------------------------------
 -- ⚠️ 예약(pg_cron)은 **설치 맨 끝에 따로** 돌린다. Supabase 쪽 설정에 따라
 --    실패할 수 있고, 한 덩어리로 돌리면 앞의 것까지 되돌아간다.
---    supabase/migrations/2026-10-21l-cron.sql 참고.
+--    supabase/migrations/2026-10-21l-cron.sql · 2026-10-26b-mail-cron.sql 참고.
 --      create extension if not exists pg_cron;
 --      select cron.schedule('viren-chat-cleanup', '0 18 * * *', $x$select public.run_chat_cleanup()$x$);
+--      select cron.schedule('viren-mail-check', '*/5 * * * *', $x$select public.run_mail_check()$x$);
 
 -- ---------------------------------------------------------------------
 -- 인사기록 · 경력 (노션 직원현황관리·직원경력관리를 옮긴 것)
