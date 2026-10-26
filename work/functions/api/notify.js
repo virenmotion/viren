@@ -116,6 +116,12 @@ function db(env) {
       const r = await fetch(`${base}/${path}`, { headers })
       return r.ok ? r.json() : []
     },
+    /* get 과 달리 **실패를 숨기지 않는다** — 실패하면 null. 빈 목록([])과 구분해야
+       하는 곳에서 쓴다(못 읽은 것과 '한 명도 없음' 은 다르다). */
+    async getOk(path) {
+      const r = await fetch(`${base}/${path}`, { headers })
+      return r.ok ? r.json() : null
+    },
     async del(path) {
       await fetch(`${base}/${path}`, { method: 'DELETE', headers })
     },
@@ -201,7 +207,18 @@ async function sendTo(env, msg) {
   const ids = [...new Set(msg.users)].filter(Boolean)
   if (!ids.length) return { sent: 0, gone: 0 }
 
-  const subs = await d.get(`push_subs?user_id=in.(${ids.join(',')})&select=id,endpoint,p256dh,auth`)
+  /* ⚠️ **퇴사자는 뺀다.** 재직을 꺼도 push_subs(등록한 기기)와 room_members(방 참여)는
+     그대로 남는다. 그냥 두면 퇴사한 뒤에도 그 사람 휴대폰으로 결재·메신저·메일 제목이
+     계속 간다 — 앱에는 못 들어가는데 알림만 오는 상태다(2026-10-26 발견).
+     들어오는 길(RLS)은 막혀 있지만 **나가는 길**은 여기서 막아야 한다. */
+  /* ⚠️ 거르는 건 **받아온 값으로** 한다. 주소에 조건을 붙였다가 그 문법이 틀리면
+     빈 목록이 돌아와서 **알림이 통째로 안 간다.** 조회가 실패하면(null) 거르지 않는다 —
+     한 사람을 더 거르려다 모두의 알림을 막는 게 더 나쁘다. */
+  const live = await d.getOk(`employees?id=in.(${ids.join(',')})&select=id,active`)
+  const okIds = live === null ? ids : live.filter((e) => e.active).map((e) => e.id)
+  if (!okIds.length) return { sent: 0, gone: 0 }
+
+  const subs = await d.get(`push_subs?user_id=in.(${okIds.join(',')})&select=id,endpoint,p256dh,auth`)
   const payload = JSON.stringify({ title: msg.title, body: msg.body, url: msg.url, tag: msg.tag, renotify: !msg.quiet })
   let sent = 0, gone = 0
 
