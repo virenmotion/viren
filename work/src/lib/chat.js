@@ -102,3 +102,11 @@ export async function fileUrl(path) {
 }
 
 export const isImage = (f) => !!f && /^image\//.test(f.type || '')
+
+/* 보내기 전에 보여 주는 파일 크기 */
+export function fileSize(n) {
+  if (!Number.isFinite(n)) return ''
+  if (n < 1024) return `${n}B`
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)}KB`
+  return `${(n / 1024 / 1024).toFixed(1)}MB`
+}

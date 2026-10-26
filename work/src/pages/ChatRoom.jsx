@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { avatarTone, clock, dayLabel, fileUrl, isImage, markRead, roomTitle, sameDay, sendFile, sendText } from '../lib/chat'
+import { MAX_CHAT_MB, avatarTone, clock, dayLabel, fileSize, fileUrl, isImage, markRead, roomTitle, sameDay, sendFile, sendText } from '../lib/chat'
 import { mascotText, readMascot } from '../lib/mascot'
 import MascotPicker, { MascotImage } from '../components/MascotPicker'
 import { ErrorBox } from '../components/ui'
@@ -25,6 +25,8 @@ export default function ChatRoom() {
   const [text, setText] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  /* 붙여넣었지만 **아직 안 보낸** 그림. { file, url } */
+  const [pend, setPend] = useState(null)
   const endRef = useRef(null)
   const fileRef = useRef(null)
   /* ⚠️ 방을 빠르게 옮기면 **먼저 보낸 조회가 나중에 돌아올 수 있다.**
@@ -79,9 +81,32 @@ export default function ChatRoom() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }) }, [msgs?.length])
 
+  /* 붙여넣은 그림을 버린다.
+     ⚠️ 미리보기 주소(createObjectURL)는 반드시 돌려줘야 한다 — 안 그러면 쌓인다.
+        화면을 떠난 뒤에도 확실히 돌려주려고 주소를 ref 에 따로 들고 있는다. */
+  const pendUrl = useRef(null)
+  const dropPend = useCallback(() => {
+    if (pendUrl.current) { URL.revokeObjectURL(pendUrl.current); pendUrl.current = null }
+    setPend(null)
+  }, [])
+  // 방을 옮기거나 화면을 떠나면 들고 있던 그림도 버린다
+  useEffect(() => dropPend, [id, dropPend])
+
   async function go(e) {
     e?.preventDefault()
-    if (!text.trim() || busy) return
+    if (busy) return
+    /* 붙여넣은 그림이 있으면 **그림 먼저**, 적어 둔 글이 있으면 이어서 보낸다 */
+    if (pend) {
+      setBusy(true); setErr('')
+      try {
+        await sendFile(id, userId, pend.file)
+        dropPend()
+        if (text.trim()) { const keep = text; setText(''); await sendText(id, userId, keep) }
+      } catch (x) { setErr(x.message) }
+      setBusy(false)
+      return
+    }
+    if (!text.trim()) return
     const keep = text
     setText(''); setBusy(true); setErr('')
     try { await sendText(id, userId, keep) } catch (x) { setErr(x.message); setText(keep) }
@@ -112,12 +137,18 @@ export default function ChatRoom() {
   }
 
   /* Ctrl+V 로 캡처한 그림 붙여넣기.
+     ⚠️ **바로 보내지 않는다.** 붙여넣으면 입력칸 위에 미리보기가 뜨고,
+        '보내기' 를 눌러야 올라간다(지은님 2026-10-26: 실수로 보내진다).
      글을 붙여넣을 때는 clipboardData.files 가 비어 있어서 그대로 글이 들어간다. */
   function paste(e) {
     const f = e.clipboardData?.files?.[0]
     if (!f) return
     e.preventDefault()
-    putFile(f)
+    if (f.size > MAX_CHAT_MB * 1024 * 1024) return setErr(`${MAX_CHAT_MB}MB 까지 보낼 수 있어요.`)
+    setErr('')
+    if (pendUrl.current) URL.revokeObjectURL(pendUrl.current)
+    pendUrl.current = isImage(f) ? URL.createObjectURL(f) : null
+    setPend({ file: f, url: pendUrl.current })
   }
 
   async function out() {
@@ -228,20 +259,38 @@ export default function ChatRoom() {
       <div className="chat-foot">
       <ErrorBox>{err}</ErrorBox>
 
+      {/* 붙여넣었지만 아직 안 보낸 그림 — 보내기를 눌러야 올라간다 */}
+      {pend && (
+        <div className="pend">
+          {pend.url
+            ? <img className="pend-img" src={pend.url} alt="보낼 그림 미리보기" />
+            : <span className="pend-ico" aria-hidden="true">📎</span>}
+          <div className="pend-main">
+            <strong>{pend.file.name || '붙여넣은 그림'}</strong>
+            <span className="hint">{fileSize(pend.file.size)} · 보내기를 눌러야 올라가요</span>
+          </div>
+          <button type="button" className="btn small-btn" onClick={dropPend} disabled={busy}>취소</button>
+        </div>
+      )}
+
       <form className="chat-send" onSubmit={go}>
         <input type="file" ref={fileRef} hidden onChange={pick} />
         <button type="button" className="btn icon-btn" aria-label="파일 보내기" disabled={busy}
           onClick={() => fileRef.current?.click()}>＋</button>
         <MascotPicker busy={busy} onSend={sendMascot} />
         <textarea
-          rows={1} value={text} placeholder="메시지를 쓰세요"
+          rows={1} value={text} placeholder={pend ? '설명을 함께 보낼 수 있어요' : '메시지를 쓰세요'}
           onChange={(e) => setText(e.target.value)}
           onPaste={paste}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) go(e) }}
+          onKeyDown={(e) => {
+            // 붙여넣은 그림은 Esc 로 물린다
+            if (e.key === 'Escape' && pend) { e.preventDefault(); return dropPend() }
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) go(e)
+          }}
         />
-        <button className="btn primary" disabled={busy || !text.trim()}>보내기</button>
+        <button className="btn primary" disabled={busy || (!pend && !text.trim())}>보내기</button>
       </form>
-      <p className="hint">Enter 로 보내고, Shift+Enter 로 줄을 바꿔요. 캡처한 그림은 Ctrl+V 로 바로 붙여 넣을 수 있어요.</p>
+      <p className="hint">Enter 로 보내고, Shift+Enter 로 줄을 바꿔요. 캡처한 그림은 Ctrl+V 로 붙여 넣은 뒤 보내기를 누르면 올라가요.</p>
       </div>
     </div>
   )
