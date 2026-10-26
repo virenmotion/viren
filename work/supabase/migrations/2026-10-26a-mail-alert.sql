@@ -17,7 +17,10 @@ create table if not exists public.mail_state (
   uidvalidity bigint,        -- 메일함이 통째로 갈리면 이 번호가 바뀐다
   last_uid    bigint,        -- 여기까지는 이미 알렸다
   checked_at  timestamptz,   -- 마지막으로 들여다본 때
-  last_error  text           -- 실패했으면 까닭(안 오는 이유를 알려면 필요하다)
+  last_error  text,          -- 실패했으면 까닭(안 오는 이유를 알려면 필요하다)
+  -- 마지막 번 **숫자만**: '새 2 · 올림 1 · 개인 1 · 읽음 0'.
+  -- 메일 내용·주소는 적지 않는다. 안 뜨는 이유를 가리려면 이 숫자가 있어야 한다.
+  last_note   text
 );
 insert into public.mail_state (id) values (1) on conflict (id) do nothing;
 alter table public.mail_state enable row level security;

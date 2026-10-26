@@ -211,17 +211,24 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
 
 0. **🔴 대표메일 알림 — 켜는 일만 남았다 (2026-10-26).** 코드·SQL 은 다 올라갔고
    **아래 두 가지만 하면 돈다.** 하기 전까지는 아무 일도 일어나지 않는다(503 으로 그냥 돌아간다).
-   - ① **카카오워크 → 환경설정 → POP3/IMAP** 에서 IMAP 을 켜고 **연동 전용 비밀번호**를 만든다.
-         그 화면의 **서버 주소**도 적어 둔다(`imap.kakaowork.com` 일 가능성이 높다).
-   - ② **Cloudflare Pages → viren-work → Settings → Variables and Secrets** 에 3개:
-         `MAIL_IMAP_HOST`(주소) · `MAIL_USER`(viren@viren.kr) · `MAIL_PASS`(**Secret 으로**).
+   - ① **카카오워크 → 환경설정 → POP3/IMAP 비밀번호 변경** 에서 비밀번호를 만든다.
+         (IMAP 사용은 2026-10-26 확인 시점에 **이미 켜져 있었다.**
+          서버 `imap.kakaowork.com` · 포트 `993`/SSL)
+   - ② **Cloudflare Pages → viren-work → Settings → Variables and Secrets** 에 4개:
+         `MAIL_IMAP_HOST`=`imap.kakaowork.com` · `MAIL_USER`=붙을 사람 계정(예 `jieunp711@viren.kr`)
+         · `MAIL_PASS`=①의 비밀번호(**Secret 으로**) · `MAIL_GROUP`=`viren@viren.kr`.
          포트가 993 이 아니면 `MAIL_IMAP_PORT` 도. 넣은 뒤 **재배포 한 번** 해야 붙는다.
    - ③ Supabase SQL Editor 에서 **순서대로** `2026-10-26a-mail-alert.sql` →
          `2026-10-26c-mail-room.sql` → `2026-10-26b-mail-cron.sql`.
          (c 는 메신저 '메일' 방을 만든다. b 는 pg_cron 이라 맨 끝에 따로 — 2026-10-21l 과 같은 까닭)
-   - 잘 되는지 보기: `select checked_at, last_uid, last_error from mail_state;`
-     (`last_error` 가 비어 있고 `checked_at` 이 1분 안쪽이면 돌고 있는 것)
+   - 잘 되는지 보기: `select checked_at, last_note, last_error from mail_state;`
+     (`last_error` 가 비어 있고 `checked_at` 이 1분 안쪽이면 돌고 있는 것.
+      `last_note` 가 `새 2 · 올림 0 · 개인 2` 처럼 **올림이 늘 0** 이면 공용함 거르기가
+      안 맞는 것 — 카카오워크 그룹메일이 받는사람 머리글에 주소를 안 남기는 경우다.
+      그때는 `TO_FIELDS` 에 볼 머리글을 더한다.)
    - ⚠️ 비밀번호는 **Cloudflare 에만.** 저장소·Supabase 에 넣지 않는다.
+   - ⚠️ `MAIL_PASS` 는 **그 사람 메일함 전체를 열 수 있는 열쇠**다. Cloudflare 를 볼 수
+     있는 사람은 그 메일함을 읽을 수 있다. 카카오워크에서 언제든 다시 바꿀 수 있다.
 
 4. **대표님 두 분 알림 켜기** — 각자 휴대폰·PC 에서 내 정보 → 휴대폰 알림. 안 켜면
    결재·메신저가 와도 알림이 안 온다. 기기마다 따로 켜야 한다.
@@ -280,9 +287,22 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
   · 이미 읽은 메일(`\Seen`)은 건너뛴다. 여러 통이면 알림 **한 개**로 묶는다(`새 메일 3통`).
   · **메일은 우리 DB 에 들어오지 않는다.** `mail_state` 에 적히는 건 '몇 번까지 봤는지' 뿐.
     보낸사람·제목도 알림으로 던지고 끝이다.
-  · 한글 제목은 `=?UTF-8?B?...?=` 로 온다 — 푸는 코드와 시험 34가지
-    (`supabase/tests/mailparsetest.mjs`). 못 푸는 글자표는 **깨진 글자 대신 원문을 그대로** 둔다.
-  · 개인 메일함은 하지 않는다 — 전 직원 메일 비밀번호를 우리가 들게 된다.
+  · 한글 제목은 `=?UTF-8?B?...?=` 로 온다 — 푸는 코드와 시험
+    (`supabase/tests/mailparsetest.mjs`, 모두 46가지). 못 푸는 글자표는
+    **깨진 글자 대신 원문을 그대로** 둔다.
+  · ⚠️ **어느 메일함을 보는가 — 2026-10-26 확인하고 바뀌었다.**
+    `viren@viren.kr` 은 **그룹메일(배포용 주소)**이라 개별 계정이 없다. 들여다볼 메일함이
+    아예 없고, 그 메일은 받는 사람들의 **개인 메일함**으로 들어간다(지은님 확인).
+    그래서 받는 사람 한 명의 메일함(`MAIL_USER`)에 붙되, 받는사람 머리글
+    (To·Cc·Delivered-To·X-Original-To·X-Forwarded-To)에 `MAIL_GROUP` 주소가 있는
+    **공용 메일만** 골라서 올린다. 그 사람 **개인 메일은 아무 흔적도 남기지 않는다.**
+    ⚠️ `MAIL_GROUP` 이 없으면 함수가 **503 으로 아예 돌지 않는다.** 빠뜨리면 개인 메일이
+    전 직원에게 새어 나가므로, 차라리 아무것도 안 하는 쪽을 골랐다. 거르기 시험 16가지.
+  · ⚠️ `MAIL_PASS` 는 **그 사람 메일함 전체를 여는 열쇠**다. Cloudflare 를 볼 수 있는
+    사람은 그 메일함을 읽을 수 있다. 카카오워크에서 언제든 바꿀 수 있다.
+  · `mail_state.last_note` 에 **숫자만** 남긴다(`새 2 · 올림 1 · 개인 1 · 읽음 0`).
+    메일 내용·주소는 적지 않는다. "왜 안 뜨지" 를 가릴 수 있어야 해서 둔 것이다.
+  · 직원 전체의 개인 메일함을 보는 일은 하지 않는다 — 전원의 메일 비밀번호를 우리가 들게 된다.
   · 남은 설정은 위 "사람 손이 필요한 것" 0번.
 
 - **2026-10-26 메신저 — 스티커 20종 · 읽음 표시 · Ctrl+V · 알림 아이콘.** (지은님 요청 4가지)

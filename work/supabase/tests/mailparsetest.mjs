@@ -13,7 +13,7 @@ writeFileSync(copy, readFileSync(src, 'utf8')
   .replace(/^import .*from 'cloudflare:sockets'$/m, '')
   .replace(/^import .*from '\.\/mail\.js'$/m, '')
   .replace(/^import .*from '\.\/notify\.js'$/m, ''))
-const { parseFetch, headerValue, decodeWords, fromName } =
+const { parseFetch, headerValue, decodeWords, fromName, recipientText, forGroup } =
   await import(pathToFileURL(copy).href)
 
 let pass = 0, fail = 0
@@ -81,7 +81,49 @@ ok('이름이 빈 경우', fromName('<a@b.c>'), 'a@b.c')
 ok('한글 이름', fromName(`=?UTF-8?B?${b64('백승민')}?= <seung@viren.kr>`), '백승민')
 ok('빈 값', fromName(''), '보낸사람 모름')
 
-/* ── ⑤ 처음부터 끝까지 한 번 ───────────────────────────────────────── */
+/* ── ⑤ 공용함(그룹메일)으로 온 것만 고르기 ─────────────────────────── */
+/* ⚠️ 여기가 느슨하면 지은님 **개인 메일**의 보낸사람·제목이 전 직원에게 간다.
+   반대로 너무 빡빡하면 공용 메일이 하나도 안 뜬다. 둘 다 시험한다. */
+const G = 'viren@viren.kr'
+const mail = (hdr) => hdr
+
+ok('To 에 공용함', forGroup(mail('From: a@b.c\r\nTo: viren@viren.kr\r\n'), G), true)
+ok('Cc 에 공용함', forGroup(mail('From: a@b.c\r\nTo: x@y.z\r\nCc: viren@viren.kr\r\n'), G), true)
+ok('Delivered-To 에 공용함',
+  forGroup(mail('From: a@b.c\r\nDelivered-To: viren@viren.kr\r\n'), G), true)
+ok('X-Original-To 에 공용함',
+  forGroup(mail('From: a@b.c\r\nX-Original-To: viren@viren.kr\r\n'), G), true)
+ok('이름 달고 온 것',
+  forGroup(mail('To: "바이렌" <viren@viren.kr>\r\n'), G), true)
+ok('대소문자 안 가린다', forGroup(mail('To: VIREN@Viren.KR\r\n'), G), true)
+ok('여러 명 중에 끼어 있음',
+  forGroup(mail('To: a@b.c, viren@viren.kr, d@e.f\r\n'), G), true)
+ok('접힌 줄에 있음',
+  forGroup(mail('To: a@b.c,\r\n viren@viren.kr\r\n'), G), true)
+
+ok('🔴 개인 메일은 거른다',
+  forGroup(mail('From: friend@x.com\r\nTo: jieunp711@viren.kr\r\n'), G), false)
+ok('🔴 다른 그룹 주소도 거른다',
+  forGroup(mail('To: sales@viren.kr\r\n'), G), false)
+ok('🔴 받는사람 머리글이 아예 없음',
+  forGroup(mail('From: a@b.c\r\nSubject: 제목만\r\n'), G), false)
+ok('🔴 보낸사람에만 있으면 안 된다',
+  forGroup(mail('From: viren@viren.kr\r\nTo: jieunp711@viren.kr\r\n'), G), false)
+ok('🔴 제목에 적혀 있을 뿐이면 안 된다',
+  forGroup(mail('To: jieunp711@viren.kr\r\nSubject: viren@viren.kr 관련 문의\r\n'), G), false)
+
+ok('주소를 둘 적으면 둘 다',
+  [forGroup(mail('To: viren@viren.kr\r\n'), 'viren@viren.kr, help@viren.kr'),
+    forGroup(mail('To: help@viren.kr\r\n'), 'viren@viren.kr, help@viren.kr')], [true, true])
+/* 비워 두면 거르지 않는다. 다만 **실제로는 그럴 수 없다** —
+   MAIL_GROUP 이 없으면 onRequestPost 가 503 으로 돌아서 아예 돌지 않는다. */
+ok('비우면 거르지 않는다(실제로는 못 비움)',
+  forGroup(mail('To: jieunp711@viren.kr\r\n'), ''), true)
+
+ok('받는사람만 모은다',
+  recipientText('From: a@b.c\r\nTo: x@y.z\r\nSubject: hi\r\nCc: q@r.s\r\n'), 'x@y.z q@r.s')
+
+/* ── ⑥ 처음부터 끝까지 한 번 ───────────────────────────────────────── */
 /* 여기서 나온 {from, subject} 가 그대로 post_mail() 로 넘어가고,
    DB 쪽에서 '새 메일 · 백승민\n10월 영상 시안' 두 줄로 바뀐다. */
 const korHead = `From: =?UTF-8?B?${b64('백승민')}?= <seung@viren.kr>\r\nSubject: =?UTF-8?B?${b64('10월 영상 시안')}?=\r\n\r\n`

@@ -1283,6 +1283,8 @@ create table if not exists public.mail_state (
   last_uid    bigint,        -- 여기까지는 이미 알렸다
   checked_at  timestamptz,
   last_error  text,
+  -- 마지막 번 **숫자만**: '새 2 · 올림 1 · 개인 1 · 읽음 0'. 내용·주소는 적지 않는다.
+  last_note   text,
   -- 메신저 '메일' 방. 이름으로 찾으면 같은 이름의 방과 섞여서 id 로 붙든다.
   room_id     uuid references public.rooms(id) on delete set null
 );

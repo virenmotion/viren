@@ -18,11 +18,21 @@
  *     BODY[] 가 아니라 BODY.PEEK[] 로 꺼낸다. 안 그러면 카카오워크에서
  *     안 읽은 메일이 저절로 읽음으로 바뀐다 — 절대 그러면 안 된다.
  *   · 이미 읽은 메일(\Seen)은 알리지 않는다. 1분 사이에 누가 먼저 봤으면 조용히 넘어간다.
- *   · 공용함 하나(viren@viren.kr)만 본다. 직원 개인 메일함은 각자 카카오워크에서.
  *   · 1분마다 두드리므로 **새 게 없을 때가 싸야 한다** — STATUS 한 번으로 끝낸다.
  *
- * 환경변수 — /api/mail 과 같은 것을 쓴다 (Cloudflare Pages → Variables and Secrets)
- *   MAIL_IMAP_HOST · MAIL_IMAP_PORT(기본 993) · MAIL_USER · MAIL_PASS
+ * ⚠️ **어느 메일함을 보는가 (2026-10-26 지은님 확인)**
+ *   viren@viren.kr 은 **그룹메일**이다 — 들여다볼 메일함이 따로 없고, 받는 사람들의
+ *   개인 메일함으로 들어간다. 그래서 받는 사람 한 명의 메일함(MAIL_USER)에 붙되,
+ *   **MAIL_GROUP 주소로 온 것만** 골라 낸다. 그 사람의 개인 메일은 건드리지 않는다.
+ *   ⚠️ MAIL_GROUP 을 비우면 **그 사람의 모든 메일**이 전 직원에게 알림으로 나간다.
+ *      비워 두지 말 것.
+ *
+ * 환경변수 (Cloudflare Pages → Variables and Secrets)
+ *   MAIL_IMAP_HOST  imap.kakaowork.com
+ *   MAIL_IMAP_PORT  993 (기본값이라 안 넣어도 된다)
+ *   MAIL_USER       붙을 사람의 계정 (예: jieunp711@viren.kr)
+ *   MAIL_PASS       카카오워크 'POP3/IMAP 비밀번호' — **Secret 으로**
+ *   MAIL_GROUP      알릴 공용 주소. 쉼표로 여러 개 (예: viren@viren.kr)
  *   VITE_SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY · PUSH_SECRET
  */
 
@@ -128,6 +138,34 @@ export function fromName(s) {
   return (m ? m[2] : t).trim()
 }
 
+/* 받는사람 쪽 머리글을 **모두** 모은다.
+   ⚠️ headerValue 는 첫 하나만 가져온다. 여기서는 Delivered-To 처럼
+      여러 번 오는 것까지 다 봐야 해서 따로 모은다. */
+const TO_FIELDS = ['to:', 'cc:', 'delivered-to:', 'x-original-to:', 'x-forwarded-to:']
+export function recipientText(block) {
+  const out = []
+  let keep = false
+  for (const line of String(block).split(/\r?\n/)) {
+    if (/^[ \t]/.test(line)) { if (keep) out.push(line.trim()); continue }   // 접힌 줄
+    const low = line.toLowerCase()
+    keep = TO_FIELDS.some((w) => low.startsWith(w))
+    if (keep) out.push(line.slice(line.indexOf(':') + 1).trim())
+  }
+  return out.join(' ').toLowerCase()
+}
+
+/* 공용함(그룹메일) 주소로 온 메일인가?
+   viren@viren.kr 은 **그룹메일**이라 들여다볼 메일함이 따로 없다. 그래서 받는
+   사람의 개인 메일함을 보되, **그 주소로 온 것만** 골라 낸다(지은님 2026-10-26).
+   그러지 않으면 개인 메일의 보낸사람·제목이 전 직원에게 뿌려진다.
+   ⚠️ MAIL_GROUP 을 비워 두면 **메일함의 모든 메일**이 알림으로 나간다. */
+export function forGroup(block, list) {
+  const addrs = String(list || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
+  if (!addrs.length) return true
+  const hay = recipientText(block)
+  return addrs.some((a) => hay.includes(a))
+}
+
 /* ── Supabase (서비스 키로) ─────────────────────────────────────────── */
 function db(env) {
   const base = `${env.VITE_SUPABASE_URL}/rest/v1`
@@ -151,8 +189,10 @@ function db(env) {
 
 /* ── 본체 ───────────────────────────────────────────────────────────── */
 export async function onRequestPost({ request, env }) {
+  /* ⚠️ MAIL_GROUP 도 **반드시** 있어야 한다. 없으면 그 사람의 개인 메일까지
+     전 직원에게 알림으로 나간다. 빠뜨렸으면 차라리 아무것도 안 하는 게 낫다. */
   const missing = ['VITE_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'PUSH_SECRET',
-    'MAIL_IMAP_HOST', 'MAIL_USER', 'MAIL_PASS']
+    'MAIL_IMAP_HOST', 'MAIL_USER', 'MAIL_PASS', 'MAIL_GROUP']
     .filter((k) => !env[k])
   if (missing.length) return json({ error: '메일 알림 설정이 아직 없습니다.', missing }, 503)
 
@@ -207,23 +247,27 @@ export async function onRequestPost({ request, env }) {
     /* ⚠️ BODY.PEEK — 읽음 표시를 건드리지 않고 머리글만 본다.
        ⚠️ 'UID FETCH n:*' 는 해당하는 게 없어도 **마지막 한 통을 돌려준다.**
           그래서 받은 뒤에 uid > since 로 한 번 더 거른다. */
-    const raw = await im.cmd(
-      `UID FETCH ${since + 1}:* (UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM SUBJECT)])`)
+    const raw = await im.cmd(`UID FETCH ${since + 1}:* (UID FLAGS BODY.PEEK[HEADER.FIELDS `
+      + `(FROM SUBJECT TO CC DELIVERED-TO X-ORIGINAL-TO X-FORWARDED-TO)])`)
     await im.bye()
 
     const items = parseFetch(raw).filter((x) => x.uid > since)
     const top = items.length ? Math.max(...items.map((x) => x.uid)) : since
 
-    const mails = items
-      .filter((x) => !x.seen)              // 벌써 읽은 건 알리지 않는다
-      .map((x) => ({
-        from: fromName(headerValue(x.header, 'From')),
-        subject: decodeWords(headerValue(x.header, 'Subject')).trim(),
-      }))
+    const unread = items.filter((x) => !x.seen)        // 벌써 읽은 건 알리지 않는다
+    const ours = unread.filter((x) => forGroup(x.header, env.MAIL_GROUP))
+    const skipped = unread.length - ours.length        // 개인 메일 — 아무것도 남기지 않는다
+    const mails = ours.map((x) => ({
+      from: fromName(headerValue(x.header, 'From')),
+      subject: decodeWords(headerValue(x.header, 'Subject')).trim(),
+    }))
+    /* 숫자만 적는다. 왜 안 뜨는지 알아보려면 이게 있어야 한다
+       (새 메일은 있는데 올린 게 0 이면 공용함 거르기가 안 맞는 것). */
+    const note = `새 ${items.length} · 올림 ${mails.length} · 개인 ${skipped} · 읽음 ${items.length - unread.length}`
 
     if (!mails.length) {
-      await mark({ last_uid: Math.max(top, since) })
-      return json({ ok: true, new: items.length, posted: 0 })
+      await mark({ last_uid: Math.max(top, since), last_note: note })
+      return json({ ok: true, new: items.length, posted: 0, skipped })
     }
 
     /* 메신저 '메일' 방에 올린다. 전 직원이 그 방에 들어 있고(post_mail 이 챙긴다),
@@ -233,8 +277,8 @@ export async function onRequestPost({ request, env }) {
 
     /* ⚠️ **올린 뒤에** 본 번호를 적는다. 올리다 실패하면 번호를 안 올려서
        다음 1분에 다시 시도한다. 먼저 적으면 그 메일은 영영 안 뜬다. */
-    await mark({ last_uid: Math.max(top, since) })
-    return json({ ok: true, new: items.length, posted })
+    await mark({ last_uid: Math.max(top, since), last_note: note })
+    return json({ ok: true, new: items.length, posted, skipped })
   } catch (e) {
     try { await im?.bye() } catch { /* 그만 */ }
     // 실패해도 '언제 확인했는지' 와 까닭은 남긴다 — 안 오는 이유를 알아야 한다
