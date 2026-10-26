@@ -1387,30 +1387,6 @@ revoke execute on function public.mail_room() from anon, public, authenticated;
 revoke execute on function public.post_mail(jsonb) from anon, public, authenticated;
 grant execute on function public.post_mail(jsonb) to service_role;
 
--- 사람마다 따로 두는 설정 (2026-10-26) ------------------------------------
--- 지금은 하나뿐이다: 메일 카드 '자세히 읽기' 를 카카오워크 **앱**으로 여는 주소.
--- 앱으로 들어가는 주소 `https://kakaowork.com/archives/<코드>` 는 **그 사람의**
--- '카카오워크 메일' 대화방을 가리켜서 한 주소를 모두가 쓸 수 없다. 그래서 각자 넣는다.
--- 안 넣은 사람은 settings.mail_web_url(웹 메일함)로 간다.
-create table if not exists public.user_prefs (
-  user_id      uuid primary key references public.employees(id) on delete cascade,
-  mail_app_url text not null default '',
-  updated_at   timestamptz not null default now()
-);
-
-alter table public.user_prefs enable row level security;
-revoke all on public.user_prefs from anon;
-
--- ⚠️ **내 줄만** 보고 고친다. 남의 것은 읽지도 못한다.
-create policy "내 것만 본다" on public.user_prefs
-  for select to authenticated using (user_id = auth.uid());
-create policy "내 것만 넣는다" on public.user_prefs
-  for insert to authenticated
-  with check (user_id = auth.uid() and public.is_active_employee());
-create policy "내 것만 고친다" on public.user_prefs
-  for update to authenticated
-  using (user_id = auth.uid()) with check (user_id = auth.uid());
-
 -- ⑥ 때맞춰 도는 것들 -------------------------------------------------------
 -- ⚠️ 예약(pg_cron)은 **설치 맨 끝에 따로** 돌린다. Supabase 쪽 설정에 따라
 --    실패할 수 있고, 한 덩어리로 돌리면 앞의 것까지 되돌아간다.

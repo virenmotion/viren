@@ -5,7 +5,6 @@ import { dot } from '../lib/dates'
 import { ErrorBox } from '../components/ui'
 import PushCard from '../components/PushCard'
 import InstallCard from '../components/InstallCard'
-import MailLinkCard from '../components/MailLinkCard'
 
 /* 내 정보 — 왼쪽 프로필·비밀번호, 오른쪽 앱 설치·알림. (시안 14)
    ⚠️ 보이는 값은 모두 관리자가 정한다. 여기서 고치지 못한다(기존 그대로). */
@@ -71,7 +70,6 @@ export default function Me() {
         <div className="stack-md">
           <InstallCard />
           <PushCard />
-          <MailLinkCard />
           <div className="actions start">
             <button className="btn" onClick={() => supabase.auth.signOut()}>로그아웃</button>
           </div>

@@ -28,20 +28,12 @@ export default function ChatRoom() {
   /* 붙여넣었지만 **아직 안 보낸** 그림. { file, url } */
   const [pend, setPend] = useState(null)
   /* 메일 알림 카드의 '자세히 읽기' 가 여는 주소. 비어 있으면 단추를 안 보인다.
-     **내 카카오워크 앱 주소(내 정보에서 넣음)가 있으면 그걸 먼저** 쓴다 —
-     휴대폰에서 브라우저 대신 앱으로 들어간다. 없으면 공용 웹 메일함.
      ⚠️ 방을 옮겨도 다시 받지 않는다 — 한 번만 받아 둔다. */
   const [mailUrl, setMailUrl] = useState('')
   useEffect(() => {
-    let alive = true
-    Promise.all([
-      supabase.from('settings').select('mail_web_url').eq('id', 1).maybeSingle(),
-      supabase.from('user_prefs').select('mail_app_url').eq('user_id', userId).maybeSingle(),
-    ]).then(([web, mine]) => {
-      if (alive) setMailUrl(mine.data?.mail_app_url || web.data?.mail_web_url || '')
-    })
-    return () => { alive = false }
-  }, [userId])
+    supabase.from('settings').select('mail_web_url').eq('id', 1).maybeSingle()
+      .then(({ data }) => setMailUrl(data?.mail_web_url || ''))
+  }, [])
   const endRef = useRef(null)
   const fileRef = useRef(null)
   /* ⚠️ 방을 빠르게 옮기면 **먼저 보낸 조회가 나중에 돌아올 수 있다.**

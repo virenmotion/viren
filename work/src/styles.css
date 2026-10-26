@@ -1157,10 +1157,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   overflow-wrap: anywhere;
 }
 .bubble-row.mine .bubble { background: var(--accent-soft); border-color: #f0dfa4; }
-/* 내 정보 — '앱으로 열기' 넣는 법 (2026-10-26) */
-.howto { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
-.howto li { line-height: 1.55; }
-
 /* 메일 알림 카드 (2026-10-26) — 카카오워크 메일 봇과 같은 모양.
    말풍선 안쪽 여백을 없애고 카드가 가장자리까지 차게 한다. */
 .bubble.mail-card { padding: 0; overflow: hidden; background: var(--surface); width: 100%; }
