@@ -27,6 +27,13 @@ export default function ChatRoom() {
   const [busy, setBusy] = useState(false)
   /* 붙여넣었지만 **아직 안 보낸** 그림. { file, url } */
   const [pend, setPend] = useState(null)
+  /* 메일 알림 카드의 '자세히 읽기' 가 여는 주소. 비어 있으면 단추를 안 보인다.
+     ⚠️ 방을 옮겨도 다시 받지 않는다 — 한 번만 받아 둔다. */
+  const [mailUrl, setMailUrl] = useState('')
+  useEffect(() => {
+    supabase.from('settings').select('mail_web_url').eq('id', 1).maybeSingle()
+      .then(({ data }) => setMailUrl(data?.mail_web_url || ''))
+  }, [])
   const endRef = useRef(null)
   const fileRef = useRef(null)
   /* ⚠️ 방을 빠르게 옮기면 **먼저 보낸 조회가 나중에 돌아올 수 있다.**
@@ -218,6 +225,9 @@ export default function ChatRoom() {
               const prev = msgs[i - 1]
               const mine = m.sender_id === userId
               const sticker = m.file ? null : readMascot(m.text)
+              /* 메일 알림 카드. ⚠️ **보낸 사람이 없는 글**일 때만 카드로 그린다 —
+                 사람이 자기 글에 meta 를 넣어 메일인 척할 수 없게. */
+              const mail = !m.sender_id && m.meta?.kind === 'mail' ? m.meta : null
               /* 같은 사람이 1분 안에 이어 쓰면 이름을 또 적지 않는다 */
               const run = prev && prev.sender_id === m.sender_id &&
                 sameDay(prev.created_at, m.created_at) &&
@@ -237,10 +247,11 @@ export default function ChatRoom() {
                       {/* 보낸 사람이 없는 글 = 시스템이 올린 것(메일 알림) */}
                       {!mine && !run && <span className="bubble-who">{m.sender_id ? (empOf(m.sender_id)?.name || '퇴사자') : '메일'}</span>}
                       <div className="bubble-line">
-                        <div className={`bubble${sticker ? ' mascot-bubble' : ''}`}>
-                          {m.file ? <Attach file={m.file} />
-                            : sticker ? <MascotImage asset={sticker} />
-                              : m.text}
+                        <div className={`bubble${sticker ? ' mascot-bubble' : ''}${mail ? ' mail-card' : ''}`}>
+                          {mail ? <MailCard mail={mail} url={mailUrl} />
+                            : m.file ? <Attach file={m.file} />
+                              : sticker ? <MascotImage asset={sticker} />
+                                : m.text}
                         </div>
                         {mine && <ReadMark left={unreadBy(m.created_at)} total={others.length} />}
                         <span className="bubble-time">{clock(m.created_at)}</span>
@@ -294,6 +305,33 @@ export default function ChatRoom() {
       <p className="hint">Enter 로 보내고, Shift+Enter 로 줄을 바꿔요. 캡처한 그림은 Ctrl+V 로 붙여 넣은 뒤 보내기를 누르면 올라가요.</p>
       </div>
     </div>
+  )
+}
+
+/* 메일 알림 카드 — 카카오워크 메일 봇과 같은 모양(지은님 2026-10-26).
+   맨 위 머리 → 제목 → 보낸사람 → 내용 미리보기 → 자세히 읽기. */
+function MailCard({ mail, url }) {
+  return (
+    <>
+      <div className="mc-head">새 메일이 도착했습니다.</div>
+      <div className="mc-body">
+        <strong className="mc-title">{mail.subject || '(제목 없음)'}</strong>
+        <div className="mc-row">
+          <span className="mc-k">보낸사람</span>
+          <span className="mc-v">{mail.from || '보낸사람 모름'}</span>
+        </div>
+        {mail.preview && (
+          <div className="mc-row">
+            <span className="mc-k">내용 미리보기</span>
+            <span className="mc-v">{mail.preview}</span>
+          </div>
+        )}
+        {/* 주소를 안 넣었으면 단추를 아예 안 보인다(관리 → 회사 정보에서 넣는다) */}
+        {url && (
+          <a className="mc-open" href={url} target="_blank" rel="noopener noreferrer">자세히 읽기</a>
+        )}
+      </div>
+    </>
   )
 }
 

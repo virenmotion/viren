@@ -13,8 +13,8 @@ writeFileSync(copy, readFileSync(src, 'utf8')
   .replace(/^import .*from 'cloudflare:sockets'$/m, '')
   .replace(/^import .*from '\.\/mail\.js'$/m, '')
   .replace(/^import .*from '\.\/notify\.js'$/m, ''))
-const { parseFetch, headerValue, decodeWords, fromName, recipientText, forGroup } =
-  await import(pathToFileURL(copy).href)
+const { parseFetch, headerValue, decodeWords, fromName, recipientText, forGroup,
+  splitMime, decodeBody, tidy, previewOf, literalOf } = await import(pathToFileURL(copy).href)
 
 let pass = 0, fail = 0
 const ok = (name, got, want) => {
@@ -123,7 +123,74 @@ ok('비우면 거르지 않는다(실제로는 못 비움)',
 ok('받는사람만 모은다',
   recipientText('From: a@b.c\r\nTo: x@y.z\r\nSubject: hi\r\nCc: q@r.s\r\n'), 'x@y.z q@r.s')
 
-/* ── ⑥ 처음부터 끝까지 한 번 ───────────────────────────────────────── */
+/* ── ⑥ 본문 미리보기 ───────────────────────────────────────────────── */
+/* ⚠️ 못 읽겠으면 **빈 글자**여야 한다. 깨진 글자를 보여 주느니 안 보이는 게 낫다. */
+const CRLF = '\r\n'
+const mk = (lines) => lines.join(CRLF)
+
+ok('머리글과 본문 가르기',
+  splitMime('From: a@b.c\r\nSubject: hi\r\n\r\n본문입니다'),
+  { head: 'From: a@b.c\r\nSubject: hi', body: '본문입니다' })
+ok('본문이 없으면', splitMime('From: a@b.c').body, '')
+
+ok('여러 줄을 한 줄로', tidy('  가\n\n 나   다  '), '가 나 다')
+ok('길면 자른다', tidy('가'.repeat(200)).length, 141)   // 140 + …
+ok('빈 값', tidy(null), '')
+
+ok('base64 풀기', decodeBody(Buffer.from('안녕하세요', 'utf8').toString('base64'), 'base64', 'utf-8'), '안녕하세요')
+ok('base64 가 끊겨 있어도 되는 데까지',
+  decodeBody(`${Buffer.from('안녕하세요 반갑습니다', 'utf8').toString('base64').slice(0, 12)}`, 'base64', 'utf-8'),
+  '안녕하')
+ok('quoted-printable 풀기', decodeBody('=EC=95=88=EB=85=95', 'quoted-printable', 'utf-8'), '안녕')
+ok('quoted-printable 줄바꿈 이음', decodeBody('abc=\r\ndef', 'quoted-printable', 'utf-8'), 'abcdef')
+ok('그냥 글(7bit)', decodeBody('hello', '', 'us-ascii'), 'hello')
+ok('🔴 모르는 글자표는 포기(깨진 글자 안 보임)', decodeBody('뭔가', '8bit', 'euc-kr'), null)
+
+ok('단순 text/plain',
+  previewOf(mk(['From: a@b.c', 'Content-Type: text/plain; charset=UTF-8', '', '안녕하세요 바이렌입니다.'])),
+  '안녕하세요 바이렌입니다.')
+
+ok('text/html 은 태그를 벗긴다',
+  previewOf(mk(['Content-Type: text/html; charset=UTF-8', '',
+    '<html><head><style>p{color:red}</style></head><body><p>안녕</p><p>하세요</p></body></html>'])),
+  '안녕 하세요')
+
+const BND = '----=_Part_1'
+ok('multipart 는 text/plain 을 고른다',
+  previewOf(mk([`Content-Type: multipart/alternative; boundary="${BND}"`, '',
+    `--${BND}`, 'Content-Type: text/plain; charset=UTF-8', '', '글자판 내용', '',
+    `--${BND}`, 'Content-Type: text/html; charset=UTF-8', '', '<p>에이치티엠엘</p>', '',
+    `--${BND}--`])),
+  '글자판 내용')
+
+ok('text/plain 이 없으면 html 을 쓴다',
+  previewOf(mk([`Content-Type: multipart/alternative; boundary="${BND}"`, '',
+    `--${BND}`, 'Content-Type: text/html; charset=UTF-8', '', '<p>에이치티엠엘만</p>', '',
+    `--${BND}--`])),
+  '에이치티엠엘만')
+
+ok('multipart + base64 한글',
+  previewOf(mk([`Content-Type: multipart/mixed; boundary="${BND}"`, '',
+    `--${BND}`, 'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: base64', '',
+    Buffer.from('10월 정산 내역 보냅니다.', 'utf8').toString('base64'), '',
+    `--${BND}--`])),
+  '10월 정산 내역 보냅니다.')
+
+ok('🔴 글자가 든 조각이 없으면 빈 글자',
+  previewOf(mk([`Content-Type: multipart/mixed; boundary="${BND}"`, '',
+    `--${BND}`, 'Content-Type: image/png', 'Content-Transfer-Encoding: base64', '', 'iVBORw0KGgo=', '',
+    `--${BND}--`])), '')
+ok('🔴 아무것도 아닌 것', previewOf(''), '')
+ok('🔴 머리글만', previewOf('From: a@b.c\r\nSubject: hi'), '')
+
+/* FETCH 답에서 알맹이만 떼기 */
+ok('알맹이 떼기',
+  literalOf('* 1 FETCH (UID 5 BODY[]<0> {20}\r\nFrom: a@b.c\r\n\r\n하이\r\n)\r\na3 OK Success\r\n'),
+  'From: a@b.c\r\n\r\n하이')
+ok('🔴 알맹이가 없으면', literalOf('a3 OK Success'), '')
+
+/* ── ⑦ 처음부터 끝까지 한 번 ───────────────────────────────────────── */
 /* 여기서 나온 {from, subject} 가 그대로 post_mail() 로 넘어가고,
    DB 쪽에서 '새 메일 · 백승민\n10월 영상 시안' 두 줄로 바뀐다. */
 const korHead = `From: =?UTF-8?B?${b64('백승민')}?= <seung@viren.kr>\r\nSubject: =?UTF-8?B?${b64('10월 영상 시안')}?=\r\n\r\n`

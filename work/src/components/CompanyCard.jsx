@@ -22,6 +22,7 @@ const FIELDS = [
   ['company_fax', '팩스번호', '-', '없으면 - 로 두세요'],
   ['company_address', '소재지', '서울특별시 …', '', true],
   ['ai_office_url', 'AI 사무실 주소', 'https://…', '홈 바로가기의 ‘AI 사무실’. 비우면 그 칸이 안 보입니다', true],
+  ['mail_web_url', '메일함 주소', 'https://…', '메신저 ‘메일’ 방 알림의 ‘자세히 읽기’. 비우면 그 단추가 안 보입니다', true],
 ]
 
 export default function CompanyCard() {

@@ -166,6 +166,119 @@ export function forGroup(block, list) {
   return addrs.some((a) => hay.includes(a))
 }
 
+/* ── 본문 미리보기 ──────────────────────────────────────────────────
+   ⚠️ **여기서만 본문을 본다.** 앞부분 몇 KB 만 가져와 한 줄로 줄인다.
+      그 한 줄은 메신저 '메일' 방에 남는다 — 공용함(MAIL_GROUP)으로 온
+      메일에만 해당한다(지은님 2026-10-26, 카카오워크 봇과 같은 모양).
+   ⚠️ 자신이 없으면 **빈 글자**를 돌려준다. 깨진 글자를 보여 주느니 안 보이는 게 낫다. */
+
+/* 머리글과 본문을 가른다(빈 줄 하나가 경계다) */
+export function splitMime(raw) {
+  const m = String(raw).match(/\r?\n\r?\n/)
+  if (!m) return { head: String(raw), body: '' }
+  return { head: String(raw).slice(0, m.index), body: String(raw).slice(m.index + m[0].length) }
+}
+
+const ctParam = (head, name) => {
+  const m = headerValue(head, 'Content-Type').match(new RegExp(`${name}\\s*=\\s*"?([^";\\s]+)"?`, 'i'))
+  return m ? m[1] : ''
+}
+const ctype = (head) => (headerValue(head, 'Content-Type') || 'text/plain').toLowerCase()
+const cte = (head) => (headerValue(head, 'Content-Transfer-Encoding') || '').trim().toLowerCase()
+
+/* base64 / quoted-printable 을 푼다. 못 풀면 null. */
+export function decodeBody(text, enc, charset) {
+  const cs = (charset || 'utf-8').toLowerCase()
+  try {
+    if (enc === 'base64') {
+      const clean = String(text).replace(/[^A-Za-z0-9+/=]/g, '')
+      /* ⚠️ 뒤에 다른 글자가 섞여 있을 수 있다(끝 경계 등). 채움표(=) 까지만 쓴다 —
+         채움표 뒤에 뭐가 붙으면 atob 이 통째로 실패해서 미리보기가 사라진다. */
+      const core = (clean.match(/^[A-Za-z0-9+/]*={0,2}/) || [''])[0]
+      // 앞부분만 받아와서 끝이 잘려 있다 — 4의 배수로 맞춘다
+      const cut = core.slice(0, core.length - (core.length % 4))
+      if (!cut) return ''
+      const bin = atob(cut)
+      return dec(Uint8Array.from(bin, (c) => c.charCodeAt(0)), cs)
+    }
+    if (enc === 'quoted-printable') {
+      const j = String(text).replace(/=\r?\n/g, '')
+      const nums = []
+      for (let i = 0; i < j.length; i++) {
+        if (j[i] === '=' && /^[0-9a-f]{2}$/i.test(j.slice(i + 1, i + 3))) {
+          nums.push(parseInt(j.slice(i + 1, i + 3), 16)); i += 2
+        } else nums.push(j.charCodeAt(i) & 0xff)
+      }
+      return dec(Uint8Array.from(nums), cs)
+    }
+  } catch { return null }
+  /* 7bit·8bit — 소켓에서 이미 utf-8 로 읽었다.
+     ⚠️ 글자표가 utf-8 계열이 아니면 **이미 깨져 있다.** 그때는 포기한다. */
+  if (!['utf-8', 'utf8', 'us-ascii', 'ascii', 'iso-8859-1', ''].includes(cs)) return null
+  return String(text)
+}
+
+const stripHtml = (s) => String(s)
+  .replace(/<(script|style)[\s\S]*?<\/\1\s*>/gi, ' ')
+  .replace(/<!--[\s\S]*?-->/g, ' ')
+  .replace(/<\/?(br|p|div|tr|li|h[1-6]|table)[^>]*>/gi, ' ')
+  .replace(/<[^>]*>/g, ' ')
+  .replace(/&nbsp;/gi, ' ').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+  .replace(/&quot;/gi, '"').replace(/&#39;/g, "'").replace(/&amp;/gi, '&')
+
+/* 글자가 든 조각을 고른다. text/plain 을 먼저, 없으면 text/html. */
+function pickText(head, body, depth = 0) {
+  const ct = ctype(head)
+  if (ct.startsWith('multipart/')) {
+    const b = ctParam(head, 'boundary')
+    if (!b || depth > 2) return null
+    const esc = b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    /* ⚠️ 끝 경계(--경계--)에 줄바꿈이 없을 수 있다. 앞부분만 받아와서 잘렸거나
+       그게 맨 끝이거나. `$` 를 같이 받지 않으면 끝 경계가 본문에 섞여 들어간다. */
+    const parts = String(body).split(new RegExp(`--${esc}(?:--)?[ \\t]*(?:\\r?\\n|$)`))
+    let html = null
+    for (const p of parts) {
+      if (!/^content-/im.test(p)) continue        // 머리글 없는 조각(앞머리말)은 건너뛴다
+      const sp = splitMime(p)
+      const got = pickText(sp.head, sp.body, depth + 1)
+      if (!got) continue
+      if (!got.html) return got                   // text/plain 우선
+      if (!html) html = got
+    }
+    return html
+  }
+  if (ct.startsWith('text/plain')) return { text: body, enc: cte(head), charset: ctParam(head, 'charset'), html: false }
+  if (ct.startsWith('text/html')) return { text: body, enc: cte(head), charset: ctParam(head, 'charset'), html: true }
+  return null
+}
+
+/* 여러 줄을 한 줄로 줄인다 */
+export function tidy(s, max = 140) {
+  const t = String(s || '').replace(/[ ​]/g, ' ').replace(/\s+/g, ' ').trim()
+  return t.length > max ? `${t.slice(0, max).trimEnd()}…` : t
+}
+
+/* 메일 한 통(머리글+본문 앞부분)에서 미리보기 한 줄 */
+export function previewOf(raw) {
+  try {
+    const { head, body } = splitMime(raw)
+    const part = pickText(head, body)
+    if (!part) return ''
+    const s = decodeBody(part.text, part.enc, part.charset)
+    if (s === null) return ''
+    return tidy(part.html ? stripHtml(s) : s)
+  } catch { return '' }
+}
+
+/* BODY.PEEK[]<0.N> 답에서 알맹이만. 꼬리의 ')' 와 태그 줄은 떼어 낸다. */
+export function literalOf(raw) {
+  const m = String(raw).match(/\{(\d+)\}\r?\n/)
+  if (!m) return ''
+  return String(raw).slice(m.index + m[0].length)
+    .replace(/\r?\n\)\r?\n[A-Za-z]\d+ (OK|NO|BAD)[^\r\n]*\r?\n?$/i, '')
+    .replace(/\r?\n\)\r?\n?$/, '')
+}
+
 /* ── Supabase (서비스 키로) ─────────────────────────────────────────── */
 function db(env) {
   const base = `${env.VITE_SUPABASE_URL}/rest/v1`
@@ -249,7 +362,6 @@ export async function onRequestPost({ request, env }) {
           그래서 받은 뒤에 uid > since 로 한 번 더 거른다. */
     const raw = await im.cmd(`UID FETCH ${since + 1}:* (UID FLAGS BODY.PEEK[HEADER.FIELDS `
       + `(FROM SUBJECT TO CC DELIVERED-TO X-ORIGINAL-TO X-FORWARDED-TO)])`)
-    await im.bye()
 
     const items = parseFetch(raw).filter((x) => x.uid > since)
     const top = items.length ? Math.max(...items.map((x) => x.uid)) : since
@@ -257,10 +369,25 @@ export async function onRequestPost({ request, env }) {
     const unread = items.filter((x) => !x.seen)        // 벌써 읽은 건 알리지 않는다
     const ours = unread.filter((x) => forGroup(x.header, env.MAIL_GROUP))
     const skipped = unread.length - ours.length        // 개인 메일 — 아무것도 남기지 않는다
-    const mails = ours.map((x) => ({
-      from: fromName(headerValue(x.header, 'From')),
-      subject: decodeWords(headerValue(x.header, 'Subject')).trim(),
-    }))
+
+    /* 미리보기는 **올릴 메일만** 한 통씩 더 받아 온다.
+       ⚠️ 머리글 받아오기와 섞지 않는다. 머리글은 영문자뿐이라 길이가 정확한데,
+          본문에는 한글이 섞여 글자 수와 바이트 수가 어긋난다. 한 통씩 따로 받으면
+          그 어긋남이 그 통 꼬리에만 생겨서 아무 탈이 없다. */
+    const mails = []
+    for (const x of ours) {
+      let preview = ''
+      try {
+        preview = previewOf(literalOf(await im.cmd(`UID FETCH ${x.uid} (BODY.PEEK[]<0.16384>)`)))
+      } catch { /* 미리보기가 없어도 알림은 보낸다 */ }
+      mails.push({
+        from: fromName(headerValue(x.header, 'From')),
+        subject: decodeWords(headerValue(x.header, 'Subject')).trim(),
+        preview,
+      })
+    }
+    await im.bye()   // 미리보기까지 다 받은 뒤에 끊는다
+
     /* 숫자만 적는다. 왜 안 뜨는지 알아보려면 이게 있어야 한다
        (새 메일은 있는데 올린 게 0 이면 공용함 거르기가 안 맞는 것). */
     const note = `새 ${items.length} · 올림 ${mails.length} · 개인 ${skipped} · 읽음 ${items.length - unread.length}`

@@ -125,6 +125,8 @@ create table public.settings (
   -- AI 사무실 현황판 주소(공유키 포함).
   -- ⚠️ 코드에 적지 말 것 — 자바스크립트 묶음은 로그인 없이 누구나 받을 수 있고 저장소도 공개다.
   ai_office_url     text not null default '',
+  -- 메신저 메일 알림의 '메일함 열기' 단추가 여는 주소. 비우면 단추가 안 보인다.
+  mail_web_url      text not null default '',
   updated_at        timestamptz not null default now()
 );
 insert into public.settings (id) values (1);
@@ -1002,6 +1004,8 @@ create table if not exists public.messages (
   sender_id  uuid references public.employees(id),
   text       text not null default '',
   file       jsonb,                                  -- { path, name, size, type }
+  -- 시스템이 올린 글의 카드 값(메일 알림). 화면은 **보낸 사람이 없는 글**일 때만 카드로 그린다.
+  meta       jsonb,
   created_at timestamptz not null default now()
 );
 create index if not exists messages_room_idx on public.messages (room_id, created_at);
@@ -1345,10 +1349,10 @@ begin
   return v_id;
 end $$;
 
--- p_items 는 [{"from":"OpenAI","subject":"..."}, ...]
+-- p_items 는 [{"from":"OpenAI","subject":"...","preview":"..."}, ...]
 create or replace function public.post_mail(p_items jsonb) returns int
 language plpgsql security definer set search_path = public as $$
-declare v_room uuid; v_n int := 0; it jsonb;
+declare v_room uuid; v_n int := 0; it jsonb; v_from text; v_subj text; v_prev text;
 begin
   if jsonb_typeof(p_items) is distinct from 'array' or jsonb_array_length(p_items) = 0 then
     return 0;
@@ -1356,10 +1360,17 @@ begin
   v_room := public.mail_room();
 
   for it in select value from jsonb_array_elements(p_items) loop
-    insert into messages (room_id, sender_id, text)
-    values (v_room, null,
-      '새 메일 · ' || coalesce(nullif(btrim(it->>'from'), ''), '보낸사람 모름')
-      || E'\n' || coalesce(nullif(btrim(it->>'subject'), ''), '(제목 없음)'));
+    v_from := coalesce(nullif(btrim(it->>'from'), ''), '보낸사람 모름');
+    v_subj := coalesce(nullif(btrim(it->>'subject'), ''), '(제목 없음)');
+    v_prev := nullif(btrim(coalesce(it->>'preview', '')), '');
+
+    insert into messages (room_id, sender_id, text, meta)
+    values (
+      v_room, null,
+      -- 글은 휴대폰 알림·대화 목록이 쓴다. 사람이 읽을 수 있는 두 줄.
+      '새 메일 · ' || v_from || E'\n' || v_subj,
+      jsonb_build_object('kind', 'mail', 'from', v_from, 'subject', v_subj, 'preview', v_prev)
+    );
     v_n := v_n + 1;
   end loop;
 
