@@ -214,6 +214,10 @@ foreach ($ns in @("ns1.cafe24.com","ns2.cafe24.com","ns1.cafe24.co.kr","ns2.cafe
    - ① **카카오워크 → 환경설정 → POP3/IMAP 비밀번호 변경** 에서 비밀번호를 만든다.
          (IMAP 사용은 2026-10-26 확인 시점에 **이미 켜져 있었다.**
           서버 `imap.kakaowork.com` · 포트 `993`/SSL)
+   - ⚠️ **설정을 넣은 뒤 `Retry deployment` 를 쓸 때 조심.** 그 단추는 **그 배포가 쓰던
+         커밋을 다시 빌드한다** — 최신 코드가 아니다. 목록에서 옛 배포를 Retry 하면
+         **사이트가 그 시점으로 되돌아간다**(2026-10-26 실제로 겪음: 고친 화면이 사라졌다).
+         반드시 **맨 위(최신) 배포**를 Retry 하거나, 아무 커밋이나 하나 올려 새로 빌드시킨다.
    - ② **Cloudflare Pages → viren-work → Settings → Variables and Secrets** 에 4개:
          `MAIL_IMAP_HOST`=`imap.kakaowork.com` · `MAIL_USER`=붙을 사람 계정(예 `jieunp711@viren.kr`)
          · `MAIL_PASS`=①의 비밀번호(**Secret 으로**) · `MAIL_GROUP`=`viren@viren.kr`.
