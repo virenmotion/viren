@@ -1344,6 +1344,23 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
    ⚠️ Ctrl+V 가 바로 보내 버리는 걸 막으려고 둔 칸이다. 여기 있는 동안은
       아직 아무것도 올라가지 않았다. */
 /* 말풍선 속 주소 (2026-10-29) — 남색 글에 밑줄. 긴 주소는 말풍선 안에서 접힌다. */
+/* 근태 — 밤을 새워 퇴근이 다음날인 줄 (2026-10-29).
+   ⚠️ 시각만 적으면 '10:27 출근 · 01:34 퇴근' 이 거꾸로 보인다. 꼭 같이 적는다. */
+.plus1 {
+  margin-left: 5px; padding: 1px 5px; border-radius: 6px; vertical-align: 2px;
+  font-size: .68rem; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft);
+}
+.nextday { display: flex; align-items: center; gap: 7px; font-size: .88rem; cursor: pointer; }
+.nextday input { width: 17px; height: 17px; flex: none; accent-color: var(--accent); cursor: pointer; }
+.nextday strong { margin-left: 4px; color: var(--accent-ink); }
+.nextday.small { margin-top: 4px; font-size: .76rem; gap: 5px; }
+.nextday.small input { width: 14px; height: 14px; }
+/* 저장 전에 몇 시간이 되는지 — 거꾸로 적었으면 여기서 바로 보인다 */
+.edit-sum { margin: 0; font-size: .88rem; color: var(--ink-2); }
+.edit-sum strong { color: var(--ink); }
+.edit-sum.bad { color: var(--bad); }
+.edit-sum.bad strong { color: var(--bad); }
+
 .bubble-link { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
 .bubble-link:hover { color: var(--accent-ink); }
 .bubble-row.mine .bubble-link { color: var(--ink); }

@@ -13,6 +13,21 @@ import { FULL_MIN, dayMinutes, isWorkingDay, workStat, workTone } from '../lib/w
 /* 'HH:MM' + 날짜 → 한국 시간 timestamptz 문자열 */
 const toTs = (date, t) => (t ? `${date}T${t}:00+09:00` : null)
 
+/* 이 줄의 퇴근이 **다음날**에 찍힌 것인가 (밤을 새운 날).
+   ⚠️ 시각만 보면 알 수 없다 — 저장된 날짜끼리 견준다. */
+const outIsNext = (row) => {
+  if (!row?.check_out) return false
+  const d = new Date(row.check_out).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
+  return d > row.work_date
+}
+
+/* 고칠 거리 한 벌. next = 퇴근이 다음날인가, nextSet = 사람이 직접 건드렸는가
+   (건드렸으면 더는 자동으로 바꾸지 않는다). */
+const editOf = (d, r) => ({
+  date: d, in_t: hm(r?.check_in), out_t: hm(r?.check_out),
+  note: r?.note || '', next: outIsNext(r), nextSet: false,
+})
+
 async function fetchMonth(userIds, ym) {
   const days = monthDays(ym)
   const first = days[0], last = days.at(-1)
@@ -72,14 +87,34 @@ export default function Attendance() {
   }
 
   async function saveEdit() {
-    const { date, in_t, out_t, note } = editing
-    if (in_t && out_t && out_t < in_t) return setErr('퇴근 시각이 출근 시각보다 빠릅니다.')
+    const { date, in_t, out_t, note, next } = editing
+    /* ⚠️ 밤을 새운 날은 퇴근이 **다음날 날짜**에 찍힌다. '다음날 퇴근' 을 켜지 않은 채
+       퇴근이 더 이르면 그건 잘못 적은 것이다(지은님 2026-10-29). */
+    if (in_t && out_t && !next && out_t < in_t) {
+      return setErr('퇴근이 출근보다 이릅니다. 밤을 새웠다면 “다음날 퇴근” 을 켜 주세요.')
+    }
     const { error } = await supabase.from('attendance').upsert({
-      user_id: target, work_date: date, check_in: toTs(date, in_t), check_out: toTs(date, out_t), note: note.trim() || null,
+      user_id: target, work_date: date,
+      check_in: toTs(date, in_t),
+      check_out: toTs(next ? addDays(date, 1) : date, out_t),
+      note: note.trim() || null,
     })
     if (error) return setErr(errText(error))
     setEditing(null); load()
   }
+
+  /* 시각을 고치면 '다음날' 을 알아서 맞춘다.
+     ⚠️ 사람이 체크칸을 직접 건드린 뒤에는 **손대지 않는다**(nextSet). */
+  const setTime = (key, v) => setEditing((e) => {
+    const n = { ...e, [key]: v }
+    if (!e.nextSet) n.next = !!n.in_t && !!n.out_t && n.out_t < n.in_t
+    return n
+  })
+  /* 지금 적은 대로면 몇 시간이 되는지 — 저장 전에 눈으로 확인하라고 보여 준다 */
+  const editMin = editing?.in_t && editing?.out_t
+    ? minutesBetween(toTs(editing.date, editing.in_t),
+      toTs(editing.next ? addDays(editing.date, 1) : editing.date, editing.out_t))
+    : null
 
   const rowOf = (d) => data?.rows.find((r) => r.work_date === d)
   const minOf = (d) => dayMinutes(rowOf(d), d, now)
@@ -166,7 +201,7 @@ export default function Attendance() {
         <AttCalendar
           ym={ym} data={data} target={target} isAdmin={isAdmin} now={now}
           detail={detail} onDetail={setDetail}
-          onPick={(d, r) => setEditing({ date: d, in_t: hm(r?.check_in), out_t: hm(r?.check_out), note: r?.note || '' })}
+          onPick={(d, r) => setEditing(editOf(d, r))}
         />
       )}
 
@@ -184,10 +219,21 @@ export default function Attendance() {
             <h2 className="tnum">{editing.date.replaceAll('-', '.')} ({weekday(editing.date)})</h2>
             <div className="form-row">
               <label className="field"><span>출근</span>
-                <input type="time" value={editing.in_t} onChange={(e) => setEditing({ ...editing, in_t: e.target.value })} /></label>
+                <input type="time" value={editing.in_t} onChange={(e) => setTime('in_t', e.target.value)} /></label>
               <label className="field"><span>퇴근</span>
-                <input type="time" value={editing.out_t} onChange={(e) => setEditing({ ...editing, out_t: e.target.value })} /></label>
+                <input type="time" value={editing.out_t} onChange={(e) => setTime('out_t', e.target.value)} /></label>
             </div>
+            {/* 밤을 새운 날. 퇴근이 출근보다 이르면 알아서 켜지고, 직접 끄고 켤 수도 있다. */}
+            <label className="nextday">
+              <input type="checkbox" checked={!!editing.next}
+                onChange={(e) => setEditing({ ...editing, next: e.target.checked, nextSet: true })} />
+              <span>다음날 퇴근 {editing.next && <strong className="tnum">{addDays(editing.date, 1).slice(5).replace('-', '.')} {editing.out_t || ''}</strong>}</span>
+            </label>
+            {editMin !== null && (
+              <p className={`edit-sum${editMin <= 0 ? ' bad' : ''}`}>
+                이대로 저장하면 <strong>{editMin > 0 ? hoursText(editMin) : '0분'}</strong> 근무가 됩니다.
+              </p>
+            )}
             <label className="field"><span>수정 사유</span>
               <input value={editing.note} onChange={(e) => setEditing({ ...editing, note: e.target.value })} placeholder="왜 고쳤는지 적어 두면 좋습니다" /></label>
             <div className="actions">
@@ -211,8 +257,15 @@ export default function Attendance() {
                   return (
                     <tr key={d} className="editing">
                       <td className="tnum">{d.slice(5).replace('-', '.')} ({weekday(d)})</td>
-                      <td><input id="edit-in" type="time" value={editing.in_t} onChange={(e) => setEditing({ ...editing, in_t: e.target.value })} /></td>
-                      <td><input id="edit-out" type="time" value={editing.out_t} onChange={(e) => setEditing({ ...editing, out_t: e.target.value })} /></td>
+                      <td><input id="edit-in" type="time" value={editing.in_t} onChange={(e) => setTime('in_t', e.target.value)} /></td>
+                      <td>
+                        <input id="edit-out" type="time" value={editing.out_t} onChange={(e) => setTime('out_t', e.target.value)} />
+                        <label className="nextday small">
+                          <input type="checkbox" checked={!!editing.next}
+                            onChange={(e) => setEditing({ ...editing, next: e.target.checked, nextSet: true })} />
+                          <span>다음날</span>
+                        </label>
+                      </td>
                       <td colSpan={2}><input id="edit-note" placeholder="수정 사유" value={editing.note} onChange={(e) => setEditing({ ...editing, note: e.target.value })} /></td>
                       <td className="nowrap"><button className="btn small-btn primary" onClick={saveEdit}>저장</button> <button className="btn small-btn" onClick={() => setEditing(null)}>취소</button></td>
                     </tr>
@@ -222,7 +275,7 @@ export default function Attendance() {
                   <tr key={d} className={`${off ? 'weekend' : ''} ${d === today() ? 'today' : ''}`}>
                     <td className="tnum">{d.slice(5).replace('-', '.')} ({weekday(d)})</td>
                     <td className="tnum">{hm(r?.check_in)}</td>
-                    <td className="tnum">{hm(r?.check_out)}</td>
+                    <td className="tnum">{hm(r?.check_out)}{outIsNext(r) && <span className="plus1">+1일</span>}</td>
                     <td className="tnum">
                       {hoursText(minOf(d))}
                       {isWorkingDay(r, d, now) && <span className="muted small"> 근무 중</span>}
@@ -233,7 +286,7 @@ export default function Attendance() {
                       {r?.note && <span className="muted"> {r.note}</span>}
                     </td>
                     {isAdmin && (
-                      <td><button className="linkbtn small" onClick={() => setEditing({ date: d, in_t: hm(r?.check_in), out_t: hm(r?.check_out), note: r?.note || '' })}>수정</button></td>
+                      <td><button className="linkbtn small" onClick={() => setEditing(editOf(d, r))}>수정</button></td>
                     )}
                   </tr>
                 )
@@ -355,7 +408,7 @@ function DayDetail({ date, row, min, leave, working, onClose }) {
         <>
           <dl className="dd-grid">
             <div><dt>출근</dt><dd className="tnum">{hm(row.check_in) || '—'}</dd></div>
-            <div><dt>퇴근</dt><dd className="tnum">{row.check_out ? hm(row.check_out) : (working ? '근무 중' : '기록 없음')}</dd></div>
+            <div><dt>퇴근</dt><dd className="tnum">{row.check_out ? <>{hm(row.check_out)}{outIsNext(row) && <span className="plus1">+1일</span>}</> : (working ? '근무 중' : '기록 없음')}</dd></div>
             <div><dt>근무시간</dt><dd className="tnum">{hoursText(min) || '—'}</dd></div>
             <div><dt>달성률</dt><dd className="tnum">{s.pct}%</dd></div>
             <div>
