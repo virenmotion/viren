@@ -683,20 +683,42 @@ begin
 end $$;
 
 -- 퇴근은 여러 번 누르면 마지막 시각으로 바뀐다.
-create function public.check_out() returns attendance
-language plpgsql security definer set search_path = public as $$
+-- 합치는 기준 시각. 회사 기준이 바뀌면 **이 한 줄만** 고친다.
+-- ⚠️ 화면 쪽에도 같은 값이 있다 — src/lib/worktime.js 의 NIGHT_END_H.
+create or replace function public.night_end() returns time
+language sql immutable set search_path = public as $ select time '09:00' $;
+
+create or replace function public.check_out() returns attendance
+language plpgsql security definer set search_path = public as $
 declare
-  v_today date := (now() at time zone 'Asia/Seoul')::date;
+  v_now   timestamptz := now();
+  v_seoul timestamp   := v_now at time zone 'Asia/Seoul';
+  v_today date        := v_seoul::date;
+  v_date  date        := v_today;
   v_row   attendance;
 begin
   if not public.is_active_employee() then raise exception '권한이 없습니다.'; end if;
+
+  -- 밤을 넘긴 퇴근인가? 세 가지가 모두 맞을 때만 어제로 보낸다.
+  if v_seoul::time < public.night_end()
+     and not exists (select 1 from attendance
+                      where user_id = auth.uid() and work_date = v_today
+                        and check_in is not null)
+     and exists (select 1 from attendance
+                  where user_id = auth.uid() and work_date = v_today - 1
+                    and check_in is not null and check_out is null)
+  then
+    v_date := v_today - 1;
+  end if;
+
   update attendance
-  set check_out = now(), out_ip = host(public.request_ip())
-  where user_id = auth.uid() and work_date = v_today and check_in is not null
+     set check_out = v_now, out_ip = host(public.request_ip())
+   where user_id = auth.uid() and work_date = v_date and check_in is not null
   returning * into v_row;
+
   if not found then raise exception '오늘 출근 기록이 없습니다. 먼저 출근을 찍어 주세요.'; end if;
   return v_row;
-end $$;
+end $;
 
 -- ---------------------------------------------------------------------
 -- 회사 그림 저장소 — 법인 직인(도장)
@@ -1199,6 +1221,33 @@ end $$;
 drop trigger if exists on_message on public.messages;
 create trigger on_message after insert on public.messages
   for each row execute function public.on_message();
+
+create or replace function public.on_message_del() returns trigger
+language plpgsql security definer set search_path = public as $
+begin
+  update rooms r
+     set last_at   = coalesce(m.created_at, r.created_at),
+         last_text = case
+           -- 메일 알림방은 '보낸사람 · 제목' 으로 적는다(글 본문이 아니라).
+           when m.meta->>'kind' = 'mail'
+             then left(coalesce(m.meta->>'from', '보낸사람 모름') || ' · '
+                    || coalesce(m.meta->>'subject', '(제목 없음)'), 80)
+           when m.file is not null and coalesce(m.text, '') = '' then '사진·파일'
+           else left(m.text, 80)   -- 남은 글이 없으면 m 이 통째로 null → 미리보기도 빈다
+         end
+    from (select distinct old_rows.room_id from old_rows) g
+    left join lateral (
+      select * from messages where room_id = g.room_id
+       order by created_at desc, id desc limit 1
+    ) m on true
+   where r.id = g.room_id;
+  return null;
+end $;
+
+drop trigger if exists on_message_del on public.messages;
+create trigger on_message_del after delete on public.messages
+  referencing old table as old_rows
+  for each statement execute function public.on_message_del();
 
 -- ⑦ 실시간으로 받기 ----------------------------------------------------
 -- 이 줄이 있어야 새 글이 화면에 바로 뜬다(없으면 새로고침해야 보인다).

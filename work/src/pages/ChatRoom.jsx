@@ -2,12 +2,26 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { FEED_TAG, MAX_CHAT_MB, avatarTone, clock, dayLabel, fileSize, fileUrl, isImage, mailFeed, markRead, roomTitle, sameDay, sendFile, sendText } from '../lib/chat'
+import { FEED_TAG, MAX_CHAT_FILES, MAX_CHAT_MB, avatarTone, clock, dayLabel, fileSize, fileUrl, isImage, linkParts, mailFeed, markRead, roomTitle, sameDay, sendFile, sendText } from '../lib/chat'
 import { mascotText, readMascot } from '../lib/mascot'
 import MascotPicker, { MascotImage } from '../components/MascotPicker'
 import { ErrorBox, MailIcon } from '../components/ui'
 
 /* 대화 한 방. 들어오면 읽음 처리하고, 새 글은 Realtime 으로 바로 붙인다. */
+
+/* 말풍선 글. 주소는 눌러서 열 수 있게 바꾼다 (지은님 2026-10-29).
+   ⚠️ 남이 보낸 주소다. target="_blank" 에는 **rel 을 꼭 같이 둔다** —
+      noopener 가 없으면 열린 쪽에서 이 창을 다른 데로 돌릴 수 있다. */
+function Says({ text }) {
+  return (
+    <>
+      {linkParts(text).map((p, i) => (p.kind === 'link'
+        ? <a key={i} className="bubble-link" href={p.href}
+          target="_blank" rel="noopener noreferrer nofollow">{p.s}</a>
+        : <span key={i}>{p.s}</span>))}
+    </>
+  )
+}
 
 /* 상대가 읽었는지는 room_members.last_read_at 으로 안다.
    ⚠️ 이 칸은 Realtime 이 켜져 있지 않다(messages 만 켜 두었다).
@@ -25,8 +39,12 @@ export default function ChatRoom() {
   const [text, setText] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  /* 붙여넣었지만 **아직 안 보낸** 그림. { file, url } */
-  const [pend, setPend] = useState(null)
+  /* 붙여넣거나 끌어다 놓았지만 **아직 안 보낸** 파일들. [{ key, file, url }]
+     ⚠️ 한 장만 들고 있다가 2026-10-29 에 여러 장으로 바꿨다. 보내는 규칙은 그대로 —
+        **보내기를 눌러야** 올라간다(지은님 2026-10-26: 실수로 보내진다). */
+  const [pends, setPends] = useState([])
+  /* 파일을 끌어서 방 위에 올려 둔 상태인가 */
+  const [over, setOver] = useState(false)
   /* 메일 알림 카드의 '자세히 읽기' 가 여는 주소. 비어 있으면 단추를 안 보인다.
      ⚠️ 방을 옮겨도 다시 받지 않는다 — 한 번만 받아 둔다. */
   const [mailUrl, setMailUrl] = useState('')
@@ -88,13 +106,48 @@ export default function ChatRoom() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }) }, [msgs?.length])
 
-  /* 붙여넣은 그림을 버린다.
+  /* 들고 있던 파일을 버린다.
      ⚠️ 미리보기 주소(createObjectURL)는 반드시 돌려줘야 한다 — 안 그러면 쌓인다.
-        화면을 떠난 뒤에도 확실히 돌려주려고 주소를 ref 에 따로 들고 있는다. */
-  const pendUrl = useRef(null)
+        화면을 떠난 뒤에도 확실히 돌려주려고 주소를 ref 에 따로 모아 둔다. */
+  const pendUrls = useRef([])
   const dropPend = useCallback(() => {
-    if (pendUrl.current) { URL.revokeObjectURL(pendUrl.current); pendUrl.current = null }
-    setPend(null)
+    pendUrls.current.forEach((u) => u && URL.revokeObjectURL(u))
+    pendUrls.current = []
+    setPends([])
+  }, [])
+  /* 여러 장 중 한 장만 뺀다 */
+  const dropOne = useCallback((key) => {
+    setPends((prev) => {
+      const gone = prev.find((x) => x.key === key)
+      if (gone?.url) {
+        URL.revokeObjectURL(gone.url)
+        pendUrls.current = pendUrls.current.filter((u) => u !== gone.url)
+      }
+      return prev.filter((x) => x.key !== key)
+    })
+  }, [])
+
+  /* 고른 · 붙여넣은 · 끌어다 놓은 파일을 모두 같은 길로 받는다.
+     ⚠️ 너무 큰 파일은 **그 파일만** 빼고 나머지는 담는다 — 한 장 때문에 다 날리지 않는다. */
+  const addFiles = useCallback((list) => {
+    const all = Array.from(list || [])
+    if (!all.length) return
+    const big = all.filter((f) => f.size > MAX_CHAT_MB * 1024 * 1024).map((f) => f.name)
+    const ok = all.filter((f) => f.size <= MAX_CHAT_MB * 1024 * 1024)
+    setPends((prev) => {
+      const room = MAX_CHAT_FILES - prev.length
+      const take = ok.slice(0, Math.max(0, room))
+      const cut = ok.length - take.length
+      setErr([
+        big.length ? `${big.join(', ')} 은(는) ${MAX_CHAT_MB}MB 가 넘어 뺐어요.` : '',
+        cut > 0 ? `한 번에 ${MAX_CHAT_FILES}개까지예요. ${cut}개는 뺐어요.` : '',
+      ].filter(Boolean).join(' '))
+      return [...prev, ...take.map((f) => {
+        const url = isImage(f) ? URL.createObjectURL(f) : null
+        if (url) pendUrls.current.push(url)
+        return { key: `${Date.now()}-${Math.random().toString(36).slice(2)}`, file: f, url }
+      })]
+    })
   }, [])
   // 방을 옮기거나 화면을 떠나면 들고 있던 그림도 버린다
   useEffect(() => dropPend, [id, dropPend])
@@ -102,14 +155,20 @@ export default function ChatRoom() {
   async function go(e) {
     e?.preventDefault()
     if (busy) return
-    /* 붙여넣은 그림이 있으면 **그림 먼저**, 적어 둔 글이 있으면 이어서 보낸다 */
-    if (pend) {
+    /* 들고 있는 파일이 있으면 **파일 먼저 차례로**, 적어 둔 글이 있으면 이어서 보낸다.
+       ⚠️ 한 장이 실패해도 **이미 올라간 것은 되돌리지 않는다.** 어디까지 갔는지 알려 주고
+          남은 것만 그대로 들고 있는다 — 다시 '보내기' 를 누르면 이어서 올라간다. */
+    if (pends.length) {
       setBusy(true); setErr('')
+      let done = 0
       try {
-        await sendFile(id, userId, pend.file)
+        for (const it of pends) { await sendFile(id, userId, it.file); done++ }
         dropPend()
         if (text.trim()) { const keep = text; setText(''); await sendText(id, userId, keep) }
-      } catch (x) { setErr(x.message) }
+      } catch (x) {
+        pends.slice(0, done).forEach((it) => dropOne(it.key))
+        setErr(done > 0 ? `${done}개까지 보냈어요. 나머지는 ${x.message}` : x.message)
+      }
       setBusy(false)
       return
     }
@@ -130,17 +189,9 @@ export default function ChatRoom() {
     return ok
   }
 
-  async function putFile(f) {
-    if (!f) return
-    setBusy(true); setErr('')
-    try { await sendFile(id, userId, f) } catch (x) { setErr(x.message) }
-    setBusy(false)
-  }
-
-  async function pick(e) {
-    const f = e.target.files?.[0]
+  function pick(e) {
+    addFiles(e.target.files)
     e.target.value = ''
-    await putFile(f)
   }
 
   /* Ctrl+V 로 캡처한 그림 붙여넣기.
@@ -148,14 +199,37 @@ export default function ChatRoom() {
         '보내기' 를 눌러야 올라간다(지은님 2026-10-26: 실수로 보내진다).
      글을 붙여넣을 때는 clipboardData.files 가 비어 있어서 그대로 글이 들어간다. */
   function paste(e) {
-    const f = e.clipboardData?.files?.[0]
-    if (!f) return
+    const files = e.clipboardData?.files
+    if (!files?.length) return
     e.preventDefault()
-    if (f.size > MAX_CHAT_MB * 1024 * 1024) return setErr(`${MAX_CHAT_MB}MB 까지 보낼 수 있어요.`)
-    setErr('')
-    if (pendUrl.current) URL.revokeObjectURL(pendUrl.current)
-    pendUrl.current = isImage(f) ? URL.createObjectURL(f) : null
-    setPend({ file: f, url: pendUrl.current })
+    addFiles(files)
+  }
+
+  /* 끌어다 놓기 (지은님 2026-10-29).
+     ⚠️ dragover 에서 preventDefault 를 해야 **놓는 것이 허용된다.** 안 하면 브라우저가
+        그림을 새 탭으로 열어 버린다.
+     ⚠️ 안쪽 것 위를 지날 때마다 dragleave 가 와서 테두리가 깜빡인다. 깊이를 세서 막는다. */
+  const depth = useRef(0)
+  function dragIn(e) {
+    if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return
+    depth.current++
+    setOver(true)
+  }
+  function dragOut() {
+    depth.current = Math.max(0, depth.current - 1)
+    if (depth.current === 0) setOver(false)
+  }
+  function dragOver(e) {
+    if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+  function drop(e) {
+    if (!e.dataTransfer?.files?.length) return
+    e.preventDefault()
+    depth.current = 0
+    setOver(false)
+    addFiles(e.dataTransfer.files)
   }
 
   async function out() {
@@ -185,7 +259,10 @@ export default function ChatRoom() {
     others.filter((o) => !o.last_read_at || new Date(o.last_read_at) < new Date(iso)).length
 
   return (
-    <div className="stack chat-page">
+    <div className={`stack chat-page${over ? ' dropping' : ''}`}
+      onDragEnter={dragIn} onDragOver={dragOver} onDragLeave={dragOut} onDrop={drop}>
+      {/* 끌어다 놓는 중에만 뜬다. 방 전체가 받는 자리다. */}
+      {over && <div className="drop-veil" aria-hidden="true"><span>여기에 놓으면 보낼 수 있어요</span></div>}
       <div className="row-between chat-top">
         <div className="chat-who">
           {/* 좁은 화면에서만. 넓은 화면은 왼쪽에 목록이 그대로 보인다. */}
@@ -271,7 +348,7 @@ export default function ChatRoom() {
                           {mail ? <MailCard mail={mail} url={mailUrl} />
                             : m.file ? <Attach file={m.file} />
                               : sticker ? <MascotImage asset={sticker} />
-                                : m.text}
+                                : <Says text={m.text} />}
                         </div>
                         {mine && <ReadMark left={unreadBy(m.created_at)} total={others.length} />}
                         <span className="bubble-time">{clock(m.created_at)}</span>
@@ -291,38 +368,53 @@ export default function ChatRoom() {
       <div className="chat-foot">
       <ErrorBox>{err}</ErrorBox>
 
-      {/* 붙여넣었지만 아직 안 보낸 그림 — 보내기를 눌러야 올라간다 */}
-      {pend && (
-        <div className="pend">
-          {pend.url
-            ? <img className="pend-img" src={pend.url} alt="보낼 그림 미리보기" />
-            : <span className="pend-ico" aria-hidden="true">📎</span>}
-          <div className="pend-main">
-            <strong>{pend.file.name || '붙여넣은 그림'}</strong>
-            <span className="hint">{fileSize(pend.file.size)} · 보내기를 눌러야 올라가요</span>
+      {/* 들고 있지만 아직 안 보낸 파일들 — 보내기를 눌러야 올라간다 */}
+      {pends.length > 0 && (
+        <div className="pend-box">
+          <div className="pend-head">
+            <strong>보낼 파일 {pends.length}개</strong>
+            <span className="hint">보내기를 눌러야 올라가요</span>
+            {pends.length > 1 && (
+              <button type="button" className="linkbtn small" onClick={dropPend} disabled={busy}>모두 빼기</button>
+            )}
           </div>
-          <button type="button" className="btn small-btn" onClick={dropPend} disabled={busy}>취소</button>
+          <ul className="pend-list">
+            {pends.map((it) => (
+              <li key={it.key} className="pend">
+                {it.url
+                  ? <img className="pend-img" src={it.url} alt="" />
+                  : <span className="pend-ico" aria-hidden="true">📎</span>}
+                <div className="pend-main">
+                  <strong>{it.file.name || '붙여넣은 그림'}</strong>
+                  <span className="hint">{fileSize(it.file.size)}</span>
+                </div>
+                <button type="button" className="pend-del" disabled={busy}
+                  aria-label={`${it.file.name || '이 파일'} 빼기`} title="빼기"
+                  onClick={() => dropOne(it.key)}>✕</button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
       <form className="chat-send" onSubmit={go}>
-        <input type="file" ref={fileRef} hidden onChange={pick} />
+        <input type="file" ref={fileRef} hidden multiple onChange={pick} />
         <button type="button" className="btn icon-btn" aria-label="파일 보내기" disabled={busy}
           onClick={() => fileRef.current?.click()}>＋</button>
         <MascotPicker busy={busy} onSend={sendMascot} />
         <textarea
-          rows={1} value={text} placeholder={pend ? '설명을 함께 보낼 수 있어요' : '메시지를 쓰세요'}
+          rows={1} value={text} placeholder={pends.length ? '설명을 함께 보낼 수 있어요' : '메시지를 쓰세요'}
           onChange={(e) => setText(e.target.value)}
           onPaste={paste}
           onKeyDown={(e) => {
             // 붙여넣은 그림은 Esc 로 물린다
-            if (e.key === 'Escape' && pend) { e.preventDefault(); return dropPend() }
+            if (e.key === 'Escape' && pends.length) { e.preventDefault(); return dropPend() }
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) go(e)
           }}
         />
-        <button className="btn primary" disabled={busy || (!pend && !text.trim())}>보내기</button>
+        <button className="btn primary" disabled={busy || (!pends.length && !text.trim())}>보내기</button>
       </form>
-      <p className="hint">Enter 로 보내고, Shift+Enter 로 줄을 바꿔요. 캡처한 그림은 Ctrl+V 로 붙여 넣은 뒤 보내기를 누르면 올라가요.</p>
+      <p className="hint">Enter 로 보내고, Shift+Enter 로 줄을 바꿔요. 사진·파일은 Ctrl+V 로 붙여 넣거나 이 방으로 끌어다 놓으면 돼요 — 한 번에 {MAX_CHAT_FILES}개까지, 보내기를 눌러야 올라가요.</p>
       </div>
     </div>
   )

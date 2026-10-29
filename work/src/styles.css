@@ -1335,16 +1335,53 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 /* 붙여넣었지만 아직 안 보낸 그림 (2026-10-26)
    ⚠️ Ctrl+V 가 바로 보내 버리는 걸 막으려고 둔 칸이다. 여기 있는 동안은
       아직 아무것도 올라가지 않았다. */
-.pend {
-  display: flex; align-items: center; gap: 10px; min-width: 0;
-  margin-bottom: 10px; padding: 8px 10px;
+/* 말풍선 속 주소 (2026-10-29) — 남색 글에 밑줄. 긴 주소는 말풍선 안에서 접힌다. */
+.bubble-link { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.bubble-link:hover { color: var(--accent-ink); }
+.bubble-row.mine .bubble-link { color: var(--ink); }
+
+/* 끌어다 놓는 중 (2026-10-29) — 방 전체가 받는 자리라는 걸 보여 준다.
+   ⚠️ pointer-events: none 이 꼭 있어야 한다. 덮개가 마우스를 가로채면
+      그 아래 dragleave 가 끝없이 오가며 깜빡이고, 놓아도 안 받는다. */
+.chat-page { position: relative; }
+.drop-veil {
+  position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  display: grid; place-items: center; border-radius: var(--radius);
+  background: rgba(255, 255, 255, .82); border: 2px dashed var(--accent);
+}
+:root[data-theme="dark"] .drop-veil { background: rgba(0, 24, 44, .82); }
+.drop-veil span { font-weight: 700; font-size: .95rem; color: var(--ink); }
+
+/* 보낼 파일 목록 (2026-10-29, 여러 장) */
+.pend-box {
+  margin-bottom: 10px; padding: 9px 11px;
   background: var(--accent-soft); border: 1px solid #f0dfa4; border-radius: 12px;
 }
-.pend-img {
-  width: 48px; height: 48px; flex: none; object-fit: cover;
-  border-radius: 8px; background: var(--surface);
+.pend-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pend-head strong { font-size: .88rem; }
+.pend-head .hint { margin: 0; font-size: .76rem; }
+.pend-head .linkbtn { margin-left: auto; font-size: .78rem; }
+/* 여러 장이면 줄줄이 늘어나니 높이를 묶고 그 안에서만 굴린다 */
+.pend-list { list-style: none; margin: 7px 0 0; padding: 0; display: grid; gap: 6px; max-height: 188px; overflow-y: auto; }
+/* ⚠️ 말풍선의 ✕(.bubble-del)를 쓰면 안 된다 — 그건 마우스를 올려야 보이는 것이라,
+   목록에서는 **영영 안 보이고** 휴대폰에서는 아예 못 누른다(2026-10-29 겪음). */
+.pend-del {
+  flex: none; width: 26px; height: 26px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); font-size: .78rem;
 }
-.pend-ico { width: 48px; flex: none; text-align: center; font-size: 1.3rem; }
+.pend-del:hover { background: var(--surface-2); color: var(--ink); }
+.pend-del:disabled { opacity: .5; cursor: default; }
+
+.pend {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+  padding: 6px 8px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+}
+.pend-img {
+  width: 40px; height: 40px; flex: none; object-fit: cover;
+  border-radius: 8px; background: var(--surface-2);
+}
+.pend-ico { width: 40px; flex: none; text-align: center; font-size: 1.2rem; }
 .pend-main { display: grid; gap: 1px; min-width: 0; flex: 1; }
 .pend-main strong { font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pend-main .hint { margin: 0; font-size: .76rem; }

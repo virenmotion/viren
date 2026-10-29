@@ -124,3 +124,37 @@ export function fileSize(n) {
   if (n < 1024 * 1024) return `${Math.round(n / 1024)}KB`
   return `${(n / 1024 / 1024).toFixed(1)}MB`
 }
+
+/* ---------------------------------------------------------------------
+   글 속의 링크 찾기 (지은님 2026-10-29)
+   말풍선은 글을 그대로 찍어서 주소를 붙여 넣어도 눌리지 않았다.
+
+   ⚠️ **한글 앞에서 끊는다.** `https://viren.kr에서 봐` 처럼 조사가 바로 붙는 일이
+      흔한데, 공백까지 주소로 보면 '에서' 까지 주소에 들어가 링크가 깨진다.
+   ⚠️ 끝에 붙은 마침표·쉼표·닫는 괄호는 주소에서 뺀다 — `(viren.kr)` 의 `)` 같은 것.
+   ⚠️ `javascript:` 같은 건 아예 안 찾는다. http/https 와 www 로 시작하는 것만 본다.
+--------------------------------------------------------------------- */
+const URL_RE = /(?:https?:\/\/|www\.)[^\s<>"'`()[\]{}\u3131-\u318E\uAC00-\uD7A3]+/gi
+const TAIL_RE = /[.,!?;:·…"'`]+$/
+
+export function linkParts(text) {
+  const s = String(text ?? '')
+  const out = []
+  let at = 0
+  for (const m of s.matchAll(URL_RE)) {
+    let url = m[0].replace(TAIL_RE, '')
+    // 여는 괄호 없이 닫는 괄호만 남은 경우도 뺀다
+    while (url.endsWith(')') && (url.match(/\(/g) || []).length < (url.match(/\)/g) || []).length) {
+      url = url.slice(0, -1)
+    }
+    if (!url) continue
+    if (m.index > at) out.push({ kind: 'text', s: s.slice(at, m.index) })
+    out.push({ kind: 'link', s: url, href: url.startsWith('www.') ? `https://${url}` : url })
+    at = m.index + url.length
+  }
+  if (at < s.length) out.push({ kind: 'text', s: s.slice(at) })
+  return out
+}
+
+/* 한 번에 고를 수 있는 파일 수. 실수로 폴더째 끌어다 놓는 걸 막는다. */
+export const MAX_CHAT_FILES = 10

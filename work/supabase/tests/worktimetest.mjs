@@ -13,7 +13,7 @@ writeFileSync(join(tmp, 'worktime.mjs'),
   readFileSync(lib + 'worktime.js', 'utf8')
     .replace("from './dates'", `from ${JSON.stringify(pathToFileURL(lib + 'dates.js').href)}`))
 
-const { workStat, dayMinutes, isWorkingDay, workTone } =
+const { workStat, dayMinutes, isWorkingDay, workTone, nightCarry, NIGHT_END_H } =
   await import(pathToFileURL(join(tmp, 'worktime.mjs')).href)
 
 let pass = 0, fail = 0
@@ -55,6 +55,24 @@ T('근무 중', workTone(442, true), 'now')
 T('충족', workTone(540, false), 'done')
 T('초과', workTone(550, false), 'over')
 T('미달', workTone(530, false), 'short')
+
+/* ── 자정을 넘긴 퇴근 (2026-10-29) ───────────────────────────────
+   어제 줄이 '출근은 찍고 퇴근은 안 찍은' 채로 열려 있고, 지금이 아침 9시 전이면
+   홈에 '어제 근무 퇴근하기' 가 떠야 한다. 안 그러면 퇴근을 찍을 길이 없다. */
+const OPEN = { check_in: '2026-10-28T13:00:00Z', check_out: null }   // 어제 22시 출근
+const SHUT = { check_in: '2026-10-28T13:00:00Z', check_out: '2026-10-28T23:00:00Z' }
+const at = (h) => new Date(2026, 9, 29, h, 30)
+
+T('기준 시각은 9시', NIGHT_END_H, 9)
+T('새벽 1시 — 어제 퇴근을 찍게', nightCarry(OPEN, at(1)), true)
+T('아침 8시 — 아직 찍게', nightCarry(OPEN, at(8)), true)
+T('🔴 아침 9시 — 넘겼으니 안 찍게', nightCarry(OPEN, at(9)), false)
+T('🔴 낮 2시 — 안 찍게', nightCarry(OPEN, at(14)), false)
+T('🔴 어제 이미 퇴근했으면', nightCarry(SHUT, at(1)), false)
+T('🔴 어제 출근을 안 했으면', nightCarry({ check_in: null }, at(1)), false)
+T('🔴 어제 줄이 아예 없으면', nightCarry(null, at(1)), false)
+T('🔴 어제 줄이 undefined 여도 버틴다', nightCarry(undefined, at(1)), false)
+
 
 console.log(`\n${pass}개 통과 · ${fail}개 실패`)
 process.exit(fail ? 1 : 0)

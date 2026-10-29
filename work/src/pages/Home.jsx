@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { errText, supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { dot, hm, hoursText, minutesBetween, parse, today, weekday } from '../lib/dates'
+import { addDays, dot, hm, hoursText, minutesBetween, parse, today, weekday } from '../lib/dates'
 import { leaveSummary } from '../lib/leave'
 import { formName } from '../lib/labels'
-import { dayMinutes, workStat } from '../lib/worktime'
+import { dayMinutes, nightCarry, workStat } from '../lib/worktime'
 import { Empty, ErrorBox, StatusPill } from '../components/ui'
 import Shortcuts, { DOC_ICON, PROFILE_PDF } from '../components/Shortcuts'
 import WorkBar from '../components/WorkBar'
@@ -40,6 +40,9 @@ export default function Home() {
   const { me, userId } = useSession()
   const now = useNow()
   const [att, setAtt] = useState(undefined)
+  /* 어제 줄. 밤을 새워 **자정을 넘겨 퇴근**할 때 쓴다 — 그때는 오늘 줄이 아직 없어서
+     이것이 없으면 화면에 '출근하기' 만 떠 퇴근을 찍을 수가 없었다(지은님 2026-10-29). */
+  const [prevAtt, setPrevAtt] = useState(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [todo, setTodo] = useState(null)
@@ -55,10 +58,19 @@ export default function Home() {
      자바스크립트 묶음은 로그인 없이 받을 수 있기 때문이다. 비어 있으면 그 칸은 안 나온다. */
   const [aiUrl, setAiUrl] = useState('')
   const d = today()
+  const dPrev = addDays(d, -1)
+
+  /* 오늘·어제 두 줄을 한 번에 읽는다. 퇴근을 찍은 뒤에도 그대로 다시 부른다. */
+  const loadAtt = useCallback(async () => {
+    const { data } = await supabase.from('attendance').select('*')
+      .eq('user_id', userId).in('work_date', [dPrev, d])
+    setAtt((data || []).find((r) => r.work_date === d) || null)
+    setPrevAtt((data || []).find((r) => r.work_date === dPrev) || null)
+  }, [userId, d, dPrev])
+
+  useEffect(() => { loadAtt() }, [loadAtt])
 
   useEffect(() => {
-    supabase.from('attendance').select('*').eq('user_id', userId).eq('work_date', d).maybeSingle()
-      .then(({ data }) => setAtt(data))
     supabase.from('approval_steps').select('doc_id').eq('approver_id', userId).eq('status', 'pending')
       .then(async ({ data }) => {
         const ids = (data || []).map((r) => r.doc_id)
@@ -86,14 +98,18 @@ export default function Home() {
 
   async function punch(kind) {
     setBusy(true); setErr('')
-    const { data, error } = await supabase.rpc(kind)
+    const { error } = await supabase.rpc(kind)
+    /* ⚠️ 돌아온 줄을 그냥 att 에 넣으면 안 된다 — 밤샘 퇴근은 **어제 줄**이 돌아온다.
+       그걸 오늘 것으로 그리면 날짜가 뒤섞인다. 두 줄을 다시 읽는다. */
+    if (error) setErr(errText(error)); else await loadAtt()
     setBusy(false)
-    if (error) setErr(errText(error))
-    else setAtt(data)
   }
 
   const leave = leaveSummary(me, leaveDocs)
   const state = !att?.check_in ? 'before' : att.check_out ? 'done' : 'working'
+  /* 밤을 새운 다음 날 아침. 오늘은 아직 출근 전이고 어제 퇴근이 비어 있으면,
+     '출근하기' 가 아니라 **어제 근무를 마치는 퇴근**을 먼저 보여 준다. */
+  const carry = state === 'before' && nightCarry(prevAtt, now)
   /* 근무 분은 근태와 **같은 함수**로 센다 — 두 화면 숫자가 갈라지면 안 된다 */
   const worked = dayMinutes(att, d, now)
   const w = workStat(worked)
@@ -162,7 +178,11 @@ export default function Home() {
               <div><dt>퇴근</dt><dd className="tnum">{att?.check_out ? hm(att.check_out) : '—'}</dd></div>
             </dl>
             {att !== undefined && (
-              state === 'before' ? (
+              carry ? (
+                <button className="btn primary punch-btn" disabled={busy} onClick={() => punch('check_out')}>
+                  어제 근무 퇴근하기
+                </button>
+              ) : state === 'before' ? (
                 <button className="btn primary punch-btn" disabled={busy} onClick={() => punch('check_in')}>출근하기</button>
               ) : (
                 <button className="btn primary punch-btn" disabled={busy} onClick={() => punch('check_out')}>
@@ -172,6 +192,12 @@ export default function Home() {
             )}
           </div>
 
+          {carry && (
+            <p className="punch-note">
+              어제({dot(dPrev).slice(5)}) {hm(prevAtt.check_in)} 에 출근한 기록이 열려 있어요.
+              지금 퇴근을 찍으면 <strong>어제 근무로 합쳐집니다.</strong>
+            </p>
+          )}
           {att?.in_office === false && <p className="punch-note">사무실 밖에서 출근을 찍었어요.</p>}
           <ErrorBox>{err}</ErrorBox>
         </section>

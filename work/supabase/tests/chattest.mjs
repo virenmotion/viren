@@ -11,7 +11,7 @@ const lib = 'C:/Users/c/VIREN Dropbox/박지은/VIREN_경영/2. 디자인관련�
 const copy = `${process.env.SP}/chat.copy.mjs`
 writeFileSync(copy, readFileSync(`${lib}chat.js`, 'utf8')
   .replace(/^import .*from '\.\/supabase'$/m, 'const supabase = null'))
-const { roomTitle, fileSize, mailFeed } = await import(pathToFileURL(copy).href)
+const { roomTitle, fileSize, mailFeed, linkParts } = await import(pathToFileURL(copy).href)
 
 let pass = 0, fail = 0
 const ok = (name, got, want) => {
@@ -71,6 +71,28 @@ ok('킬로바이트', fileSize(2048), '2KB')
 ok('메가바이트', fileSize(3 * 1024 * 1024), '3.0MB')
 ok('0', fileSize(0), '0B')
 ok('숫자가 아니면', fileSize(undefined), '')
+
+
+/* ── 글 속 링크 찾기 (2026-10-29) ────────────────────────────────
+   ⚠️ 한글 조사가 주소에 바로 붙어 오는 일이 잦다. 거기서 끊는지 꼭 지킨다. */
+const L = (t) => linkParts(t).filter((x) => x.kind === 'link').map((x) => x.href)
+const T = (t) => linkParts(t).map((x) => x.s).join('')
+
+ok('주소 하나', L('https://viren.kr 보세요'), ['https://viren.kr'])
+ok('www 는 https 를 붙인다', L('www.viren.kr 참고'), ['https://www.viren.kr'])
+ok('한글 조사 앞에서 끊는다', L('https://viren.kr에서 봐'), ['https://viren.kr'])
+ok('한글 조사는 글로 남는다', linkParts('https://viren.kr에서 봐')[1].s, '에서 봐')
+ok('끝의 마침표는 뺀다', L('자료는 https://viren.kr/work 입니다.'), ['https://viren.kr/work'])
+ok('닫는 괄호는 뺀다', L('(www.viren.kr) 참고'), ['https://www.viren.kr'])
+ok('물음표·우물정은 주소', L('https://viren.kr/work?id=3#top 끝'), ['https://viren.kr/work?id=3#top'])
+ok('주소 둘', L('https://a.kr 과 https://b.kr'), ['https://a.kr', 'https://b.kr'])
+ok('🔴 javascript: 는 링크가 아니다', L('javascript:alert(1) 조심'), [])
+ok('🔴 ftp 도 아니다', L('ftp://viren.kr 받기'), [])
+ok('링크가 없으면 글 그대로', linkParts('그냥 글입니다'), [{ kind: 'text', s: '그냥 글입니다' }])
+ok('줄바꿈을 잃지 않는다', T('첫 줄\nhttps://viren.kr\n끝'), '첫 줄\nhttps://viren.kr\n끝')
+ok('글자를 하나도 안 잃는다', T('자료 https://viren.kr에서 보세요.'), '자료 https://viren.kr에서 보세요.')
+ok('빈 글', linkParts(''), [])
+ok('null 도 버틴다', linkParts(null), [])
 
 console.log(`\n${pass}개 통과 · ${fail}개 실패`)
 process.exit(fail ? 1 : 0)

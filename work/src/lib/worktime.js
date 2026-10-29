@@ -56,3 +56,16 @@ export function workTone(minutes, working = false) {
   if (s.over > 0) return 'over'
   return s.done ? 'done' : 'short'
 }
+
+/* 자정을 넘겨 퇴근할 때, 몇 시까지를 **전날 근무로 합치는가** (지은님 2026-10-29).
+   아침 9시 전에 찍은 퇴근은 어제 출근이 열려 있으면 어제 날짜에 적힌다.
+
+   ⚠️ DB 에도 같은 값이 있다 — `public.night_end()`. **두 곳을 같이 고친다.**
+      (여기 값은 '퇴근하기' 단추를 보여 줄지 정할 때만 쓴다. 실제 판정은 DB 가 한다.) */
+export const NIGHT_END_H = 9
+
+/* 지금이 '어제 퇴근을 아직 못 찍은' 시간대인가.
+   어제 줄이 열려 있고(출근은 찍고 퇴근은 안 찍음) 지금이 기준 시각 전이면 참. */
+export function nightCarry(prevRow, now = new Date()) {
+  return !!prevRow?.check_in && !prevRow.check_out && now.getHours() < NIGHT_END_H
+}

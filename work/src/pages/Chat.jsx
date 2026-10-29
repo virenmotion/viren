@@ -29,9 +29,12 @@ export default function ChatShell() {
 
   useEffect(() => {
     refresh()
-    /* 어느 방에든 새 글이 오면 목록을 다시 센다. 6명 규모라 통째로 다시 읽어도 가볍다. */
+    /* 어느 방에든 글이 오거나 지워지면 목록을 다시 센다. 6명 규모라 통째로 다시 읽어도 가볍다.
+       ⚠️ DELETE 도 꼭 들어야 한다. 마지막 글을 지우면 DB 방아쇠가 방의 미리보기를 다시
+          적는데(on_message_del), 그 소식을 안 들으면 **왼쪽 목록에만 지운 글이 남는다.** */
     const ch = supabase.channel('chat-list')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, refresh)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, refresh)
       .subscribe()
     window.addEventListener(UNREAD_EVENT, refresh)
     return () => {
