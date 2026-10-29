@@ -29,6 +29,10 @@ function Says({ text }) {
       가벼운 조회라 괜찮다. 실시간으로 바꾸려면 DB 설정을 건드려야 한다. */
 const READ_POLL_MS = 15000
 
+/* 손가락으로 쓰는 기기인가 (마우스 '올리기' 가 없는 기기).
+   ⚠️ 화면 **너비로 재지 않는다.** 좁은 창을 띄운 노트북도 있고, 큰 태블릿도 있다. */
+const byTouch = () => window.matchMedia('(hover: none)').matches
+
 export default function ChatRoom() {
   const { id } = useParams()
   const { userId, empOf, activeEmployees } = useSession()
@@ -353,8 +357,14 @@ export default function ChatRoom() {
                         {mine && <ReadMark left={unreadBy(m.created_at)} total={others.length} />}
                         <span className="bubble-time">{clock(m.created_at)}</span>
                         {mine && (
-                          <button className="bubble-del" aria-label="지우기" title="지우기"
-                            onClick={() => supabase.from('messages').delete().eq('id', m.id).then(load)}>✕</button>
+                          <button className="bubble-del" aria-label="이 글 지우기" title="지우기"
+                            onClick={() => {
+                              /* ⚠️ 손가락 기기에서는 ✕ 가 **늘 보인다**(올릴 마우스가 없으니).
+                                 스치기만 해도 지워지면 곤란하고 지운 글은 되돌릴 수 없어서,
+                                 거기서만 한 번 묻는다. 마우스 기기는 누르면 바로 지워진다. */
+                              if (byTouch() && !window.confirm('이 글을 지울까요? 되돌릴 수 없어요.')) return
+                              supabase.from('messages').delete().eq('id', m.id).then(load)
+                            }}>✕</button>
                         )}
                       </div>
                     </div>

@@ -1316,6 +1316,14 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   opacity: 0; transition: opacity .12s; padding: 0 2px;
 }
 .bubble-line:hover .bubble-del { opacity: 1; }
+/* 휴대폰·태블릿에는 마우스를 '올리는' 일이 없다. 그래서 ✕ 가 영영 안 떠
+   손으로는 글을 지울 수가 없었다(지은님 2026-10-29).
+   ⚠️ 화면 너비가 아니라 **hover 가 되는 기기인지**로 가른다.
+   ⚠️ 손가락으로 누를 칸은 최소 36px — 26px 는 옆 글자를 같이 누르게 된다. */
+@media (hover: none) {
+  .bubble-del { opacity: .5; min-width: 36px; min-height: 36px; padding: 0 9px; }
+  .bubble-del:active { opacity: 1; }
+}
 .chat-img { width: 260px; max-width: 100%; max-height: 260px; border-radius: 10px; display: block; object-fit: contain; }
 /* 긴 파일 이름도 줄을 바꿔 칸 안에 들어오게 */
 .chat-file { color: var(--ink); text-decoration: underline; overflow-wrap: anywhere; }
