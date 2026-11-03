@@ -115,6 +115,15 @@ export async function fileUrl(path) {
   return data?.signedUrl || null
 }
 
+/* 내려받기용 주소. 보기용과 달리 브라우저가 **새 탭에 열지 않고 바로 저장**하게 한다.
+   ⚠️ <a download> 만으로는 안 된다 — 저장소가 다른 주소라서 브라우저가 무시한다.
+      저장소에 'download' 를 붙여 달라고 해야 파일 이름까지 제대로 붙는다. */
+export async function fileSaveUrl(path, name) {
+  const { data } = await supabase.storage.from(CHAT_BUCKET)
+    .createSignedUrl(path, 60 * 60, { download: name || true })
+  return data?.signedUrl || null
+}
+
 export const isImage = (f) => !!f && /^image\//.test(f.type || '')
 
 /* 보내기 전에 보여 주는 파일 크기 */

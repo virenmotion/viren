@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../lib/session'
-import { FEED_TAG, MAX_CHAT_FILES, MAX_CHAT_MB, avatarTone, clock, dayLabel, fileSize, fileUrl, isImage, linkParts, mailFeed, markRead, roomTitle, sameDay, sendFile, sendText } from '../lib/chat'
+import { FEED_TAG, MAX_CHAT_FILES, MAX_CHAT_MB, avatarTone, clock, dayLabel, fileSaveUrl, fileSize, fileUrl, isImage, linkParts, mailFeed, markRead, roomTitle, sameDay, sendFile, sendText } from '../lib/chat'
 import { mascotText, readMascot } from '../lib/mascot'
 import MascotPicker, { MascotImage } from '../components/MascotPicker'
 import { ErrorBox, MailIcon } from '../components/ui'
@@ -33,6 +33,76 @@ const READ_POLL_MS = 15000
    ⚠️ 화면 **너비로 재지 않는다.** 좁은 창을 띄운 노트북도 있고, 큰 태블릿도 있다. */
 const byTouch = () => window.matchMedia('(hover: none)').matches
 
+/* 사진을 **새 탭이 아니라 팝업**으로 본다 (지은님 2026-11-03, 카카오톡처럼).
+   ⚠️ 새 탭으로 열면 열쇠가 붙은 긴 주소가 주소창에 그대로 드러나고, 돌아오려면
+      탭을 닫아야 했다. 대화 흐름이 끊긴다.
+   ⚠️ 방 안의 사진을 **차례대로** 넘길 수 있어야 한다 — 한 장만 띄우면 여러 장
+      받았을 때 매번 닫고 다시 눌러야 한다. */
+function Lightbox({ shots, at, onAt, onClose }) {
+  const file = shots[at]
+  const [url, setUrl] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const closeRef = useRef(null)
+
+  /* ⚠️ 열쇠가 붙은 주소는 사진마다 새로 받아야 한다. 넘기는 사이에 먼저 부른 것이
+     나중에 돌아올 수 있어서, 지금 보고 있는 사진 것인지 확인하고 넣는다. */
+  useEffect(() => {
+    let alive = true
+    setUrl(null)
+    if (file) fileUrl(file.path).then((u) => { if (alive) setUrl(u) })
+    return () => { alive = false }
+  }, [file?.path])
+
+  useEffect(() => { closeRef.current?.focus() }, [])
+
+  /* Esc 로 닫고 ← → 로 넘긴다 */
+  useEffect(() => {
+    const k = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onClose() }
+      else if (e.key === 'ArrowLeft' && at > 0) onAt(at - 1)
+      else if (e.key === 'ArrowRight' && at < shots.length - 1) onAt(at + 1)
+    }
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [at, shots.length, onAt, onClose])
+
+  if (!file) return null
+
+  async function save() {
+    setSaving(true)
+    const u = await fileSaveUrl(file.path, file.name)
+    setSaving(false)
+    if (u) window.location.href = u
+  }
+
+  return (
+    <div className="lb" role="dialog" aria-modal="true" aria-label={`사진 보기 — ${file.name}`}
+      onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="lb-top">
+        <span className="lb-name">{file.name}</span>
+        {shots.length > 1 && <span className="lb-count tnum">{at + 1} / {shots.length}</span>}
+        <button type="button" className="lb-btn" onClick={save} disabled={saving}>
+          {saving ? '여는 중…' : '저장'}
+        </button>
+        <button type="button" className="lb-btn" ref={closeRef} onClick={onClose} aria-label="닫기">✕</button>
+      </div>
+
+      {at > 0 && (
+        <button type="button" className="lb-nav prev" aria-label="이전 사진"
+          onClick={() => onAt(at - 1)}>‹</button>
+      )}
+      {at < shots.length - 1 && (
+        <button type="button" className="lb-nav next" aria-label="다음 사진"
+          onClick={() => onAt(at + 1)}>›</button>
+      )}
+
+      {url
+        ? <img className="lb-img" src={url} alt={file.name} />
+        : <p className="lb-wait">여는 중…</p>}
+    </div>
+  )
+}
+
 export default function ChatRoom() {
   const { id } = useParams()
   const { userId, empOf, activeEmployees } = useSession()
@@ -49,6 +119,8 @@ export default function ChatRoom() {
   const [pends, setPends] = useState([])
   /* 파일을 끌어서 방 위에 올려 둔 상태인가 */
   const [over, setOver] = useState(false)
+  /* 팝업으로 보고 있는 사진이 **방 안 사진 중 몇 번째**인가. null 이면 안 보는 중. */
+  const [shotAt, setShotAt] = useState(null)
   /* 메일 알림 카드의 '자세히 읽기' 가 여는 주소. 비어 있으면 단추를 안 보인다.
      ⚠️ 방을 옮겨도 다시 받지 않는다 — 한 번만 받아 둔다. */
   const [mailUrl, setMailUrl] = useState('')
@@ -81,7 +153,7 @@ export default function ChatRoom() {
     if (data && nowRoom.current === id) setMembers(data)
   }, [id])
 
-  useEffect(() => { setRoom(undefined); setMsgs(null); load() }, [load])
+  useEffect(() => { setRoom(undefined); setMsgs(null); setShotAt(null); load() }, [load])
 
   useEffect(() => {
     const t = setInterval(loadRead, READ_POLL_MS)
@@ -258,6 +330,16 @@ export default function ChatRoom() {
   const feed = mailFeed(room)
   const notIn = activeEmployees.filter((e) => !members.some((m) => m.user_id === e.id))
   const others = members.filter((m) => m.user_id !== userId)
+  /* 방 안의 사진들. 올라온 차례대로 — 팝업에서 ‹ › 로 넘길 때 쓴다.
+     ⚠️ 사라진 파일(file.gone)은 뺀다. 넘기다 빈 칸이 나오면 안 된다. */
+  const shots = (msgs || [])
+    .filter((m) => m.file && !m.file.gone && isImage(m.file))
+    .map((m) => m.file)
+  const openShot = (f) => {
+    const i = shots.findIndex((x) => x.path === f.path)
+    if (i >= 0) setShotAt(i)
+  }
+
   /* 내 글을 아직 안 읽은 사람 수 */
   const unreadBy = (iso) =>
     others.filter((o) => !o.last_read_at || new Date(o.last_read_at) < new Date(iso)).length
@@ -267,6 +349,12 @@ export default function ChatRoom() {
       onDragEnter={dragIn} onDragOver={dragOver} onDragLeave={dragOut} onDrop={drop}>
       {/* 끌어다 놓는 중에만 뜬다. 방 전체가 받는 자리다. */}
       {over && <div className="drop-veil" aria-hidden="true"><span>여기에 놓으면 보낼 수 있어요</span></div>}
+
+      {/* 사진 크게 보기 */}
+      {shotAt !== null && shots.length > 0 && (
+        <Lightbox shots={shots} at={Math.min(shotAt, shots.length - 1)}
+          onAt={setShotAt} onClose={() => setShotAt(null)} />
+      )}
       <div className="row-between chat-top">
         <div className="chat-who">
           {/* 좁은 화면에서만. 넓은 화면은 왼쪽에 목록이 그대로 보인다. */}
@@ -350,7 +438,7 @@ export default function ChatRoom() {
                       <div className="bubble-line">
                         <div className={`bubble${sticker ? ' mascot-bubble' : ''}${mail ? ' mail-card' : ''}`}>
                           {mail ? <MailCard mail={mail} url={mailUrl} />
-                            : m.file ? <Attach file={m.file} />
+                            : m.file ? <Attach file={m.file} onOpen={openShot} />
                               : sticker ? <MascotImage asset={sticker} />
                                 : <Says text={m.text} />}
                         </div>
@@ -465,17 +553,20 @@ function ReadMark({ left, total }) {
 }
 
 /* 붙인 파일. 사진이면 바로 보여 주고, 아니면 받는 고리만. */
-function Attach({ file }) {
+function Attach({ file, onOpen }) {
   const [url, setUrl] = useState(null)
   // 보관 기간이 지나 서버가 치운 파일. 누가 무엇을 보냈는지는 남겨 둔다.
   useEffect(() => { if (!file.gone) fileUrl(file.path).then(setUrl) }, [file.path, file.gone])
   if (file.gone) return <span className="gone">📎 {file.name} · 기간이 지나 사라졌어요</span>
   if (!url) return <span className="hint">{file.name} 여는 중…</span>
   if (isImage(file)) {
+    /* ⚠️ 새 탭(<a target="_blank">)이 아니라 **팝업**을 연다(지은님 2026-11-03).
+       열쇠가 붙은 긴 주소가 주소창에 드러나지 않고, 대화 흐름도 안 끊긴다. */
     return (
-      <a href={url} target="_blank" rel="noopener noreferrer">
+      <button type="button" className="chat-img-btn" onClick={() => onOpen(file)}
+        aria-label={`${file.name} 크게 보기`}>
         <img className="chat-img" src={url} alt={file.name} loading="lazy" />
-      </a>
+      </button>
     )
   }
   return <a href={url} target="_blank" rel="noopener noreferrer" className="chat-file">📎 {file.name}</a>
