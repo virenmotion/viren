@@ -40,6 +40,32 @@ export const isInstalled = () =>
   typeof window !== 'undefined' &&
   (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)
 
+/* 맥인가. (지은님 2026-11-03)
+   ⚠️ 아이패드는 iPadOS 13 부터 UA 에 'Macintosh' 를 적는다. 손가락 수로 가른다 —
+      맥은 0~1, 아이패드는 5. 이걸 안 보면 아이패드에 맥 안내가 나간다. */
+export const isMac = () =>
+  typeof navigator !== 'undefined' &&
+  /Macintosh|Mac OS X/i.test(navigator.userAgent) &&
+  !/iPhone|iPod/i.test(navigator.userAgent) &&
+  (navigator.maxTouchPoints || 0) <= 1
+
+export const isWindows = () =>
+  typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent)
+
+/* 책상 컴퓨터인가 (휴대폰·태블릿이 아닌가) — 설치 안내를 띄울지 정할 때 쓴다.
+   ⚠️ 안드로이드 UA 에도 'Linux' 가 들어 있다. 리눅스를 볼 때는 안드로이드를 빼야 한다. */
+export const isDesktop = () => {
+  const u = (typeof navigator !== 'undefined' && navigator.userAgent) || ''
+  if (isMac() || isWindows()) return true
+  return /Linux/i.test(u) && !/Android/i.test(u)
+}
+
+/* ⚠️ **맥에서 크롬·엣지로 설치하면 브라우저에 묶인다.** 크롬을 Cmd+Q 로 끄면
+   설치한 앱도 같이 꺼진다(지은님 2026-11-03 확인). 맥은 사파리로 설치해야
+   사파리와 **별개 프로그램**으로 떠서, 사파리를 꺼도 안 꺼진다.
+   그래서 맥 + 크롬/엣지에서는 설치 단추를 띄우지 않고 사파리로 안내한다. */
+export const macNeedsSafari = () => isMac() && platform() !== 'safari'
+
 /* 어떤 기기·브라우저인지 — 손으로 설치해야 할 때 맞는 안내를 보여 주려고 */
 export function platform() {
   const u = navigator.userAgent

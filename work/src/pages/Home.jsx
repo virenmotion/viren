@@ -10,6 +10,7 @@ import { Empty, ErrorBox, StatusPill } from '../components/ui'
 import Shortcuts, { DOC_ICON, PROFILE_PDF } from '../components/Shortcuts'
 import WorkBar from '../components/WorkBar'
 import { pushSupported } from '../lib/push'
+import { isDesktop, isInstalled } from '../lib/install'
 
 /* 화면에 띄워 둔 동안 시계·근무시간이 흘러가도록 20초마다 다시 그린다 */
 function useNow(ms = 20000) {
@@ -120,12 +121,17 @@ export default function Home() {
 
   return (
     <div className="stack home">
-      {/* 알림을 아직 안 켠 기기에만 뜬다. 켜 두면 사라진다. */}
-      {pushSupported() && Notification.permission !== 'granted' && (
+      {/* 안내 막대는 **한 번에 하나만**. 줄줄이 쌓이면 아무도 안 읽는다.
+          알림이 꺼져 있으면 그게 먼저, 켜져 있으면 앱 설치를 권한다. */}
+      {pushSupported() && Notification.permission !== 'granted' ? (
         <Link to="/me" className="push-nudge">
           결재 알림이 꺼져 있어요 — 이 기기에서 켜기 →
         </Link>
-      )}
+      ) : isDesktop() && !isInstalled() ? (
+        <Link to="/me" className="push-nudge">
+          브라우저를 닫으면 바이렌워크도 꺼져요 — 앱으로 설치하기 →
+        </Link>
+      ) : null}
 
       <header className="home-head">
         <div>
