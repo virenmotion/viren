@@ -196,9 +196,12 @@ async function chatMessage(d, id) {
     title: bot ? (room?.name || '메일') : group ? (room.name || '단체 대화') : from,
     body: bot ? body : group ? `${from}: ${body}` : body,
     url: `/chat/${m.room_id}`,
-    // 같은 방 알림은 쌓이지 않고 덮어쓴다. 대화는 금방 여러 개가 온다.
+    /* 같은 방 알림은 쌓이지 않고 덮어쓴다. 대화는 금방 여러 개가 온다.
+       ⚠️ 덮어쓰되 **다시 알린다**(renotify). 2026-11-03 까지는 조용히 바꾸기만 했는데,
+          앞 알림을 안 지우고 두면 **새 글이 와도 팝업이 안 떴다** — 알림 센터 안에서
+          글자만 바뀌었다. 낮에는 바로바로 읽어서 몰랐고 저녁에만 그래 보였다.
+          카카오톡도 같은 방 알림은 하나로 합치되 올 때마다 다시 띄운다. */
     tag: `room-${m.room_id}`,
-    quiet: true,
   }
 }
 
@@ -219,7 +222,10 @@ async function sendTo(env, msg) {
   if (!okIds.length) return { sent: 0, gone: 0 }
 
   const subs = await d.get(`push_subs?user_id=in.(${okIds.join(',')})&select=id,endpoint,p256dh,auth`)
-  const payload = JSON.stringify({ title: msg.title, body: msg.body, url: msg.url, tag: msg.tag, renotify: !msg.quiet })
+  const payload = JSON.stringify({ title: msg.title, body: msg.body, url: msg.url, tag: msg.tag, renotify: true })
+  /* ⚠️ `renotify` 는 `tag` 가 있어야 듣는다 — 같은 tag 끼리 하나로 합치면서,
+     합칠 때마다 다시 띄운다. tag 를 빼면 알림이 줄줄이 쌓이고, renotify 를 끄면
+     앞 알림이 남아 있는 동안 **새 알림이 소리도 팝업도 없이** 글자만 바뀐다. */
   let sent = 0, gone = 0
 
   for (const sub of subs) {
