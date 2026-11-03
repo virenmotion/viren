@@ -686,10 +686,10 @@ end $$;
 -- 합치는 기준 시각. 회사 기준이 바뀌면 **이 한 줄만** 고친다.
 -- ⚠️ 화면 쪽에도 같은 값이 있다 — src/lib/worktime.js 의 NIGHT_END_H.
 create or replace function public.night_end() returns time
-language sql immutable set search_path = public as $ select time '09:00' $;
+language sql immutable set search_path = public as $$ select time '09:00' $$;
 
 create or replace function public.check_out() returns attendance
-language plpgsql security definer set search_path = public as $
+language plpgsql security definer set search_path = public as $$
 declare
   v_now   timestamptz := now();
   v_seoul timestamp   := v_now at time zone 'Asia/Seoul';
@@ -718,7 +718,7 @@ begin
 
   if not found then raise exception '오늘 출근 기록이 없습니다. 먼저 출근을 찍어 주세요.'; end if;
   return v_row;
-end $;
+end $$;
 
 -- ---------------------------------------------------------------------
 -- 회사 그림 저장소 — 법인 직인(도장)
@@ -1223,7 +1223,7 @@ create trigger on_message after insert on public.messages
   for each row execute function public.on_message();
 
 create or replace function public.on_message_del() returns trigger
-language plpgsql security definer set search_path = public as $
+language plpgsql security definer set search_path = public as $$
 begin
   update rooms r
      set last_at   = coalesce(m.created_at, r.created_at),
@@ -1242,7 +1242,7 @@ begin
     ) m on true
    where r.id = g.room_id;
   return null;
-end $;
+end $$;
 
 drop trigger if exists on_message_del on public.messages;
 create trigger on_message_del after delete on public.messages
