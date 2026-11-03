@@ -1174,23 +1174,61 @@ language sql security definer set search_path = public as $$
   where room_id = p_room and user_id = auth.uid()
 $$;
 
+-- ① 기록 테이블 ------------------------------------------------------
+create table if not exists public.push_log (
+  id         bigserial primary key,
+  req_id     bigint,          -- net.http_post 가 준 번호. 응답을 이걸로 찾는다
+  kind       text,            -- 'chat'(메신저·메일) | 'doc'(전자결재)
+  src_id     uuid,            -- 그 메시지·문서
+  created_at timestamptz not null default now(),
+  status     int,             -- 응답 코드. null = 아직 응답을 못 받음
+  sent       int,             -- 보낸 기기 수
+  gone       int,             -- 등록이 끊겨 지운 기기 수
+  note       text             -- 못 보낸 까닭
+);
+
+create index if not exists push_log_at on public.push_log (created_at desc);
+-- 아직 응답을 못 받은 것만 빨리 찾는다(5분마다 도는 일이 쓴다).
+create index if not exists push_log_wait on public.push_log (req_id) where status is null;
+
+-- ⚠️ 정책을 하나도 두지 않는다 → 로그인한 사람도 직접 못 읽는다.
+--    아래 push_health() 로만 본다(관리자만).
+alter table public.push_log enable row level security;
+
+-- ② 글을 JSON 으로 읽어 본다. 아니면 null — 터지지 않는다 ------------
+--    응답이 늘 JSON 이라는 보장이 없다(관문이 HTML 오류 쪽을 돌려줄 때가 있다).
+create or replace function public.try_jsonb(t text) returns jsonb
+language plpgsql immutable set search_path = public as $$
+begin
+  return t::jsonb;
+exception when others then
+  return null;
+end $$;
+
 -- ⑥ 글이 올라오면: 목록 갱신 + 알림 --------------------------------------
 -- 알림 틀(2026-10-21h)에 '무엇에 대한 알림인지'를 더한다.
 create or replace function public.notify_push(p_kind text, p_id uuid) returns void
 language plpgsql security definer set search_path = public as $$
-declare c public.push_config;
+declare c public.push_config; v_req bigint;
 begin
   select * into c from public.push_config where id = 1;
-  if c.url is null or c.url = '' then return; end if;
-  perform net.http_post(
+  if c.url is null or c.url = '' then
+    insert into public.push_log(kind, src_id, note) values (p_kind, p_id, '보낼 주소가 비어 있어요');
+    return;
+  end if;
+  v_req := net.http_post(
     url     := c.url,
     headers := jsonb_build_object('Content-Type', 'application/json',
                                   'x-push-secret', coalesce(c.secret, '')),
     body    := jsonb_build_object('kind', p_kind, 'id', p_id),
     timeout_milliseconds := 5000
   );
+  insert into public.push_log(req_id, kind, src_id) values (v_req, p_kind, p_id);
 exception when others then
-  null;  -- 알림이 안 가도 일은 되어야 한다
+  begin
+    insert into public.push_log(kind, src_id, note) values (p_kind, p_id, '보내지 못했어요: ' || sqlerrm);
+  exception when others then null;   -- 알림이 안 가도 일은 되어야 한다
+  end;
 end $$;
 
 -- 옛 이름은 그대로 두고 새 것으로 넘긴다(결재 쪽 트리거가 쓰고 있다).
@@ -1202,6 +1240,76 @@ end $$;
 
 revoke execute on function public.notify_push(text, uuid) from anon, public, authenticated;
 revoke execute on function public.notify_push(uuid) from anon, public, authenticated;
+
+-- ④ 뒤늦게 오는 응답을 기록에 채운다 ---------------------------------
+--    net.http_post 는 **보내 놓고 바로 끝난다.** 응답은 몇 초 뒤에야
+--    net._http_response 에 들어오고, 거기서도 6시간이면 지워진다.
+create or replace function public.sync_push_log() returns int
+language plpgsql security definer set search_path = public as $$
+declare n int := 0;
+begin
+  update public.push_log l
+     set status = r.status_code,
+         sent   = case when jsonb_typeof(public.try_jsonb(r.content) -> 'sent') = 'number'
+                       then (public.try_jsonb(r.content) ->> 'sent')::int end,
+         gone   = case when jsonb_typeof(public.try_jsonb(r.content) -> 'gone') = 'number'
+                       then (public.try_jsonb(r.content) ->> 'gone')::int end,
+         note   = case when r.status_code between 200 and 299 then l.note
+                       else left(coalesce(r.error_msg, r.content, '응답이 비었어요'), 200) end
+    from net._http_response r
+   where r.id = l.req_id
+     and l.status is null;
+  get diagnostics n = row_count;
+
+  -- 응답이 영영 안 온 것(관문이 죽었거나 시간이 넘었다). 6시간이면 판가름 난다.
+  update public.push_log
+     set status = 0, note = coalesce(note, '응답이 오지 않았어요')
+   where status is null and created_at < now() - interval '6 hours';
+
+  delete from public.push_log where created_at < now() - interval '30 days';
+  return n;
+exception when others then
+  return -1;   -- 점검하다 터져서 다른 일을 막으면 안 된다
+end $$;
+
+-- ⑤ 관리 화면이 읽는 것 ----------------------------------------------
+create or replace function public.push_health(p_days int default 3)
+returns table (ts timestamptz, kind text, status int, sent int, gone int, note text)
+language sql stable security definer set search_path = public as $$
+  select l.created_at, l.kind, l.status, l.sent, l.gone, l.note
+    from public.push_log l
+   where public.is_admin()
+     and l.created_at > now() - make_interval(days => greatest(1, least(coalesce(p_days, 3), 30)))
+   order by l.created_at desc
+   limit 200
+$$;
+
+create or replace function public.push_health_sum(p_days int default 3)
+returns table (tries bigint, ok bigint, fail bigint, waiting bigint, devices bigint, last_ok timestamptz)
+language sql stable security definer set search_path = public as $$
+  select count(*),
+         count(*) filter (where l.status between 200 and 299),
+         count(*) filter (where l.status is not null and (l.status < 200 or l.status > 299)),
+         count(*) filter (where l.status is null),
+         (select count(*) from public.push_subs),
+         max(l.created_at) filter (where l.status between 200 and 299)
+    from public.push_log l
+   where public.is_admin()
+     and l.created_at > now() - make_interval(days => greatest(1, least(coalesce(p_days, 3), 30)))
+$$;
+
+grant execute on function public.push_health(int) to authenticated;
+grant execute on function public.push_health_sum(int) to authenticated;
+
+-- '지금 확인' 단추가 부른다. 관리자만.
+create or replace function public.sync_push_log_now() returns int
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception '관리자만 할 수 있어요'; end if;
+  return public.sync_push_log();
+end $$;
+
+grant execute on function public.sync_push_log_now() to authenticated;
 
 create or replace function public.on_message() returns trigger
 language plpgsql security definer set search_path = public as $$

@@ -1593,3 +1593,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .s-kind { min-width: 72px; color: var(--muted); font-size: .8rem; }
 .s-why { color: var(--muted); font-size: .82rem; }
 .warn-text { color: var(--accent-ink); background: var(--accent-soft); padding: 1px 6px; border-radius: 5px; }
+
+/* 알림 점검(관리 → 기타 설정) — 결과 한 줄을 색으로만 가른다.
+   ⚠️ 짧은 이름은 전역 규칙과 부딪친다. .ok 는 '성공 메시지' 라 배경·여백까지
+      붙고, .bad 는 .edit-sum.bad 로만 있어 혼자서는 아무 일도 안 한다. */
+.pl-ok { color: var(--ok); }
+.pl-bad { color: var(--bad); }

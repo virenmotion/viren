@@ -8,6 +8,7 @@ import { downloadBlob } from '../lib/csv'
 import { DateInput, ErrorBox } from '../components/ui'
 import AdminForms from './AdminForms'
 import StorageCard from '../components/StorageCard'
+import PushLogCard from '../components/PushLogCard'
 import StaffCard from '../components/StaffCard'
 import Certificate from '../components/Certificate'
 import CompanyCard from '../components/CompanyCard'
@@ -35,6 +36,7 @@ export default function Admin() {
         <section className="stack-sm">
           <Settings />
           <StorageCard />
+          <PushLogCard />
           <Backup />
         </section>
       )}
