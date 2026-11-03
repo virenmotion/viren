@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSession } from '../lib/session'
-import { currentSub, disablePush, enablePush, iosNeedsInstall, pushSupported, testPush } from '../lib/push'
+import { currentSub, denyHelp, disablePush, enablePush, iosNeedsInstall, pushSupported, testPush } from '../lib/push'
 import { ErrorBox } from './ui'
 
 /* '내 정보' 안의 기기 알림 칸. (지은님 2026-10-21, 2026-10-23 이름 바뀜)
@@ -39,6 +39,10 @@ export default function PushCard() {
         결재 차례가 오거나 내 문서가 승인·반려되면 알려 드려요.
         <strong> 기기마다 따로 켜야 해요</strong> — 휴대폰에서 켜도 PC 로는 오지 않아요.
       </p>
+
+      {/* 이미 거부해 둔 기기에는 **누르기 전에** 길을 알려 준다 —
+          눌러도 브라우저가 다시 묻지 않아서 그냥 같은 오류만 난다. */}
+      {Notification.permission === 'denied' && <p className="hint warn">{denyHelp()}</p>}
 
       {iosNeedsInstall() && (
         <p className="hint warn">

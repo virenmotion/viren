@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { isInstalled, isMac } from './install'
 
 /* 기기 알림 켜기·끄기. (지은님 2026-10-21)
  *
@@ -53,9 +54,7 @@ export async function enablePush(userId) {
   }
 
   const perm = await Notification.requestPermission()
-  if (perm !== 'granted') {
-    throw new Error('알림이 거부돼 있어요. 브라우저 설정에서 이 사이트의 알림을 허용해 주세요.')
-  }
+  if (perm !== 'granted') throw new Error(denyHelp())
 
   const reg = await ready()
   await navigator.serviceWorker.ready
@@ -72,6 +71,23 @@ export async function enablePush(userId) {
   }, { onConflict: 'endpoint' })
   if (error) throw new Error('기기를 저장하지 못했어요. 잠시 뒤 다시 해 주세요.')
   return sub
+}
+
+/* 알림이 거부됐을 때, **어디를 눌러야 하는지** 기기에 맞게 알려 준다.
+   ⚠️ 맥 사파리 웹앱(Dock에 추가)에는 **주소창도 자물쇠도 없다.** 그런데 그동안
+      "주소창 자물쇠를 눌러라" 만 적혀 있어서 길이 막혔다(지은님 2026-11-03).
+   ⚠️ 사파리에서 한 번 거부해 두면 **웹앱으로 만들어도 그 거부가 따라온다.**
+      그래서 사파리 쪽 설정을 먼저 풀어야 하고, 안 되면 웹앱을 다시 만들어야 한다. */
+export function denyHelp() {
+  if (isMac()) {
+    const again = isInstalled()
+      ? " 그래도 안 되면 Dock 의 바이렌워크를 지우고, 사파리에서 파일 → 「Dock에 추가」 로 다시 만들어 주세요."
+      : ''
+    return '알림이 거부돼 있어요. Safari 메뉴 → 설정 → 웹사이트 → 알림 에서'
+      + ' work.viren.kr 을 「허용」 으로 바꿔 주세요.' + again
+      + ' (시스템 설정 → 알림 에서도 바이렌워크가 켜져 있어야 해요)'
+  }
+  return '알림이 거부돼 있어요. 주소창 왼쪽의 자물쇠를 눌러 이 사이트의 알림을 「허용」 으로 바꿔 주세요.'
 }
 
 export async function disablePush() {
