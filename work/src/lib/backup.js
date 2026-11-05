@@ -389,28 +389,83 @@ export function safePath(p) {
   return !p.split('/').some((seg) => seg === '' || seg === '.' || seg === '..')
 }
 
-/* 꾸러미에 적힌 파일 목록(want)과 **실제로 내려받은 것**(got)을 맞춰 본다.
-   둘 다 [{ path, size }]. 크기를 모르면 size 를 null 로 둔다(그 파일은 크기를 안 본다).
-   돌려주는 것: { ok, unsafe, missing, extra, wrongSize } */
+/* 꾸러미나 manifest 에 적힌 파일 목록(want)과 **실제로 있는 것**(got)을 맞춰 본다.
+   둘 다 [{ path, size, sha256? }]. size 가 null 이면 그 파일은 크기를 안 본다.
+   sha256 은 **양쪽에 다 있을 때만** 맞춰 본다 — 크기가 같아도 속이 바뀌면 여기서 걸린다.
+   돌려주는 것: { ok, unsafe, dup, missing, extra, wrongSize, wrongHash } */
 export function checkManifest(want = [], got = []) {
   const unsafe = []
-  const w = new Map()
-  for (const f of want) {
-    if (!f || !safePath(f.path)) { unsafe.push(String(f?.path ?? '(빈 경로)').slice(0, 120)); continue }
-    w.set(f.path, f.size)
+  const dup = []
+  const take = (list) => {
+    const m = new Map()
+    for (const f of list) {
+      if (!f || !safePath(f.path)) { unsafe.push(String(f?.path ?? '(빈 경로)').slice(0, 120)); continue }
+      /* 같은 경로가 두 번 — 목록이 손상됐다는 뜻이다. 조용히 덮지 않는다. */
+      if (m.has(f.path)) { dup.push(f.path); continue }
+      m.set(f.path, f)
+    }
+    return m
   }
-  const g = new Map()
-  for (const f of got) {
-    if (!f || !safePath(f.path)) { unsafe.push(String(f?.path ?? '(빈 경로)').slice(0, 120)); continue }
-    g.set(f.path, f.size)
-  }
+  const w = take(want)
+  const g = take(got)
+
   const missing = [...w.keys()].filter((p) => !g.has(p))
   const extra = [...g.keys()].filter((p) => !w.has(p))
-  const wrongSize = [...w.entries()]
-    .filter(([p, s]) => g.has(p) && s != null && g.get(p) != null && Number(s) !== Number(g.get(p)))
-    .map(([p, s]) => ({ path: p, want: Number(s), got: Number(g.get(p)) }))
-  return {
-    ok: unsafe.length === 0 && missing.length === 0 && wrongSize.length === 0,
-    unsafe, missing, extra, wrongSize,
+  const wrongSize = []
+  const wrongHash = []
+  for (const [p, a] of w) {
+    const b = g.get(p)
+    if (!b) continue
+    if (a.size != null && b.size != null && Number(a.size) !== Number(b.size)) {
+      wrongSize.push({ path: p, want: Number(a.size), got: Number(b.size) })
+    }
+    if (a.sha256 && b.sha256 && a.sha256 !== b.sha256) {
+      wrongHash.push({ path: p, want: a.sha256, got: b.sha256 })
+    }
   }
+  return {
+    ok: unsafe.length === 0 && dup.length === 0 && missing.length === 0
+        && wrongSize.length === 0 && wrongHash.length === 0,
+    unsafe, dup, missing, extra, wrongSize, wrongHash,
+  }
+}
+
+/* 파일 목록(manifest) **자체가** 성한지. 폴더와 맞추기 **전에** 거친다.
+   ⚠️ 목록이 망가져 있으면(저장소가 통째로 빠졌거나 해시가 지워졌거나) 맞춰 봐야
+      의미가 없다. 그런데도 '통과' 로 나오면 **없는 안심**을 준다
+      (2026-11-05 바깥 검토 지적 — 버킷을 지워도, 해시를 지워도 통과했다). */
+export function checkFileManifest(man) {
+  const bad = []
+  if (!man || typeof man !== 'object' || Array.isArray(man)) {
+    return { ok: false, problems: ['목록을 읽지 못했어요.'], counts: {} }
+  }
+  if (man.kind !== 'viren-work-files') bad.push('우리가 만든 목록이 아닙니다.')
+  if (man.version !== 1) bad.push(`목록 판이 ${man.version ?? '(없음)'} 입니다. 지금은 1 판이에요.`)
+  if (!isIsoTime(man.made_at)) bad.push('만든 때가 없거나 모양이 이상합니다.')
+  if (!man.buckets || typeof man.buckets !== 'object' || Array.isArray(man.buckets)) {
+    return { ok: false, problems: [...bad, '저장소 목록이 통째로 없습니다.'], counts: {} }
+  }
+
+  const counts = {}
+  for (const b of BUCKETS) {
+    const list = man.buckets[b]
+    /* ⚠️ 저장소가 통째로 빠진 것을 **빈 목록으로 낮추지 않는다.** */
+    if (!Array.isArray(list)) { bad.push(`저장소 ‘${b}’가 목록에 없습니다.`); continue }
+    counts[b] = list.length
+
+    const seen = new Set()
+    let shown = 0
+    for (const f of list) {
+      const at = `${b}/${String(f?.path ?? '(빈 경로)').slice(0, 60)}`
+      const say = (m) => { if (shown < 3) { bad.push(`${at} — ${m}`); shown++ } }
+      if (!f || typeof f !== 'object') { say('줄 모양이 아닙니다.'); continue }
+      if (!safePath(f.path)) { say('쓸 수 없는 경로입니다.'); continue }
+      if (!Number.isInteger(f.size) || f.size < 0) { say('크기가 0 이상의 정수가 아닙니다.'); continue }
+      if (typeof f.sha256 !== 'string' || !HASH.test(f.sha256)) { say('해시가 없거나 모양이 이상합니다.'); continue }
+      if (seen.has(f.path)) { say('같은 경로가 두 번 있습니다.'); continue }
+      seen.add(f.path)
+    }
+    if (shown >= 3) bad.push(`저장소 ‘${b}’에 문제가 더 있습니다(앞의 셋만 적었습니다).`)
+  }
+  return { ok: bad.length === 0, problems: bad, counts }
 }

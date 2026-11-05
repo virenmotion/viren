@@ -14,7 +14,7 @@
 | 어디 | 무엇 | 1번(전체 dump) | 2번(업무 자료) |
 |---|---|---|---|
 | **DB 표 21개** | 직원·인사·결재·근태·일정·**메신저** | ✅ 전부 | 13개만 |
-| **로그인 계정** | `auth.users` — 이메일·비밀번호 해시 | ✅ | ❌ |
+| **로그인 계정** | `auth` 스키마 — 계정과 **비밀번호 해시** | ✅ | ❌ |
 | **권한·역할** | roles | ✅ | ❌ |
 | **표 구조·함수·정책** | schema | ✅ | ❌ (코드에 있음) |
 | **비밀값** | 메일 비밀번호(암호문)·알림 열쇠 | ✅ (그래서 **암호화 필수**) | ❌ 일부러 뺌 |
@@ -27,44 +27,60 @@
 
 ## 1. 매달 — 전체 dump (roles · schema · data)
 
-Supabase 공식 방법입니다. 한 번 준비해 두면 매달 명령 세 줄입니다.
-
 ### 준비 (처음 한 번)
 
+Supabase CLI 는 **전역 설치(`npm i -g`)를 권하지 않습니다.** 둘 중 하나로 하세요.
+
+**① 이 프로젝트에 붙여 쓰기 (권장 — 판을 고정할 수 있습니다)**
 ```bash
-npm i -g supabase
-supabase login
-supabase link --project-ref <프로젝트 ref>
+npm i --save-dev supabase@2.34.3
+```
+> 판 번호는 예시입니다. 쓰기 전에 공식 문서에서 지금 판을 확인하고 **그 번호로 고정**하세요.
+> 고정해 두면 나중에 CLI 가 바뀌어도 같은 명령이 그대로 돕니다.
+
+**② 윈도에 따로 깔기 (Scoop)**
+```bash
+scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+```
+```bash
+scoop install supabase
 ```
 
+**연결 (처음 한 번)**
+```bash
+npx supabase login
+```
+```bash
+npx supabase link --project-ref <프로젝트 ref>
+```
 > ref 는 Supabase → Settings → General 의 **Reference ID** 입니다.
+> ②로 깔았다면 `npx` 를 빼고 `supabase ...` 로 씁니다.
 
 ### 매달 (명령 세 줄)
 
 ```bash
-supabase db dump -f roles.sql --role-only
+npx supabase db dump -f roles.sql --role-only
 ```
 
 ```bash
-supabase db dump -f schema.sql
+npx supabase db dump -f schema.sql
 ```
 
 ```bash
-supabase db dump -f data.sql --use-copy --data-only --schema auth,public,storage
+npx supabase db dump -f data.sql --use-copy --data-only --schema auth,public,storage
 ```
 
 > ⚠️ **`--schema auth,public,storage` 를 꼭 넣으세요.** 안 넣으면 `public` 만 떠서
 > **로그인 계정이 빠집니다.** 그러면 되살려도 아무도 못 들어옵니다.
 >
-> ⚠️ 쓰기 전에 `supabase db dump --help` 로 **설치된 판에서 그 옵션이 맞는지** 보세요.
-> CLI 는 판마다 옵션이 바뀝니다.
+> ⚠️ 쓰기 전에 `npx supabase db dump --help` 로 **설치된 판에서 그 옵션이 맞는지** 보세요.
 >
 > ⚠️ `pg_dump` 를 직접 쓰지 마세요. Supabase 내부 것까지 딸려 와서 되살릴 때 권한
 > 오류가 납니다. CLI 가 그걸 걸러 줍니다.
 
 ### 🔴 받은 뒤 **반드시** 암호화
 
-`data.sql` 에는 **직원 개인정보와 비밀값이 그대로** 들어 있습니다.
+`data.sql` 에는 **직원 개인정보·비밀번호 해시·비밀값이 그대로** 들어 있습니다.
 드롭박스에 평문으로 올리지 마세요.
 
 ```bash
@@ -72,13 +88,24 @@ supabase db dump -f data.sql --use-copy --data-only --schema auth,public,storage
 ```
 
 - 비밀번호는 **회사 비밀번호 관리함**에 두고, 채팅·메일로 보내지 않습니다.
-- 암호화한 파일만 드롭박스에 올리고, **원본 `.sql` 은 지웁니다.**
-- 이 파일은 **대표님과 담당만** 열 수 있어야 합니다.
+- 암호화한 파일만 올립니다. **원본 `.sql` 은 암호를 다시 풀어 열리는지,**
+  **파일이 성한지 확인한 뒤에** 지웁니다 — 확인 전에 지우면 둘 다 잃습니다.
+  ```bash
+  7z t -p viren-work-2026-11.7z
+  ```
+- **대표님과 지은님만** 열 수 있어야 합니다.
+
+> 🔴 **같은 취급을 받아야 하는 것이 둘 더 있습니다.**
+> · **2번의 업무 자료 JSON** — 직원 인사 기록·경력·자격·근태가 그대로 들어 있습니다.
+> · **3번의 파일 원본** — 결재 첨부에 인사·회계 서류가 들어 있고, 직인도 있습니다.
+>
+> 둘 다 **암호화해서** 보관하고, **대표님과 지은님만** 열 수 있게 두세요.
+> 드롭박스 공유 링크로 돌리지 마세요.
 
 ### 접속 주소도 비밀입니다
 
-`--db-url` 을 쓰는 방식이면 그 주소에 **DB 비밀번호가 들어 있습니다.**
-명령 기록(히스토리)에도 남으니, `supabase link` 방식을 쓰는 편이 낫습니다.
+`--db-url` 을 쓰면 그 주소에 **DB 비밀번호가 들어 있고 명령 기록에도 남습니다.**
+`link` 방식을 쓰세요.
 
 ---
 
@@ -86,21 +113,20 @@ supabase db dump -f data.sql --use-copy --data-only --schema auth,public,storage
 
 **관리 → 기타 설정 → 업무 자료 내보내기 → 「업무 자료 내려받기」**
 
-1번과 **겹치지만 쓸모가 다릅니다.** 이쪽은 사람이 열어볼 수 있고, 표별 건수와
+1번과 겹치지만 쓸모가 다릅니다. 이쪽은 사람이 열어볼 수 있고, 표별 건수와
 해시가 들어 있어 **망가졌는지 바로 압니다.** 되돌리기 SQL 도 여기서 만듭니다.
 
 - **한 표라도 못 읽으면 파일이 아예 안 만들어집니다.**
 - 파일 목록을 끝까지 못 읽으면 화면에 **「일부」**라고 뜹니다.
 - **「내려받기를 눌렀다」와 「백업이 됐다」는 다릅니다.** 받은 파일을
-  **드롭박스에 올려야** 비로소 백업입니다. 화면은 거기까지 알지 못합니다.
+  **드롭박스에 올려야** 비로소 백업입니다.
 
 ### 받은 기록
 
 `supabase/migrations/2026-11-05a-backup-log.sql` 을 돌리면 언제 받았는지가 남습니다.
-**자료 내용은 한 줄도 안 남습니다** — 시각·결과(`다 받음`/`일부만`/`실패`)·건수·까닭뿐.
+**자료 내용은 한 줄도 안 남습니다** — 시각·결과·건수·까닭뿐.
 
-> ⚠️ 2026-11-05 현재 **아직 안 돌렸습니다.** 돌리기 전에는 화면이
-> "기록이 안 남고 있습니다"라고 알립니다.
+> ⚠️ 2026-11-05 현재 **아직 안 돌렸습니다.**
 
 ---
 
@@ -108,15 +134,7 @@ supabase db dump -f data.sql --use-copy --data-only --schema auth,public,storage
 
 **1번 dump 에도, 2번 꾸러미에도 파일 본체는 안 들어갑니다.**
 
-**Supabase → Storage** 에서 **세 곳 모두** 내려받습니다.
-
-| 저장소 | 무엇 | 지워지나 |
-|---|---|---|
-| `approval-files` | 결재 첨부 | **안 지웁니다** (근거 문서) |
-| `chat-files` | 대화에 붙인 사진·파일 | 60일 뒤 자동 삭제 |
-| `company` | **직인** | 안 지웁니다 |
-
-폴더를 이렇게 두세요.
+**Supabase → Storage** 에서 **세 곳 모두** 내려받고, 폴더를 이렇게 둡니다.
 
 ```
 내려받은폴더/
@@ -125,18 +143,33 @@ supabase db dump -f data.sql --use-copy --data-only --schema auth,public,storage
   company/<파일>
 ```
 
-### 받은 뒤 맞춰 보기
+| 저장소 | 무엇 | 지워지나 |
+|---|---|---|
+| `approval-files` | 결재 첨부 | **안 지웁니다** (근거 문서) |
+| `chat-files` | 대화 사진·파일 | 60일 뒤 자동 삭제 |
+| `company` | **직인** | 안 지웁니다 |
+
+### 받은 그날 — 목록을 만들어 둡니다
 
 ```bash
-node scripts/check-files.mjs viren-work-자료-2026-11-05.json --files 내려받은폴더
+node scripts/check-files.mjs --write-manifest 목록-2026-11.json --files 내려받은폴더
 ```
 
-- 꾸러미만 주면 **인터넷 없이** 꾸러미만 검사합니다(기본 동작)
-- `--files` 를 주어야 **실제 폴더와 맞춰 봅니다** — 안 받은 파일, 크기가 다른 파일,
-  이상한 경로를 알려 줍니다
-- `--hash` 는 파일 해시까지 잽니다(느립니다)
+파일마다 **경로·크기·sha256** 을 적은 목록이 만들어집니다.
+**꾸러미와 같은 곳에 보관하세요.** 이게 있어야 나중에 손상을 잡을 수 있습니다.
 
-**아무것도 바꾸지 않습니다.** 읽고 세어서 알려 줄 뿐입니다.
+### 나중에 — 상한 데가 없는지
+
+```bash
+node scripts/check-files.mjs --manifest 목록-2026-11.json --files 내려받은폴더
+```
+
+- **크기가 같아도 속이 바뀌면 잡습니다**(해시)
+- 없는 파일 · 겹친 경로 · 이상한 경로 · **바로가기**를 잡습니다
+- 하나라도 어긋나면 **끝난 값이 1** 입니다(스크립트로 돌릴 때 쓰세요)
+
+> 꾸러미만 주면 **크기까지만** 봅니다. 크기가 같은 손상은 못 잡습니다.
+> **아무것도 바꾸지 않습니다.** 목록을 만들 때만 파일을 쓰고, 그것도 일부러 줘야 합니다.
 
 ---
 
@@ -146,71 +179,99 @@ node scripts/check-files.mjs viren-work-자료-2026-11-05.json --files 내려받
 node supabase/tests/schematest.mjs
 ```
 
-마이그레이션에 있는데 `schema.sql` 에 없는 표·함수·방아쇠·정책을 잡아냅니다.
-**실제로 두 번 걸렸습니다**(2026-11-05):
-
-- `user_mail` 표가 통째로 빠져 있었습니다 → 새 서버에서 직원 메일 알림이 안 섭니다
-- `comp_balance` 함수가 빠졌는데 `schema.sql` 안에서 부르고 있었습니다 →
-  새 서버에서 **대휴 휴가 신청이 터집니다**
-
-운영 DB 쪽도 가끔 맞춰 보세요.
-
-```sql
-select table_name from information_schema.tables
- where table_schema = 'public' order by table_name;
-```
+**실제로 두 번 걸렸습니다**(2026-11-05): `user_mail` 표, `comp_balance` 함수.
+둘 다 새 서버를 세우면 기능이 통째로 안 섭니다.
 
 ---
 
 ## 5. 되살리는 차례
 
-> ⚠️ **아래는 아직 한 번도 해 본 적이 없습니다.** 처음 할 때는 **빈 연습용
-> 프로젝트**를 하나 만들어 거기서 먼저 해 보세요. 운영에 바로 하지 마세요.
+> 🔴 **처음 할 때는 반드시 빈 연습용 프로젝트에서 하세요.** 운영에 바로 하지 마세요.
+> 연습용 프로젝트는 **메일·알림을 내보내는 쪽(Cloudflare Functions·cron)과 끊어 두고**
+> 시작합니다. 안 끊으면 자료를 넣는 동안 **직원들에게 알림이 쏟아집니다.**
 
-### ① 새 프로젝트를 만들고, 알림을 꺼 둡니다
+### ① 내보내는 쪽부터 끊습니다 — DB 가 아니라 **바깥**에서
+
+`data.sql` 이 `push_config` 를 **통째로 되살립니다.** 그러니 "복구 전에 URL 만 비우기"는
+**안전하지 않습니다.** 넣고 나면 다시 채워집니다.
+
+끊어야 할 것:
+
+- Cloudflare Pages 의 `/api/notify` · `/api/mail-check` 가 **그 DB 를 보지 못하게** 합니다
+  (연습용이면 애초에 연결하지 않습니다)
+- Supabase 의 **pg_cron 일정**을 멈춥니다 — `viren-mail-check` · `viren-push-log` 등
+
 ```sql
-update public.push_config set url = null where id = 1;
+-- 넣기 전에 (연습용 프로젝트에서)
+select cron.unschedule(jobname) from cron.job;
 ```
-(표가 아직 없으면 ③ 다음에 합니다)
 
 ### ② 암호화를 풉니다
 ```bash
 7z x viren-work-2026-11.7z
 ```
 
-### ③ roles → schema → data 차례로
+### ③ roles → schema → data — **한 번에, 한 덩어리로**
+
 ```bash
-psql "<새 프로젝트 연결 주소>" --single-transaction -f roles.sql
-```
-```bash
-psql "<새 프로젝트 연결 주소>" --single-transaction -f schema.sql
-```
-```bash
-psql "<새 프로젝트 연결 주소>" --single-transaction \
-  -c 'SET session_replication_role = replica' -f data.sql
+psql "<연결 주소>" --single-transaction --variable ON_ERROR_STOP=1 -f roles.sql -f schema.sql -c 'SET session_replication_role = replica' -f data.sql
 ```
 
-> 🔴 **`SET session_replication_role = replica` 를 꼭 넣으세요.**
-> 자료를 넣는 동안 **방아쇠(trigger)를 끕니다.** 안 끄면 자료를 넣을 때마다
-> 알림이 나가고, 목록 갱신 방아쇠가 돌아 값이 뒤틀립니다.
-> 이게 **메일·푸시 부작용을 막는 가장 확실한 방법**입니다.
+**끝난 값을 꼭 확인하세요. 셸마다 보는 법이 다릅니다.**
+
+```bash
+echo $?
+```
+
+윈도 PowerShell 이면 이쪽입니다.
+
+```bash
+$LASTEXITCODE
+```
+
+> 🔴 **한 psql 호출에 몰아넣습니다.** 세 번 나눠 부르면 **셋이 따로 도는 것**이라,
+> 가운데서 걸렸을 때 앞의 것이 남아 반쪽이 됩니다.
 >
-> `--single-transaction` 은 **중간에 걸리면 통째로 되돌립니다.** 반쪽으로 남지 않습니다.
+> · `--single-transaction` — 중간에 걸리면 **통째로 되돌립니다.**
+> · `ON_ERROR_STOP=1` — 첫 오류에서 **멈춥니다.** 없으면 오류를 지나치며 계속합니다.
+> · `SET session_replication_role = replica` — 자료를 넣는 동안 **방아쇠를 끕니다.**
+>   안 끄면 넣을 때마다 알림이 나가고 목록 갱신이 뒤틀립니다.
 >
-> 되살릴 때 `cli_login_postgres` 역할 때문에 막히면, 그 역할을 지우고 다시 하세요
-> (공식 문서의 알려진 문제입니다).
+> ⚠️ **0 이 아니라고 해서 "아무것도 안 들어갔다" 고 단정하지 마세요.**
+> `--single-transaction` 은 오류가 나면 되돌리지만, **연결이 끊기거나 창이 꺼진 경우**
+> 끝난 값만으로는 알 수 없습니다. 커밋 **직후**에 끊겼을 수도 있습니다.
+>
+> 🔴 **되돌아갔는지 확인하기 전에는 다시 돌리지 마세요.** 확인할 것:
+> · psql 이 찍은 글(마지막 줄에 `COMMIT` 이 있었나)
+> · 대상 DB 의 실제 건수 — `select count(*) from public.employees;` 처럼 몇 개만 세어 봅니다
+> 확인이 안 되면 **담당에게 알리고 멈추세요.** 모르는 채로 다시 돌리면 반쯤 들어간 위에
+> 또 덮어씁니다.
+>
+> 역할 관련 오류(`cli_login_postgres` 등)가 나면 **그 오류와 대상을 그대로 담당에게
+> 알리세요.** 역할을 지우는 것은 영향이 큰 일이라, 무엇을 지울지는 **사람이 판단**합니다.
 
 ### ④ 파일 본체
-3번에서 받은 파일을 **같은 경로로** 올립니다. 경로가 다르면 첨부가 안 열립니다.
+3번에서 받은 파일을 **같은 경로로** 올리고, 3번의 `--manifest` 로 맞춰 봅니다.
 
-### ⑤ 비밀값 다시 넣기 (6번)
+### ⑤ 비밀값 (6번)
 
-### ⑥ 알림 다시 켜기
-```sql
-update public.push_config set url = 'https://work.viren.kr/api/notify' where id = 1;
-```
+### ⑥ 🔴 알림은 **아직 켜지 않습니다**
 
-### ⑦ 확인 (8번 목록)
+되살린 `mail_state` · `user_mail` 에는 **그때까지 어디까지 봤는지**가 들어 있습니다.
+그 뒤로 온 메일은 전부 **새 메일로 보입니다.**
+
+**사서함마다** `uidvalidity` 와 `last_uid` 가 따로 있고, 지금 메일함의 실제 위치는
+**메일 서버에 물어봐야** 압니다. DB 안의 값만 보고 맞출 수 없습니다.
+
+> ⚠️ **사서함별 실제 상태를 확인하기 전까지 알림을 켜지 마세요.**
+> 확인 없이 켜면 지난 메일이 한꺼번에 쏟아집니다.
+> 어떻게 맞출지는 **담당이 메일함을 보고 판단**합니다 — 여기 적어 둘 수 있는
+> 한 줄짜리 SQL 은 없습니다.
+
+`push_subs`(기기 등록)도 옛 등록이 되살아납니다. 지운 앱으로 계속 쏘게 되니,
+비우고 직원들이 다시 켜게 하는 편이 깨끗합니다.
+
+### ⑦ 확인 (8번 목록)을 **다 지난 뒤에** 내보내는 쪽을 다시 잇습니다
 
 ---
 
@@ -229,79 +290,78 @@ update public.push_config set url = 'https://work.viren.kr/api/notify' where id 
 
 ---
 
-## 6. 비밀값
+## 6. 비밀값과 비밀번호
 
-전체 dump 에는 **들어 있습니다**(그래서 암호화가 필수입니다).
-2번 꾸러미에는 **일부러 안 넣습니다** — 평문 JSON 이 드롭박스를 돌아다니면
-파일 하나가 새는 순간 회사 메일함까지 열립니다.
+### 로그인 비밀번호 — **전체 dump 가 있으면 그대로 삽니다**
 
-| 무엇 | 어디에 | dump 없이 되살리려면 |
+`auth` 스키마에는 비밀번호가 **해시**로 들어 있고, dump 로 옮기면 **그대로 옮겨집니다.**
+직원들이 쓰던 비밀번호를 **그대로 쓸 수 있습니다** — 새로 정할 필요가 없습니다.
+
+> 평문 비밀번호는 **아무도, 어디에서도 볼 수 없습니다**(해시만 저장합니다).
+> '못 본다'와 '못 옮긴다'는 다릅니다. **옮기는 것은 됩니다.**
+>
+> 2번 꾸러미만 있을 때는 계정 자체가 없으므로 새로 만들고 새 비밀번호를 정해야 합니다.
+
+### 그 밖의 비밀값
+
+전체 dump 에는 **들어 있습니다**(그래서 암호화가 필수). 2번 꾸러미에는 **안 넣습니다.**
+
+| 무엇 | 보관 위치 (이름만) | dump 없이 되살리려면 |
 |---|---|---|
-| `push_config.secret` | DB | 새 값을 만들어 **Cloudflare 환경변수와 DB 양쪽**에 같게 |
-| **VAPID 열쇠** | Cloudflare 환경변수 | 새로 만들면 **직원들이 알림을 다시 켜야** 합니다 |
-| `user_mail.secret` | DB (암호문) | **못 되살립니다.** 직원이 각자 다시 넣습니다 |
-| `MAIL_KEY` | Cloudflare 환경변수 | 이게 없으면 암호문을 못 풉니다. **따로 보관하세요** |
+| 알림 비밀키 | DB `push_config.secret` + Cloudflare 환경변수 | 새 값을 만들어 **양쪽에 같게** |
+| VAPID 열쇠 | Cloudflare 환경변수 | 새로 만들면 **직원들이 알림을 다시 켜야** 합니다 |
+| 직원 메일 비밀번호 | DB `user_mail.secret`(암호문) | **못 되살립니다.** 직원이 각자 다시 넣습니다 |
+| 메일 암호 열쇠 | Cloudflare 환경변수 `MAIL_KEY` | 없으면 암호문을 못 풉니다. **따로 보관하세요** |
 
-> `user_mail.secret` 은 암호문이고 푸는 열쇠는 Cloudflare 에만 있습니다.
-> **DB 와 Cloudflare 둘 다** 있어야 열립니다.
+> 🔴 이 문서에도, 채팅에도, 인수인계 문서에도 **값 자체는 적지 않습니다.**
+> 어디에 있는지와 이름만 적습니다.
 
 ---
 
-## 7. 되살릴 때 터지는 부작용
+## 7. 되살릴 때 터지는 부작용 — 미리 막는 법
 
-### ⚠️ 방아쇠 — 5번 ③ 의 `session_replication_role = replica` 로 막습니다
-안 끄면 자료를 넣을 때마다 알림이 나갑니다.
-
-### ⚠️ 메일이 한꺼번에 다시 옵니다
-`mail_state` · `user_mail.last_uid` 는 "어디까지 봤는지" 입니다.
-과거로 돌리면 그 뒤에 온 메일을 **전부 새 메일로 보고** 쏟아냅니다.
-→ 2번 꾸러미에는 **안 넣습니다.** 전체 dump 로 되살렸다면, 켜기 전에 지금 값으로 올리세요.
-
-```sql
--- 되살린 뒤, 알림을 켜기 전에
-update public.mail_state set last_uid = (select max(last_uid) from public.mail_state);
-```
-
-### ⚠️ 알림이 지운 앱으로 갑니다
-`push_subs` 는 기기 등록입니다. → 2번 꾸러미에는 안 넣습니다.
-전체 dump 로 되살렸다면 비우고 다시 켜게 하는 편이 깨끗합니다.
+| 무엇 | 어떻게 막나 |
+|---|---|
+| 방아쇠가 돌아 알림이 나감 | 5번 ③ 의 `session_replication_role = replica` |
+| 되살린 뒤 메일이 쏟아짐 | 5번 ⑥ — **사서함별 확인 전까지 알림 금지** |
+| 옛 기기로 알림이 감 | `push_subs` 를 비우고 다시 켜게 함 |
+| 연습하다 운영에 알림이 감 | 5번 ① — **바깥(Functions·cron)부터 끊기** |
 
 ---
 
 ## 8. 다 됐는지 확인하는 목록
 
-되살린 뒤 **전부** 확인해야 "됐다"고 할 수 있습니다.
-
-- [ ] `node scripts/check-files.mjs 꾸러미.json --files 내려받은폴더` 가 통과한다
+- [ ] `psql` 끝난 값이 **0** 이다
+- [ ] `node scripts/check-files.mjs --manifest 목록.json --files 폴더` 가 통과한다
 - [ ] 표별 건수가 꾸러미의 `counts` 와 같다
 - [ ] 메신저 글 수가 원래와 같다
-- [ ] 직원이 **로그인된다** (계정이 살아 있다는 뜻)
-- [ ] 결재 문서를 열면 **첨부가 열린다** (파일 경로가 맞다는 뜻)
-- [ ] 증명서가 뽑힌다 (인사·경력·자격 기록이 들어갔다는 뜻)
-- [ ] **대휴 휴가를 신청할 수 있다** (`comp_balance` 가 있다는 뜻)
-- [ ] 직원 메일 알림 화면이 열린다 (`user_mail` 이 있다는 뜻)
-- [ ] 시험 알림이 **뜬다**
-- [ ] 메일 알림이 **지난 메일을 다시 쏟지 않는다**
+- [ ] 직원이 **쓰던 비밀번호로 로그인된다**
+- [ ] 결재 문서를 열면 **첨부가 열린다**
+- [ ] 증명서가 뽑힌다
+- [ ] **대휴 휴가를 신청할 수 있다** (`comp_balance`)
+- [ ] 직원 메일 알림 화면이 열린다 (`user_mail`)
+- [ ] **사서함별 상태를 확인한 뒤에** 시험 알림이 뜬다
 
 ---
 
 ## 9. 지금 안 되는 것 (솔직하게)
 
 - **되살리기를 실제로 해 본 적이 없습니다.** 명령과 차례는 공식 문서를 따랐고
-  코드·SQL 은 시험했지만, **빈 서버에 부어 본 적은 없습니다.**
-  이것이 가장 큰 미검증 항목입니다. 연습용 프로젝트에서 한 번 해 보는 것이
-  이 문서를 통째로 검증하는 유일한 길입니다.
-- **자동 백업이 없습니다.** 사람이 매달 명령을 쳐야 합니다. 빠뜨리면 그만큼 날아갑니다.
-- **파일 본체는 손으로 받아야 합니다.** 자동화되어 있지 않습니다.
-- **dump 암호화도 손으로 합니다.** 안 하면 개인정보가 평문으로 돌아다닙니다.
-- **로그인 비밀번호는 dump 없이는 못 되살립니다.**
+  코드·SQL·파일 도구는 시험했지만, **빈 서버에 부어 본 적은 없습니다.**
+  연습용 프로젝트에서 한 번 해 보는 것이 이 문서를 검증하는 유일한 길입니다.
+- **메일 진행 위치를 맞추는 방법이 정해져 있지 않습니다.** 사서함마다 다르고
+  메일 서버에 물어봐야 알 수 있어, 자동으로 맞출 수 없습니다.
+- **자동 백업이 없습니다.** 사람이 매달 명령을 쳐야 합니다.
+- **파일 본체·암호화는 손으로 합니다.**
 
 ---
 
 ## 되새길 것
 
 > **"받아 둔 게 있다"와 "되살릴 수 있다"는 다릅니다.**
-> 1·2·3번을 다 해야 받은 것이고, 5번을 **한 번 해 봐야** 되살릴 수 있는 것입니다.
+> 1·2·3번을 다 해야 받은 것이고, 5번을 **연습용에서 한 번 해 봐야** 되살릴 수 있는 것입니다.
 
-**출처**: [Supabase 백업·복구(CLI)](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore) ·
-[플랫폼 → 셀프호스팅 복구](https://supabase.com/docs/guides/self-hosting/restore-from-platform)
+**출처**: [CLI 설치](https://supabase.com/docs/guides/local-development/cli/getting-started) ·
+[백업·복구(CLI)](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore) ·
+[플랫폼 → 셀프호스팅 복구](https://supabase.com/docs/guides/self-hosting/restore-from-platform) ·
+[계정 옮기기](https://supabase.com/docs/guides/troubleshooting/migrating-auth-users-between-projects)
