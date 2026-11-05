@@ -1,7 +1,158 @@
 # VIREN 웹사이트 — 작업 인수인계 (Handoff)
 
 > 새 채팅/새 계정에서 이 파일을 먼저 읽으면 작업을 바로 이어받을 수 있습니다.
-> 마지막 업데이트: 2026-11-03
+> 마지막 업데이트: 2026-11-05
+
+---
+
+## 0. 인수인계 — 보안·백업 작업 (2026-11-05)
+
+> 바이렌워크(work.viren.kr)의 **백업·복구 보완**을 여기서 마칩니다.
+> 다음 담당(ChatGPT/Codex)이 이 절만 읽고 이어받을 수 있게 적었습니다.
+> 아래 **3번(아직 안 한 것)** 이 가장 중요합니다 — 승인이 필요한 일들입니다.
+
+### 0-1. 어디에 있나
+
+| | |
+|---|---|
+| 작업 폴더 | `C:\Users\c\VIREN Dropbox\박지은\VIREN_경영\2. 디자인관련서류\04. 사내 디자인 작업관리\★클로드문서\viren-react` |
+| 앱 폴더 | 위 폴더의 `work/` (바이렌워크). 바깥은 홈페이지 viren.kr |
+| 브랜치 | `main` |
+| 이 작업의 커밋 | `66fc046` → `8b829b3` → `1dfc74a` → `0662b17` (+ 이 문서 커밋) |
+| 원격 | **안 올렸습니다.** `git status` 가 `ahead 4` 이상으로 나옵니다 |
+
+```bash
+git log --oneline 66fc046~1..HEAD
+```
+
+### 0-2. 무엇을 바꿨나
+
+**새로 만든 것**
+
+| 파일 | 무엇 |
+|---|---|
+| `work/src/lib/backup.js` | 꾸러미 만들기·검사·되돌리기 SQL·파일 목록 대조 (순수 함수) |
+| `work/src/components/BackupCard.jsx` | 관리 → 기타 설정 화면 |
+| `work/scripts/check-files.mjs` | 파일 목록 만들기·맞추기 (읽기 전용이 기본) |
+| `work/BACKUP.md` | **운영 절차서. 여기부터 읽으세요** |
+| `work/supabase/tests/backuptest.mjs` | 119가지 |
+| `work/supabase/tests/filestest.mjs` | 34가지 (실제 파일을 만들어 돌립니다) |
+| `work/supabase/tests/schematest.mjs` | 10가지 (코드↔마이그레이션 대조) |
+| `work/supabase/migrations/2026-11-05a-backup-log.sql` | **아직 안 돌렸습니다** |
+
+**고친 것**
+
+| 파일 | 무엇 |
+|---|---|
+| `work/supabase/schema.sql` | 🐛 `user_mail` 절·`comp_balance` 함수가 빠져 있던 것을 채움 + 기록 표 |
+| `work/src/pages/Admin.jsx` | 옛 백업 칸을 새 칸으로 |
+| `work/src/styles.css` | `.restore-box` · `.pl-ok` · `.pl-bad` |
+| `HANDOFF.md` | 이 문서 |
+
+### 0-3. 🔴 아직 안 한 것 — **승인이 필요합니다**
+
+| 무엇 | 상태 | 하려면 |
+|---|---|---|
+| **배포** | ❌ 안 함 | `git push origin main` → Cloudflare Pages 가 자동 배포 |
+| **`2026-11-05a-backup-log.sql`** | ❌ **운영 미적용** | Supabase → SQL Editor 에 붙여넣고 Run 한 번 |
+| **실제 백업 받기** | ❌ 안 함 | `BACKUP.md` 1·2·3번 |
+| **실제 복구 해 보기** | ❌ 안 함 | `BACKUP.md` 5번 — **연습용 프로젝트에서만** |
+| **비밀값 접근** | ❌ 안 함 | 이번 작업에서 열지 않았습니다 |
+
+> 배포하면 관리 → 기타 설정에 「업무 자료 내보내기」 칸이 생깁니다.
+> 누르기 전에는 아무 일도 일어나지 않습니다. 운영 자료를 바꾸지 않습니다.
+
+### 0-4. 돌려 보는 법
+
+```bash
+cd work
+```
+
+```bash
+SP=/tmp/viren-test node supabase/tests/backuptest.mjs
+```
+
+| 명령 | 결과(2026-11-05) |
+|---|---|
+| `node supabase/tests/backuptest.mjs` | 119개 통과 (SP 불필요) |
+| `SP=<임시폴더> node supabase/tests/filestest.mjs` | 34개 통과 |
+| `node supabase/tests/schematest.mjs` | 10개 통과 (SP 불필요) |
+| 나머지 5개 | 276개 통과 — **`SP` 환경변수가 있어야 돕니다** |
+| `npm run build` | 통과 |
+
+> ⚠️ `SP` 가 없으면 몇몇 시험이 `undefined/xxx.copy.mjs` 를 못 찾는다며 죽습니다.
+> **검사가 깨진 게 아닙니다.**
+>
+> ⚠️ `npm run build` 결과(`dist/`)에는 **앱 화면이 거의 안 들어 있습니다.**
+> 로컬에 `.env` 가 없어 `supabase` 가 null 이 되고 나머지가 가지치기됩니다.
+> **빌드가 깨진 게 아닙니다** — 문법 확인용으로만 쓰고, 배포 확인은 라이브 번들로.
+> 같은 이유로 **로컬 미리보기로 화면을 못 띄웁니다.**
+
+### 0-5. 백업·복구 — 요약 (자세한 건 `work/BACKUP.md`)
+
+**받는 쪽 — 매달 세 가지를 다 해야 합니다**
+
+1. **전체 dump** — `npx supabase db dump` 로 roles·schema·data 세 파일.
+   `--schema auth,public,storage` 를 넣어야 **로그인 계정**이 들어갑니다. 받은 뒤 **암호화 필수**.
+2. **업무 자료 내보내기** — 화면에서. 사람이 열어볼 수 있는 형태 + 건수·해시.
+3. **파일 본체** — Storage 세 곳. 받은 날 `--write-manifest` 로 목록을 만들어 둡니다.
+
+**필요한 도구**
+
+- Supabase CLI (`npm i --save-dev supabase@<판 고정>` 또는 Scoop)
+- `psql`
+- 7-Zip (암호화)
+- Node (이 저장소의 `scripts/check-files.mjs`)
+
+**되살리는 쪽 — 차례를 지켜야 합니다**
+
+바깥(Functions·cron) 끊기 → 암호 풀기 → **psql 한 번에** roles·schema·data
+(`--single-transaction --variable ON_ERROR_STOP=1`, 데이터 앞에
+`SET session_replication_role = replica`) → 파일 → 비밀값 → **사서함 확인 뒤** 알림.
+
+### 0-6. 🔴 알려진 위험
+
+| 위험 | 지금 상태 |
+|---|---|
+| **복구를 한 번도 해 본 적이 없다** | 가장 큰 미검증. 연습용 프로젝트에서 해 봐야 합니다 |
+| **메일 진행 위치를 맞추는 법이 없다** | 사서함마다 다르고 메일 서버에 물어야 압니다. **확인 전 알림 재개 금지** |
+| `data.sql` 이 `push_config` 를 되살림 | "URL 만 비우기"로는 못 막습니다. 바깥부터 끊어야 합니다 |
+| 자동 백업 없음 | 사람이 매달 쳐야 합니다. 빠뜨리면 그만큼 날아갑니다 |
+| dump·업무 JSON·파일에 개인정보 | **전부 암호화 대상.** 대표님·지은님만 접근 |
+| `.r`(오른쪽 정렬)이 표 안에서 안 먹음 | 원래부터 그랬습니다. 고치면 여러 화면이 바뀌어 **손대지 않았습니다** |
+
+### 0-7. 비밀값 — **값은 어디에도 적지 않습니다**
+
+이 문서·채팅·커밋에 **원문을 쓰지 않았습니다.** 보관 위치와 이름만 적습니다.
+
+| 무엇 | 어디에 (이름만) |
+|---|---|
+| 알림 비밀키 | DB `push_config.secret` + Cloudflare 환경변수 |
+| 웹푸시 열쇠 | Cloudflare 환경변수 (VAPID 공개/비공개) |
+| 직원 메일 비밀번호 | DB `user_mail.secret` — **암호문**. 푸는 열쇠는 DB 에 없습니다 |
+| 메일 암호 열쇠 | Cloudflare 환경변수 `MAIL_KEY` |
+| DB 접속 주소 | Supabase → Settings → Database |
+| 암호화 묶음 비밀번호 | 회사 비밀번호 관리함 |
+
+> 🔴 `user_mail.secret` 은 **DB 와 Cloudflare 둘 다** 있어야 열립니다.
+> `MAIL_KEY` 를 잃으면 암호문은 영영 못 풉니다 — **따로 보관하세요.**
+
+### 0-8. 이 작업에서 찾은 버그 (전부 고침)
+
+| | |
+|---|---|
+| 🐛 `user_mail` 표가 `schema.sql` 에 없었다 | 새 서버에서 직원 메일 알림이 안 섭니다 |
+| 🐛 `comp_balance` 함수가 없는데 `schema.sql` 이 불렀다 | 새 서버에서 **대휴 신청이 터집니다** |
+| 🐛 백업 페이징에 정렬이 없었다 | 1000건 넘는 표에서 줄이 겹치거나 빠질 수 있었습니다 |
+| 🐛 복합키를 한 칸으로만 정렬했다 | 같은 문제 |
+| 🐛 칸 이름을 그대로 SQL 에 넣었다 | 이상한 키가 든 꾸러미로 SQL 이 깨집니다 |
+| 🐛 건수·해시를 지운 꾸러미가 통과했다 | 망가진 백업을 성하다고 했습니다 |
+| 🐛 `backup_log_add` 가 오류를 삼켰다 | 기록 실패를 성공으로 알렸습니다 |
+| 🐛 `--hash` 가 해시를 재고 버렸다 | 크기가 같은 손상을 못 잡았습니다 |
+| 🐛 저장소 목록이 한 겹·1000개까지였다 | 조용히 적게 담겼습니다 |
+
+> 앞의 둘은 **`node supabase/tests/schematest.mjs`** 가 앞으로 잡습니다.
+> `schema.sql` 을 고칠 때마다 돌리세요.
 
 ---
 

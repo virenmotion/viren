@@ -21,6 +21,8 @@ const OUT = join(SP, 'files-test-밖')
 const MAN = join(SP, 'files-test-목록.json')
 
 let pass = 0, fail = 0
+/* ⚠️ 둘째 자리는 **참·거짓**이다. 값 두 개를 넘기면(실제, 기대) 틀려도 통과한다 —
+   2026-11-05 에 네 곳에서 그랬다. 비교는 여기서 하고 detail 에 실제값을 적는다. */
 const ok = (name, good, detail = '') => {
   good ? pass++ : fail++
   console.log(`${good ? '✅' : '❌'} ${name.padEnd(46)} ${good ? '' : detail}`)
@@ -60,11 +62,11 @@ const made = run('--write-manifest', MAN, '--files', ROOT)
 ok('목록을 만든다', made.code === 0, `끝난 값 ${made.code}\n${made.out.slice(-400)}`)
 
 const man = JSON.parse(await (await import('node:fs/promises')).readFile(MAN, 'utf8'))
-ok('우리 목록이라고 적는다', man.kind, 'viren-work-files')
-ok('★ 2000개를 넘겨도 전부 센다', man.buckets['chat-files'].length, MANY)
+ok('우리 목록이라고 적는다', man.kind === 'viren-work-files', `kind=${man.kind}`)
+ok('★ 2000개를 넘겨도 전부 센다', man.buckets['chat-files'].length === MANY, `${man.buckets['chat-files'].length}개만 셌다(기대 ${MANY})`)
 ok('해시를 적는다', /^[0-9a-f]{64}$/.test(man.buckets['company'][0].sha256), true)
-ok('크기도 적는다', man.buckets['company'][0].size, 4)
-ok('경로는 저장소 안쪽 기준', man.buckets['approval-files'][0].path, 'doc1/a.txt')
+ok('크기도 적는다', man.buckets['company'][0].size === 4, `size=${man.buckets['company'][0].size}`)
+ok('경로는 저장소 안쪽 기준', man.buckets['approval-files'][0].path === 'doc1/a.txt', `path=${man.buckets['approval-files'][0].path}`)
 
 /* ── ② 그대로 맞추면 통과 ─────────────────────────────────────── */
 const same = run('--manifest', MAN, '--files', ROOT)
