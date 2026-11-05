@@ -4,11 +4,11 @@ import { useSession } from '../lib/session'
 import { leavePeriod } from '../lib/leave'
 import { DUTIES, RANKS } from '../lib/labels'
 import { ymd } from '../lib/dates'
-import { downloadBlob } from '../lib/csv'
 import { DateInput, ErrorBox } from '../components/ui'
 import AdminForms from './AdminForms'
 import StorageCard from '../components/StorageCard'
 import PushLogCard from '../components/PushLogCard'
+import BackupCard from '../components/BackupCard'
 import StaffCard from '../components/StaffCard'
 import Certificate from '../components/Certificate'
 import CompanyCard from '../components/CompanyCard'
@@ -37,7 +37,7 @@ export default function Admin() {
           <Settings />
           <StorageCard />
           <PushLogCard />
-          <Backup />
+          <BackupCard />
         </section>
       )}
     </div>
@@ -470,38 +470,3 @@ function Settings() {
   )
 }
 
-const BACKUP_TABLES = ['employees', 'settings', 'doc_forms', 'approval_docs', 'approval_steps', 'approval_refs', 'approval_files', 'attendance', 'events', 'event_categories']
-
-function Backup() {
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState('')
-
-  async function run() {
-    setBusy(true); setErr('')
-    try {
-      const out = { exported_at: new Date().toISOString(), tables: {} }
-      for (const t of BACKUP_TABLES) {
-        const rows = []
-        for (let from = 0; ; from += 1000) {
-          const { data, error } = await supabase.from(t).select('*').range(from, from + 999)
-          if (error) throw error
-          rows.push(...data)
-          if (data.length < 1000) break
-        }
-        out.tables[t] = rows
-      }
-      downloadBlob(`viren-work-backup-${ymd()}.json`, new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' }))
-    } catch (e) { setErr(errText(e)) }
-    setBusy(false)
-  }
-
-  return (
-    <section className="card stack-sm">
-      <h2>데이터 백업</h2>
-      <p>무료 서버에는 자동 백업이 없습니다. <strong>한 달에 한 번</strong> 아래 버튼으로 전체 기록(직원, 결재 문서, 결재선, 근태, 일정)을 내려받아 회사 Dropbox에 보관해 주세요.</p>
-      <p className="hint">첨부파일 자체는 이 파일에 들어가지 않습니다. 첨부파일은 Supabase 대시보드 → Storage → approval-files 에서 따로 내려받을 수 있습니다.</p>
-      <ErrorBox>{err}</ErrorBox>
-      <div className="actions"><button className="btn primary" disabled={busy} onClick={run}>{busy ? '내려받는 중…' : '전체 백업 내려받기'}</button></div>
-    </section>
-  )
-}

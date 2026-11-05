@@ -1599,3 +1599,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
       붙고, .bad 는 .edit-sum.bad 로만 있어 혼자서는 아무 일도 안 한다. */
 .pl-ok { color: var(--ok); }
 .pl-bad { color: var(--bad); }
+
+/* 되돌리기 칸 — 읽기만 하는 자리라 **빨간 상자를 쓰지 않는다**(.danger-zone).
+   늘 빨가면 진짜 위험한 자리가 안 보인다. 경고는 아래 글(.warn)에 둔다. */
+.restore-box { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--surface-2); }
