@@ -36,8 +36,8 @@ git log --oneline 66fc046~1..HEAD
 | `work/scripts/check-files.mjs` | 파일 목록 만들기·맞추기 (읽기 전용이 기본) |
 | `work/BACKUP.md` | **운영 절차서. 여기부터 읽으세요** |
 | `work/RESTORE-DRILL.md` | **복구 연습 실행안** — 설치할 것·암호·연습 자리·시험 기준·지은님이 정할 것 |
-| `work/scripts/restore-guard.mjs` | 🔴 되살릴 자리가 운영인지 보는 **문지기** |
-| `work/supabase/tests/guardtest.mjs` | 28가지 |
+| `work/scripts/restore-guard.mjs` | 🔴 되살릴 자리가 운영인지 보는 **문지기**<br>운영 ref 둘(`mappjgurhsvymamkohoo`·`wxggycizpfmwjaeltabg`) · 물음표 뒤 · 주소 속 비밀번호 ·<br>`localhost` · 다른 문·DB · **PG\* 환경변수**를 전부 막습니다 |
+| `work/supabase/tests/guardtest.mjs` | **73가지** |
 | `work/supabase/tests/backuptest.mjs` | 119가지 |
 | `work/supabase/tests/filestest.mjs` | 34가지 (실제 파일을 만들어 돌립니다) |
 | `work/supabase/tests/schematest.mjs` | 10가지 (코드↔마이그레이션 대조) |
@@ -65,11 +65,26 @@ git log --oneline 66fc046~1..HEAD
 | **보관 자리에 올리기** | ❌ 안 함 | 폴더는 아직 비어 있습니다 |
 | **Dropbox 권한 변경** | — | 바꿀 일이 없었습니다. 읽기만 했습니다 |
 | **격리 시험 환경** | ❌ 안 정함 | 🔴 선택지·비용은 `RESTORE-DRILL.md` 3번 |
-| **도구 설치**(Docker·CLI·psql·7-Zip) | ❌ **하나도 안 깔림** | `RESTORE-DRILL.md` 1번. **Docker 는 라이선스·재부팅이 걸립니다** |
-| **dump 명령 확인** | ❌ 못 함 | CLI 가 없어 `--help` 를 못 봤습니다. 공식 문서가 바뀐 곳 셋(`BACKUP.md` 1번) |
+| **7-Zip 26.05 · Supabase CLI 3.0.0** | ⚠️ **내려받아 둠**(portable) | `C:\Users\c\Documents\Codex\2026-11-05\task\backup-prep-tools`<br>컴퓨터 전체 설치 아님 · `package.json` 도 안 건드림 |
+| **그릇**(Docker/Rancher/Podman) · **psql** | ❌ 없음 | `RESTORE-DRILL.md` 1번. 그릇은 **라이선스·재부팅**이 걸립니다 |
+| **CLI `--help` 확인** | ❌ **막힘** | `C:\Users\c\.supabase` 를 만들려다 EPERM. 그 폴더 승인이 필요합니다 |
+| **dump 명령 확인** | ❌ 못 함 | 공식 문서가 바뀐 곳 셋 + **CLI 3.0.0 은 큰 변화가 있는 판**(`RESTORE-DRILL.md` 1-③) |
+| **격리 확인**(그릇·송신 차단·pg_cron) | ❌ **조건 미충족** | 그릇이 없어 하나도 못 했습니다(`RESTORE-DRILL.md` 3번) |
 
 > 배포하면 관리 → 기타 설정에 「업무 자료 내보내기」 칸이 생깁니다.
 > 누르기 전에는 아무 일도 일어나지 않습니다. 운영 자료를 바꾸지 않습니다.
+
+**지은님이 정해 주셔야 복구 연습을 시작할 수 있습니다 — 셋입니다**
+
+1. **설치·약관** — 그릇을 Docker/Rancher/Podman 중 무엇으로? (Docker 는 무료 조건 확인 필요)
+   WSL·가상화를 켜고 **재부팅**해도 되는지, psql 을 깔아도 되는지,
+   `C:\Users\c\.supabase` 폴더를 만들어도 되는지
+2. **암호 보관** — 회사에 쓰는 비밀번호 관리함이 있는지, 묶음 암호를 누가 맡는지
+   (새 서비스를 쓰는 것은 아직 승인받지 않았습니다)
+3. **첫 백업** — 언제 받을지, 그때 **운영 DB 자격을 누가 넣을지**
+   (🔴 담당에게 비밀번호를 알려 주지 마세요. 지은님이 직접 치시면 됩니다)
+
+> 자세한 것은 `work/RESTORE-DRILL.md` 5번.
 
 ### 0-3-1. 백업을 어디에 두나 — **자리와 권한 확인됨**
 
@@ -100,7 +115,7 @@ SP=/tmp/viren-test node supabase/tests/backuptest.mjs
 |---|---|
 | `node supabase/tests/backuptest.mjs` | 119개 통과 (SP 불필요) |
 | `SP=<임시폴더> node supabase/tests/filestest.mjs` | 34개 통과 |
-| `node supabase/tests/guardtest.mjs` | 28개 통과 (SP 불필요) |
+| `node supabase/tests/guardtest.mjs` | **73개 통과** (SP 불필요) |
 | `node supabase/tests/schematest.mjs` | 10개 통과 (SP 불필요) |
 | 나머지 5개 | 276개 통과 — **`SP` 환경변수가 있어야 돕니다** |
 | `npm run build` | 통과 |
@@ -151,7 +166,11 @@ SP=/tmp/viren-test node supabase/tests/backuptest.mjs
 | 보관 폴더가 **상위에서 권한을 물려받는다** | 지금은 두 분뿐이지만, `★지피티문서` 가 바뀌면 따라 바뀝니다. 가끔 확인 |
 | **무료 Supabase 가 이미 둘** | 시험용을 더 만들면 **돈이 들 수 있습니다.** 확인 전 생성 금지 |
 | **Docker Desktop 이 회사에 무료인지 모름** | 직원 250명 미만 **그리고** 매출 1천만 달러 미만이어야 무료. 넘으면 유료 구독 |
-| **우리 dump 명령이 최신 CLI 와 어긋남** | `--remote`·vector 표 제외·migration history 셋이 빠져 있습니다. 깐 날 `--help` 로 확인하고 고칠 것 |
+| **우리 dump 명령이 최신 CLI 와 어긋남** | `--remote`·vector 표 제외·migration 이력 셋이 빠져 있습니다. 깐 날 `--help` 로 확인하고 고칠 것 |
+| 🐛 **`7z t -p` 는 안 됩니다** | 암호를 묻지 않고 실패합니다. 풀 때는 **`-p` 를 빼야** 물어봅니다(실제로 확인) |
+| **운영에 cron 3개가 돌고 있음** | 되살릴 때 같이 살아나면 메일을 읽고 알림을 쏩니다. 넣기 **전에** 막아야 합니다 |
+| **Vault 확장이 깔려 있음**(secret 0) | 지금은 영향 없지만, 쓰기 시작하면 **푸는 열쇠가 DB 밖**이라 dump 만으로 못 되살립니다 |
+| **문지기 통과 = 복구 허가 아님** | 글자만 봅니다. 그릇·볼륨·송신 차단은 **사람이 따로** 확인해야 합니다 |
 | **Dropbox 안에서 dump 를 받으면** | 암호화 전 평문이 **즉시 동기화**되고 삭제해도 버전 기록에 남습니다. 반드시 **Dropbox 밖**에서(BACKUP.md 10번) |
 | dump·업무 JSON·파일에 개인정보 | **전부 암호화 대상.** 대표님·지은님만 접근 |
 | `.r`(오른쪽 정렬)이 표 안에서 안 먹음 | 원래부터 그랬습니다. 고치면 여러 화면이 바뀌어 **손대지 않았습니다** |
