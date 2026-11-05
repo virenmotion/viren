@@ -14,9 +14,12 @@ import { ErrorBox } from './ui'
         브라우저로 가져올 수 없다. 전체라고 적어 두면 그걸 믿고 있다가
         정작 필요할 때 없다 — 그게 백업에서 제일 나쁜 일이다.
 
+   ⚠️ **'내려받기를 눌렀다' 와 '백업이 됐다' 는 다르다.** 받은 파일을 드롭박스에
+      올려야 비로소 백업이다. 화면 글도 그렇게 적는다(2026-11-05 검토 지적).
+
    ⚠️ 되돌리기는 **여기서 돌리지 않는다.** SQL 을 만들어 줄 뿐이고, 사람이 보고
       Supabase SQL Editor 에서 돌린다. 핵심 표에는 insert 정책이 아예 없어서
-      브라우저로는 넣을 수도 없다(문서·직원·인사 기록은 함수로만 만들어진다). */
+      브라우저로는 넣을 수도 없다. */
 
 const PAGE = 1000
 const DEEP = 4            // 저장소 폴더를 이만큼까지만 파고든다
@@ -24,8 +27,7 @@ const DEEP = 4            // 저장소 폴더를 이만큼까지만 파고든다
 /* 한 표를 전부 가져온다.
    ⚠️ **기본키 전부로 줄을 세운다.** 차례 없이 range 로 넘기면 페이지마다 순서가
       달라질 수 있어서 1000건이 넘는 표에서 줄이 겹치거나 빠진다. 복합키를 한 칸만
-      쓰는 것도 같은 문제다 — doc_id 가 같은 줄들의 차례가 안 정해진다
-      (2026-11-05 검토 지적). */
+      쓰는 것도 같은 문제다 — doc_id 가 같은 줄들의 차례가 안 정해진다. */
 async function fetchTable(name, keyCols) {
   const rows = []
   for (let from = 0; ; from += PAGE) {
@@ -41,7 +43,7 @@ async function fetchTable(name, keyCols) {
 
 /* 저장소의 파일 **경로와 크기**만. 본체는 안 받는다(너무 크다).
    ⚠️ 끝까지 읽는다 — 페이지도 넘기고 폴더도 파고든다. 못 읽은 곳이 있으면
-      `truncated` 로 알린다. **조용히 적게 담는 게 제일 나쁘다**(검토 지적). */
+      `truncated` 로 알린다. **조용히 적게 담는 게 제일 나쁘다.** */
 async function listFiles(bucket) {
   const files = []
   const errors = []
@@ -72,13 +74,15 @@ async function listFiles(bucket) {
 }
 
 const mb = (b) => `${(Number(b || 0) / 1024 / 1024).toFixed(1)}MB`
+const LOGNAME = { ok: '다 받음', partial: '일부만', fail: '실패' }
 
 export default function BackupCard() {
   const [busy, setBusy] = useState('')
   const [err, setErr] = useState('')
   const [note, setNote] = useState('')
   const [made, setMade] = useState(null)      // 방금 내려받은 꾸러미
-  const [loaded, setLoaded] = useState(null)  // 열어 본 꾸러미 { obj, check, preview }
+  const [logErr, setLogErr] = useState('')    // 기록만 실패한 경우
+  const [loaded, setLoaded] = useState(null)  // 열어 본 꾸러미
   const [log, setLog] = useState(null)        // 지난 기록 (표가 아직 없으면 null)
   const pick = useRef(null)
 
@@ -89,31 +93,35 @@ export default function BackupCard() {
   }, [])
   useEffect(() => { loadLog() }, [loadLog])
 
-  /* 받은 사실을 DB 에 남긴다. **개인정보는 한 줄도 안 넣는다** — 시각·상태·건수·빠진 것뿐.
-     표가 아직 없으면 조용히 넘어가고, 화면에 '기록이 안 남았다' 고 적는다. */
-  async function writeLog(pack, failed) {
+  /* 받은 사실을 DB 에 남긴다. **개인정보는 한 줄도 안 넣는다** — 시각·상태·건수·까닭뿐.
+     ⚠️ 실패를 숨기지 않는다. 글로 돌려주고, 화면이 '내보내기' 와 '기록' 을 갈라서 보여 준다. */
+  async function writeLog(status, pack, failMsg) {
+    const problems = pack
+      ? pack.problems.map((p) => `${p.table || p.bucket}: ${p.error}`)
+      : (failMsg ? [failMsg] : [])
     const { error } = await supabase.rpc('backup_log_add', {
-      p_ok: !failed,
+      p_status: status,
       p_counts: pack ? pack.counts : {},
-      p_problems: pack ? pack.problems.map((p) => `${p.table || p.bucket}: ${p.error}`) : [String(failed || '')],
+      p_problems: problems,
     })
-    return !error
+    return error ? errText(error) : ''
   }
 
   async function makeBackup() {
-    setBusy('받는 중'); setErr(''); setNote(''); setMade(null)
+    setBusy('받는 중'); setErr(''); setNote(''); setMade(null); setLogErr('')
     try {
       const pack = await buildBackup({ fetchTable, listFiles })
       downloadBlob(`viren-work-자료-${ymd()}.json`,
         new Blob([JSON.stringify(pack, null, 1)], { type: 'application/json' }))
       setMade(pack)
-      const kept = await writeLog(pack, null)
-      if (!kept) setNote('받은 기록은 남기지 못했어요(기록 표가 아직 없습니다).')
-      else loadLog()
+      /* 빠진 게 하나라도 있으면 **'다 받음' 이 아니다.** */
+      setLogErr(await writeLog(pack.problems.length ? 'partial' : 'ok', pack))
+      loadLog()
     } catch (e) {
       /* 반쪽은 안 내준다 — 어디서 멈췄는지만 말한다 */
-      setErr(errText(e))
-      await writeLog(e?.partial || null, errText(e))
+      const msg = errText(e)
+      setErr(msg)
+      setLogErr(await writeLog('fail', e?.partial || null, msg))
       loadLog()
     }
     setBusy('')
@@ -126,7 +134,7 @@ export default function BackupCard() {
       const check = await checkBackup(obj)
       /* 지금 DB 에 몇 건이 있는지 센다.
          ⚠️ **못 세면 null 이다.** 0 으로 바꾸면 '새로 넣음' 으로 보여서, 실은
-            덮어쓰는데 안심하게 된다(검토 지적). */
+            덮어쓰는데 안심하게 된다. */
       const now = {}
       for (const t of TABLES) {
         const { count, error } = await supabase.from(t.name).select('*', { count: 'exact', head: true })
@@ -148,6 +156,7 @@ export default function BackupCard() {
   }
 
   const unknownCount = loaded?.preview.filter((r) => r.unknown).length || 0
+  const partial = made && made.problems.length > 0
 
   return (
     <section className="card stack-sm">
@@ -174,7 +183,24 @@ export default function BackupCard() {
 
       {made && (
         <>
-          <p className="ok">내려받았어요. 아래 건수가 맞는지 보고 드롭박스에 올려 주세요.</p>
+          {partial ? (
+            <div className="hint warn">
+              <strong>빠진 것이 있습니다. 이 꾸러미는 일부만 담겼습니다.</strong>
+              <ul className="line-list">
+                {made.problems.map((p, i) => <li key={i}><span>{p.bucket || p.table} — {p.error}</span></li>)}
+              </ul>
+            </div>
+          ) : (
+            <p className="ok">
+              꾸러미를 만들어 내려받기를 시작했어요. <strong>받은 파일을 드롭박스에 올려야</strong> 백업이 됩니다.
+            </p>
+          )}
+          {/* ⚠️ 기록 실패는 내보내기 실패와 **다른 일**이다. 갈라서 보여 준다. */}
+          {logErr && (
+            <p className="hint warn">
+              자료는 위와 같이 처리했지만 <strong>받은 기록은 못 남겼습니다</strong> — {logErr}
+            </p>
+          )}
           <div className="table-wrap">
             <table className="table compact">
               <thead><tr><th>무엇</th><th className="r">건수</th></tr></thead>
@@ -197,14 +223,11 @@ export default function BackupCard() {
               </tbody>
             </table>
           </div>
-          {made.problems.length > 0 && (
-            <div className="hint warn">
-              <strong>끝까지 못 읽은 것이 있습니다.</strong> 이 꾸러미는 <strong>일부가 빠져 있습니다.</strong>
-              <ul className="line-list">
-                {made.problems.map((p, i) => <li key={i}><span>{p.bucket || p.table} — {p.error}</span></li>)}
-              </ul>
-            </div>
-          )}
+          <p className="hint">
+            파일 <strong>본체는 안 들어 있습니다.</strong> 위 개수·크기는 ‘무엇이 있었는지’ 적어 둔
+            목록일 뿐이에요. 본체는 Supabase → Storage 에서 따로 받고,
+            받은 뒤 <code>node scripts/check-files.mjs</code> 로 맞춰 보세요.
+          </p>
         </>
       )}
 
@@ -235,14 +258,17 @@ export default function BackupCard() {
                 {log.map((r) => (
                   <tr key={r.at}>
                     <td className="tnum">{new Date(r.at).toLocaleString('ko-KR')}</td>
-                    <td className={r.ok ? 'pl-ok' : 'pl-bad'}>{r.ok ? '받음' : '실패'}</td>
+                    <td className={r.status === 'ok' ? 'pl-ok' : 'pl-bad'}>{LOGNAME[r.status] || r.status}</td>
                     <td className="r tnum">{r.rows ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="hint">기록에는 <strong>시각·성공 여부·건수</strong>만 남습니다. 자료 내용은 안 남습니다.</p>
+          <p className="hint">
+            기록에는 <strong>시각·결과·건수</strong>만 남습니다. 자료 내용은 안 남습니다.
+            <strong> 드롭박스에 올렸는지까지는 알 수 없습니다</strong> — 그건 눈으로 확인하세요.
+          </p>
         </details>
       )}
 
@@ -306,7 +332,7 @@ export default function BackupCard() {
           )}
           {note && <p className="ok">{note}</p>}
           <div className="actions start">
-            {/* ⚠️ 검사를 통과하지 못한 꾸러미로는 만들지 않는다(검토 지적) */}
+            {/* ⚠️ 검사를 통과하지 못한 꾸러미로는 만들지 않는다 */}
             <button className="btn" disabled={!loaded.check.ok} onClick={makeSql}>
               되돌리기 SQL 만들기
             </button>
@@ -314,7 +340,8 @@ export default function BackupCard() {
           <p className="hint warn">
             만든 SQL 은 <strong>한 덩어리로</strong> 돕니다 — 중간에 하나라도 걸리면 아무것도 안 들어간 채
             되돌아갑니다. 다만 같은 번호의 줄은 <strong>덮어씁니다.</strong> 돌리기 전에
-            <strong> 지금 자료를 먼저 내려받아</strong> 두세요.
+            <strong> 지금 자료를 먼저 내려받아</strong> 두고, <code>BACKUP.md</code> 의 차례대로
+            <strong> 알림을 꺼 두세요.</strong>
           </p>
         </>
       )}

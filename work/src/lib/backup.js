@@ -205,7 +205,9 @@ export async function buildBackup({ fetchTable, listFiles, subtle, now }) {
       try {
         const r = await listFiles(b)
         const files = Array.isArray(r) ? r : (r?.files || [])
-        out.files[b] = files
+        const odd = files.filter((f) => !safePath(f?.path))
+        if (odd.length) out.problems.push({ bucket: b, error: `쓸 수 없는 경로 ${odd.length}개를 뺐습니다.` })
+        out.files[b] = files.filter((f) => safePath(f?.path))
         /* 끝까지 못 읽었으면 **그 사실을 적는다.** 조용히 적게 담는 게 제일 나쁘다. */
         if (r && !Array.isArray(r) && r.truncated) {
           out.problems.push({ bucket: b, error: r.note || '목록을 끝까지 읽지 못했습니다(범위 제한).' })
@@ -261,6 +263,17 @@ export async function checkBackup(obj, subtle) {
     const { problems } = checkRows(t, rows)
     bad.push(...problems)
     tables.push({ name: t.name, what: t.what, rows: rows.length, hashOk })
+  }
+
+  /* 파일 목록의 경로도 본다 — 뒤에 이 경로로 파일을 쓰는 도구가 걸려들지 않게 */
+  if (plain(obj.files)) {
+    for (const [b, list] of Object.entries(obj.files)) {
+      if (!Array.isArray(list)) { bad.push(`저장소 ‘${b}’의 파일 목록이 모양에 안 맞습니다.`); continue }
+      const odd = list.filter((f) => !f || !safePath(f.path)).slice(0, 3)
+      if (odd.length) {
+        bad.push(`저장소 ‘${b}’에 쓸 수 없는 경로가 있습니다: ${odd.map((f) => String(f?.path ?? '(빈 경로)').slice(0, 60)).join(' · ')}`)
+      }
+    }
   }
   return { ok: bad.length === 0, problems: bad, tables }
 }
@@ -361,4 +374,43 @@ export function restoreSql(obj, check, { only } = {}) {
     )
   }
   return [...head, ...body, 'commit;', '', '-- 끝. 돌린 뒤 건수를 세어 꾸러미와 맞는지 확인하세요.', ''].join('\n')
+}
+
+/* ── 파일 목록(manifest) 다루기 ──────────────────────────────────── */
+
+/* 저장소 경로로 **써도 되는** 모양인지.
+   ⚠️ 꾸러미는 바깥에서 들어온 파일이다. 경로를 그대로 믿고 파일을 쓰는 도구가
+      있으면 `../../어딘가` 로 폴더를 빠져나간다(경로 탈출). 받아들일 때 막는다. */
+const BS = String.fromCharCode(92), NUL = String.fromCharCode(0)
+export function safePath(p) {
+  if (typeof p !== 'string' || p.length === 0 || p.length > 1024) return false
+  if (p.includes(NUL) || p.includes(BS)) return false        // 윈도 구분자·널 글자
+  if (p.startsWith('/') || /^[a-zA-Z]:/.test(p)) return false   // 뿌리부터 적은 경로
+  return !p.split('/').some((seg) => seg === '' || seg === '.' || seg === '..')
+}
+
+/* 꾸러미에 적힌 파일 목록(want)과 **실제로 내려받은 것**(got)을 맞춰 본다.
+   둘 다 [{ path, size }]. 크기를 모르면 size 를 null 로 둔다(그 파일은 크기를 안 본다).
+   돌려주는 것: { ok, unsafe, missing, extra, wrongSize } */
+export function checkManifest(want = [], got = []) {
+  const unsafe = []
+  const w = new Map()
+  for (const f of want) {
+    if (!f || !safePath(f.path)) { unsafe.push(String(f?.path ?? '(빈 경로)').slice(0, 120)); continue }
+    w.set(f.path, f.size)
+  }
+  const g = new Map()
+  for (const f of got) {
+    if (!f || !safePath(f.path)) { unsafe.push(String(f?.path ?? '(빈 경로)').slice(0, 120)); continue }
+    g.set(f.path, f.size)
+  }
+  const missing = [...w.keys()].filter((p) => !g.has(p))
+  const extra = [...g.keys()].filter((p) => !w.has(p))
+  const wrongSize = [...w.entries()]
+    .filter(([p, s]) => g.has(p) && s != null && g.get(p) != null && Number(s) !== Number(g.get(p)))
+    .map(([p, s]) => ({ path: p, want: Number(s), got: Number(g.get(p)) }))
+  return {
+    ok: unsafe.length === 0 && missing.length === 0 && wrongSize.length === 0,
+    unsafe, missing, extra, wrongSize,
+  }
 }

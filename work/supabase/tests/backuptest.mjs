@@ -232,5 +232,60 @@ colInj.tables.settings = [{ id: 1, 'x" = 1, y': 2 }]
 ok('★ 이상한 칸 이름이면 SQL 을 안 만든다',
   (await threw(() => B.restoreSql(colInj, { ok: true, problems: [], tables: [] }))) !== null, true)
 
+/* ── 파일 경로가 안전한가 ─────────────────────────────────────── */
+ok('보통 경로는 통과', B.safePath('abc/def.png'), true)
+ok('★ 폴더를 빠져나가면 거절', B.safePath('../../etc/passwd'), false)
+ok('★ 가운데에 .. 가 있어도 거절', B.safePath('a/../../b.png'), false)
+ok('★ 뿌리부터 적으면 거절', B.safePath('/etc/passwd'), false)
+ok('★ 윈도 드라이브도 거절', B.safePath('C:/Windows/x.dll'), false)
+ok('★ 윈도 구분자도 거절', B.safePath('a\\b.png'), false)
+ok('★ 널 글자도 거절', B.safePath(`a/b${String.fromCharCode(0)}.png`), false)
+ok('빈 칸이 든 경로는 거절', B.safePath('a//b.png'), false)
+ok('점 하나짜리 칸도 거절', B.safePath('a/./b.png'), false)
+ok('빈 글자는 거절', B.safePath(''), false)
+ok('글자가 아니면 거절', B.safePath(null), false)
+ok('너무 길면 거절', B.safePath('a'.repeat(1100)), false)
+
+/* ── 파일 목록 맞춰 보기 ───────────────────────────────────────── */
+const M = (w, g) => B.checkManifest(w, g)
+ok('같으면 통과', M([{ path: 'a.png', size: 3 }], [{ path: 'a.png', size: 3 }]).ok, true)
+ok('★ 안 받은 파일을 잡는다',
+  M([{ path: 'a.png', size: 3 }, { path: 'b.png', size: 4 }], [{ path: 'a.png', size: 3 }]).missing, ['b.png'])
+ok('★ 크기가 다르면 잡는다',
+  M([{ path: 'a.png', size: 3 }], [{ path: 'a.png', size: 9 }]).wrongSize,
+  [{ path: 'a.png', want: 3, got: 9 }])
+ok('크기가 다르면 통과 못 한다', M([{ path: 'a.png', size: 3 }], [{ path: 'a.png', size: 9 }]).ok, false)
+ok('크기를 모르면 안 따진다', M([{ path: 'a.png', size: null }], [{ path: 'a.png', size: 9 }]).ok, true)
+ok('더 있는 파일은 잘못이 아니다',
+  M([{ path: 'a.png', size: 3 }], [{ path: 'a.png', size: 3 }, { path: 'c.png', size: 1 }]).ok, true)
+ok('더 있는 파일은 따로 알린다',
+  M([{ path: 'a.png', size: 3 }], [{ path: 'a.png', size: 3 }, { path: 'c.png', size: 1 }]).extra, ['c.png'])
+ok('★ 꾸러미 쪽 경로가 이상하면 잡는다', M([{ path: '../x' }], []).unsafe, ['../x'])
+ok('★ 폴더 쪽 경로가 이상해도 잡는다', M([], [{ path: '/etc/x' }]).unsafe, ['/etc/x'])
+ok('경로가 이상하면 통과 못 한다', M([{ path: '../x' }], []).ok, false)
+ok('빈 목록끼리는 통과', M([], []).ok, true)
+ok('아무것도 안 줘도 버틴다', M().ok, true)
+
+/* ── 경로 탈출이 든 꾸러미는 검사에서 걸린다 ──────────────────── */
+const escape = clone(pack)
+escape.files['approval-files'] = [{ path: '../../어딘가/x.png', size: 1 }]
+const esc = await B.checkBackup(escape)
+ok('★ 경로 탈출이 든 꾸러미는 거절', esc.ok, false)
+ok('어느 저장소인지 말한다', esc.problems.some((p) => p.includes('approval-files')), true)
+
+const notList = clone(pack); notList.files['chat-files'] = '파일들'
+ok('★ 파일 목록이 배열이 아니면 거절', (await B.checkBackup(notList)).ok, false)
+
+/* 꾸러미를 만들 때도 이상한 경로는 빼고 **적어 둔다** */
+const dirty = await B.buildBackup({
+  fetchTable: fetchOk,
+  listFiles: async () => ({ files: [{ path: 'ok.png', size: 1 }, { path: '../나쁨.png', size: 1 }], truncated: false }),
+})
+ok('★ 이상한 경로는 빼고 담는다', dirty.files['approval-files'].map((f) => f.path), ['ok.png'])
+ok('★ 뺐다는 사실을 적어 둔다',
+  dirty.problems.some((p) => p.bucket === 'approval-files' && p.error.includes('쓸 수 없는 경로')), true)
+ok('뺀 꾸러미는 전체가 아니다', dirty.complete, false)
+
+
 console.log(`\n${pass}개 통과 · ${fail}개 실패`)
 process.exit(fail ? 1 : 0)
