@@ -35,6 +35,9 @@ git log --oneline 66fc046~1..HEAD
 | `work/src/components/BackupCard.jsx` | 관리 → 기타 설정 화면 |
 | `work/scripts/check-files.mjs` | 파일 목록 만들기·맞추기 (읽기 전용이 기본) |
 | `work/BACKUP.md` | **운영 절차서. 여기부터 읽으세요** |
+| `work/RESTORE-DRILL.md` | **복구 연습 실행안** — 설치할 것·암호·연습 자리·시험 기준·지은님이 정할 것 |
+| `work/scripts/restore-guard.mjs` | 🔴 되살릴 자리가 운영인지 보는 **문지기** |
+| `work/supabase/tests/guardtest.mjs` | 28가지 |
 | `work/supabase/tests/backuptest.mjs` | 119가지 |
 | `work/supabase/tests/filestest.mjs` | 34가지 (실제 파일을 만들어 돌립니다) |
 | `work/supabase/tests/schematest.mjs` | 10가지 (코드↔마이그레이션 대조) |
@@ -61,7 +64,9 @@ git log --oneline 66fc046~1..HEAD
 | **보관 폴더 구성원 확인** | ✅ **끝남** | 0-3-1 — 대표님·지은님 둘뿐 |
 | **보관 자리에 올리기** | ❌ 안 함 | 폴더는 아직 비어 있습니다 |
 | **Dropbox 권한 변경** | — | 바꿀 일이 없었습니다. 읽기만 했습니다 |
-| **격리 시험 환경** | ❌ 안 정함 | 🔴 **무료 프로젝트 둘(viren·viren-work)이 이미 찼습니다.**<br>하나 더가 공짜라고 단정 금지. 선택지는 `BACKUP.md` 10-③ |
+| **격리 시험 환경** | ❌ 안 정함 | 🔴 선택지·비용은 `RESTORE-DRILL.md` 3번 |
+| **도구 설치**(Docker·CLI·psql·7-Zip) | ❌ **하나도 안 깔림** | `RESTORE-DRILL.md` 1번. **Docker 는 라이선스·재부팅이 걸립니다** |
+| **dump 명령 확인** | ❌ 못 함 | CLI 가 없어 `--help` 를 못 봤습니다. 공식 문서가 바뀐 곳 셋(`BACKUP.md` 1번) |
 
 > 배포하면 관리 → 기타 설정에 「업무 자료 내보내기」 칸이 생깁니다.
 > 누르기 전에는 아무 일도 일어나지 않습니다. 운영 자료를 바꾸지 않습니다.
@@ -95,6 +100,7 @@ SP=/tmp/viren-test node supabase/tests/backuptest.mjs
 |---|---|
 | `node supabase/tests/backuptest.mjs` | 119개 통과 (SP 불필요) |
 | `SP=<임시폴더> node supabase/tests/filestest.mjs` | 34개 통과 |
+| `node supabase/tests/guardtest.mjs` | 28개 통과 (SP 불필요) |
 | `node supabase/tests/schematest.mjs` | 10개 통과 (SP 불필요) |
 | 나머지 5개 | 276개 통과 — **`SP` 환경변수가 있어야 돕니다** |
 | `npm run build` | 통과 |
@@ -144,6 +150,8 @@ SP=/tmp/viren-test node supabase/tests/backuptest.mjs
 | 자동 백업 없음 | 사람이 매달 쳐야 합니다. 빠뜨리면 그만큼 날아갑니다 |
 | 보관 폴더가 **상위에서 권한을 물려받는다** | 지금은 두 분뿐이지만, `★지피티문서` 가 바뀌면 따라 바뀝니다. 가끔 확인 |
 | **무료 Supabase 가 이미 둘** | 시험용을 더 만들면 **돈이 들 수 있습니다.** 확인 전 생성 금지 |
+| **Docker Desktop 이 회사에 무료인지 모름** | 직원 250명 미만 **그리고** 매출 1천만 달러 미만이어야 무료. 넘으면 유료 구독 |
+| **우리 dump 명령이 최신 CLI 와 어긋남** | `--remote`·vector 표 제외·migration history 셋이 빠져 있습니다. 깐 날 `--help` 로 확인하고 고칠 것 |
 | **Dropbox 안에서 dump 를 받으면** | 암호화 전 평문이 **즉시 동기화**되고 삭제해도 버전 기록에 남습니다. 반드시 **Dropbox 밖**에서(BACKUP.md 10번) |
 | dump·업무 JSON·파일에 개인정보 | **전부 암호화 대상.** 대표님·지은님만 접근 |
 | `.r`(오른쪽 정렬)이 표 안에서 안 먹음 | 원래부터 그랬습니다. 고치면 여러 화면이 바뀌어 **손대지 않았습니다** |
