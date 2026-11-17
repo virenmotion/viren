@@ -908,6 +908,16 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .mf-consent input{margin-top:2px;accent-color:var(--accent);flex:0 0 auto}
 .mf-msg{font-size:13px}
 .mf-err{color:#ff6b6b}
+/* 메일 앱이 안 열리는 환경을 위한 안내 — 주소를 글자로 보여주고 복사할 수 있게 한다.
+   (2026-11-17 — 발송 실패 때 화면에 회사 메일 주소가 없어 문의가 멈췄던 일이 있었다) */
+.mf-fallback{display:flex;flex-direction:column;gap:6px;padding:12px 14px;
+  border:1px solid var(--line);border-radius:10px}
+.mf-fallback-sub{color:var(--muted);font-size:12px}
+.mf-fallback-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px}
+.mf-fallback-row a{font-weight:600;text-decoration:underline;word-break:break-all}
+.mf-fallback-row button{font:inherit;font-size:12px;color:var(--fg);background:none;
+  border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer;white-space:nowrap}
+.mf-fallback-row button:hover{border-color:var(--fg)}
 .mf-submit{align-self:flex-start;margin-top:4px;cursor:pointer;border:0}
 .mf-submit:disabled{opacity:.55;cursor:default}
 

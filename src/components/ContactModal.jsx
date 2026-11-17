@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { sendMail, fitsUpload } from '../lib/sendForm'
+import MailFallback from './MailFallback'
 
 const EMAIL = 'viren@viren.kr'
 
@@ -147,7 +148,7 @@ export default function ContactModal({ open, onClose }) {
             </label>
 
             {status === 'error' && <p className="mf-msg mf-err">{errMsg}</p>}
-            {status === 'mailto' && <p className="mf-msg">메일 앱이 열립니다. 내용을 확인하고 보내주세요.</p>}
+            {status === 'mailto' && <MailFallback email={EMAIL} />}
 
             <button className="btn mf-submit" disabled={status === 'sending'}>
               {status === 'sending' ? '보내는 중…' : '문의 보내기'}
