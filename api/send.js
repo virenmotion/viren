@@ -38,7 +38,14 @@ const {
    브라우저는 POST 에 Origin 을 항상 붙이므로 정상 문의는 영향받지 않는다.
    Referer 확인은 혹시 모를 경우를 위한 2중 안전장치다. */
 const ALLOWED = ['https://www.viren.kr', 'https://viren.kr']
-const isLocal = (u) => u.startsWith('http://localhost:')
+
+/* 🔴 2026-11-18 — localhost 예외를 운영에서 뺀다.
+   localhost 는 누구나 자기 컴퓨터에 띄울 수 있다. 개발용으로 넣은 예외가
+   운영에도 살아 있어서, 그 사실을 아는 사람은 회사 메일함으로 아무거나
+   보낼 수 있었다(10/08 에 막은 Origin 구멍과 같은 종류다).
+   이제 운영(VERCEL_ENV=production)에서는 우리 주소만 받는다. */
+const IS_PROD = process.env.VERCEL_ENV === 'production'
+const isLocal = (u) => !IS_PROD && u.startsWith('http://localhost:')
 const fromUs = (origin, referer) => {
   if (origin) return ALLOWED.includes(origin) || isLocal(origin)
   if (!referer) return false
@@ -48,6 +55,26 @@ const fromUs = (origin, referer) => {
   } catch { return false }
 }
 
+/* 답장 주소로 쓸 수 있는 모양인지 본다.
+   🔴 2026-11-18 — nodemailer 10.0.12 의 주소 해석기에 알려진 허점이 넷 있다
+   (GHSA-8c8m-p3m8-cjg8 등). 따옴표·괄호·쉼표·세미콜론·꺾쇠가 섞인 주소가
+   "보이는 것과 다른 주소" 로 읽혀, 답장이 엉뚱한 곳으로 갈 수 있다.
+   버전을 올리더라도, 애초에 그런 글자를 replyTo 에 넣지 않는 게 안전하다.
+   ⚠️ 모양이 이상하면 **발송을 막지 않고 replyTo 만 버린다.**
+      지원서가 사라지는 것이 더 나쁘고, 주소는 본문에 그대로 남는다. */
+const SAFE_EMAIL = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+const safeReplyTo = (v) => {
+  const s = String(v ?? '').trim()
+  return s.length <= 254 && SAFE_EMAIL.test(s) ? s : undefined
+}
+
+/* 한 칸이 너무 길면 자른다 — 메일함이 쓰레기로 차는 것을 막는다 */
+const MAX_FIELD = 20000
+const cut = (v) => {
+  const s = String(v ?? '')
+  return s.length > MAX_FIELD ? s.slice(0, MAX_FIELD) + '\n…(너무 길어 잘랐습니다)' : s
+}
+
 const esc = (s) =>
   String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -55,6 +82,7 @@ const esc = (s) =>
 function buildHtml(title, fields) {
   const rows = Object.entries(fields)
     .filter(([, v]) => v != null && String(v).trim() !== '')
+    .map(([k, v]) => [k, cut(v)])
     .map(([k, v]) =>
       `<tr><th align="left" style="padding:6px 14px 6px 0;color:#666;white-space:nowrap;vertical-align:top">${esc(k)}</th>` +
       `<td style="padding:6px 0;white-space:pre-wrap">${esc(v)}</td></tr>`)
@@ -101,7 +129,7 @@ export default async function handler(req, res) {
     await transporter.sendMail({
       from: `"VIREN 홈페이지" <${SMTP_USER}>`,   // 발신자는 반드시 인증된 계정이어야 한다
       to: MAIL_TO || SMTP_USER,
-      replyTo: replyTo || undefined,             // 답장하면 문의자에게 바로 가도록
+      replyTo: safeReplyTo(replyTo),             // 답장하면 문의자에게 바로 가도록(모양이 이상하면 뺀다)
       subject: subject || 'VIREN 홈페이지 문의',
       html: buildHtml(title || subject || '문의', fields),
       attachments: files,
