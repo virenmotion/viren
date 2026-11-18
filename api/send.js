@@ -8,11 +8,22 @@ import nodemailer from 'nodemailer'
    필요한 환경변수 (Vercel → Settings → Environment Variables):
      SMTP_HOST  카카오워크 메일의 SMTP 서버 주소
      SMTP_PORT  465(SSL) 또는 587(STARTTLS)
-     SMTP_USER  virenmotion@viren.kr (인증·발신 계정. 그룹메일 viren@ 로는 SMTP 인증 불가)
-     SMTP_PASS  메일 계정 비밀번호(또는 앱 비밀번호)
-     MAIL_TO    받는 주소. 없으면 SMTP_USER 로 보낸다.
+     SMTP_USER  인증·발신에 쓰는 **개인** 메일 계정
+                ⚠️ 그룹메일 viren@viren.kr 로는 SMTP 인증이 안 된다(시도해서 확인함).
+                ⚠️ 실제로 어느 계정인지는 **여기 적지 않는다.** Vercel 설정에만 둔다.
+     SMTP_PASS  그 계정의 비밀번호(또는 앱 비밀번호)
+     MAIL_TO    받는 주소. 없으면 SMTP_USER 로 보낸다. (지금은 그룹메일)
 
-   ⚠️ SMTP_PASS 는 절대 코드나 저장소에 넣지 말 것. Vercel 설정에만 둔다. */
+   ⚠️ SMTP_PASS 는 절대 코드나 저장소에 넣지 말 것. Vercel 설정에만 둔다.
+
+   🔴 2026-11-17 사고 — 이 함수가 한 번도 메일을 보낸 적이 없었다.
+      SMTP_PASS 가 맞지 않아 `535 5.7.1 Authentication failed` 로 계속 실패했고,
+      화면에는 "메일 앱이 열립니다" 한 줄만 떠서 지원자가 거기서 멈췄다.
+      실패해도 아무도 모른다 — 폼을 고칠 때마다 **실제로 한 통 보내서 받아보고** 끝낸다.
+
+   🔴 사람 계정에 매여 있다 — SMTP_USER 가 **개인 계정**이라,
+      그 사람이 비밀번호를 바꾸거나 퇴사하면 문의·지원 메일이 조용히 끊긴다.
+      발송 전용 계정으로 옮기는 것이 맞다. (2026-11-18 기준 아직 안 옮김) */
 
 const {
   SMTP_HOST, SMTP_PORT = '465', SMTP_USER, SMTP_PASS, MAIL_TO,
