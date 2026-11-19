@@ -128,6 +128,15 @@ export default function ApplyModal({ open, job, onClose }) {
               <input type="checkbox" checked={form.agree} onChange={set('agree')} />
               <span>개인정보 수집·이용(채용 전형 목적)에 동의합니다.</span>
             </label>
+            {/* 동의를 받을 때 알려야 하는 것들 — 항목·목적·기간·거부할 권리.
+                CAREER 페이지 아래에도 적혀 있지만, 이 창이 페이지를 덮으므로
+                체크하는 자리에서 보이도록 여기에도 둔다. (2026-11-19) */}
+            <p className="mf-consent-detail">
+              <b>수집 항목</b> 이름 · 이메일 · 연락처 · 첨부 서류(지원서 · 포트폴리오)<br />
+              <b>이용 목적</b> 채용 전형 진행과 결과 안내<br />
+              <b>보관 기간</b> 등록일로부터 1년, 이후 안전하게 파기<br />
+              동의하지 않으셔도 되지만, 그 경우 지원 접수가 어렵습니다.
+            </p>
 
             {status === 'error' && <p className="mf-msg mf-err">{errMsg}</p>}
             {status === 'mailto' && <MailFallback email={APPLY_EMAIL} />}

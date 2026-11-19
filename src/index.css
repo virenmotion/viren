@@ -906,6 +906,10 @@ section{padding:clamp(90px,13vh,170px) var(--pad);position:relative}
 .mf-consent{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--muted);cursor:pointer;
   font-family:'Pretendard Variable',Pretendard,sans-serif}
 .mf-consent input{margin-top:2px;accent-color:var(--accent);flex:0 0 auto}
+/* 동의 체크 아래 고지 — 항목·목적·기간·거부할 권리. 읽히되 폼을 가리지 않게 작게. */
+.mf-consent-detail{margin:-2px 0 0;padding-left:23px;font-size:11.5px;line-height:1.75;color:var(--muted);
+  font-family:'Pretendard Variable',Pretendard,sans-serif;opacity:.85}
+.mf-consent-detail b{display:inline-block;min-width:60px;font-weight:600;color:inherit;opacity:.8}
 .mf-msg{font-size:13px}
 .mf-err{color:#ff6b6b}
 /* 메일 앱이 안 열리는 환경을 위한 안내 — 주소를 글자로 보여주고 복사할 수 있게 한다.

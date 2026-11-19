@@ -146,6 +146,13 @@ export default function ContactModal({ open, onClose }) {
               <input type="checkbox" checked={form.agree} onChange={set('agree')} />
               <span>개인정보 수집·이용(문의 응대 목적)에 동의합니다.</span>
             </label>
+            {/* 동의를 받을 때 알려야 하는 것들 — 항목·목적·기간·거부할 권리. (2026-11-19) */}
+            <p className="mf-consent-detail">
+              <b>수집 항목</b> 이름 · 이메일 · 연락처 · 회사명 · 문의 내용<br />
+              <b>이용 목적</b> 문의 응대와 회신<br />
+              <b>보관 기간</b> 문의 처리 완료 후 1년, 이후 안전하게 파기<br />
+              동의하지 않으셔도 되지만, 그 경우 문의 접수가 어렵습니다.
+            </p>
 
             {status === 'error' && <p className="mf-msg mf-err">{errMsg}</p>}
             {status === 'mailto' && <MailFallback email={EMAIL} />}
