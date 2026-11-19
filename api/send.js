@@ -82,6 +82,48 @@ const cut = (v) => {
   return s.length > MAX_FIELD ? s.slice(0, MAX_FIELD) + '\n…(너무 길어 잘랐습니다)' : s
 }
 
+/* 같은 곳에서 너무 자주 보내는 것을 막는다 — 2026-11-19.
+   횟수를 이 함수의 메모리에만 둔다. Vercel 함수는 한동안 살아 있다가 사라지므로
+   ⚠️ 느슨하다 — 함수가 새로 뜨면 0부터 다시 센다. 그래도 "실수로 여러 번 누름"과
+   단순 장난은 걸러진다. 더 조여야 하면 그때 KV 나 DB 로 옮긴다.
+
+   🔴 "요청 수" 가 아니라 "실제로 보낸 수" 를 센다.
+      첨부 오류 등으로 몇 번 실패한 뒤 성공해야 하는 지원자가 막히면 안 된다.
+      봇은 Origin 검사와 허니팟이 이미 걸러낸다. */
+const RATE_WINDOW_MS = 10 * 60 * 1000   // 10분
+const RATE_MAX = 5                       // 그 안에 5통까지
+const RATE_MAX_KEYS = 2000               // 메모리가 무한정 늘지 않게
+const sentAt = new Map()                 // 보낸 곳 -> 보낸 시각들
+
+const clientIp = (req) => {
+  const xf = req.headers['x-forwarded-for']
+  const first = (Array.isArray(xf) ? xf[0] : String(xf ?? '')).split(',')[0].trim()
+  /* 🔴 못 알아내면 빈 값을 준다. 그러면 제한을 걸지 않는다.
+     헤더가 사라졌을 때 모든 사람을 한 바구니에 넣으면 서로를 막아
+     지원서가 통째로 유실될 수 있다. 그쪽이 더 나쁘다. */
+  return first || String(req.headers['x-real-ip'] ?? '').trim()
+}
+
+const recentSends = (ip, now) => {
+  const list = (sentAt.get(ip) || []).filter((t) => now - t < RATE_WINDOW_MS)
+  if (list.length) sentAt.set(ip, list)
+  else sentAt.delete(ip)
+  return list
+}
+
+const sweep = (now) => {
+  for (const [k, v] of sentAt) {
+    const keep = v.filter((t) => now - t < RATE_WINDOW_MS)
+    if (keep.length) sentAt.set(k, keep)
+    else sentAt.delete(k)
+  }
+  while (sentAt.size > RATE_MAX_KEYS) sentAt.delete(sentAt.keys().next().value)
+}
+
+/* 시험용 출구. 운영 동작에는 영향이 없다 — 시험이 베껴 쓴 사본이 아니라
+   실제로 쓰는 함수를 검사하도록 열어 둔다. (scripts/ratelimit-test.mjs) */
+export const __rate = { clientIp, recentSends, sweep, sentAt, RATE_WINDOW_MS, RATE_MAX, RATE_MAX_KEYS }
+
 const esc = (s) =>
   String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -120,6 +162,21 @@ export default async function handler(req, res) {
     const hasContent = Object.values(fields || {}).some((v) => String(v ?? '').trim() !== '')
     if (!hasContent) return res.status(400).json({ error: 'empty' })
 
+    /* 너무 자주 보내는지 본다 (보낸 것만 센다) */
+    const ip = clientIp(req)
+    const now = Date.now()
+    let sent = []
+    if (ip) {
+      if (sentAt.size > 200) sweep(now)
+      sent = recentSends(ip, now)
+      if (sent.length >= RATE_MAX) {
+        const wait = Math.ceil((RATE_WINDOW_MS - (now - sent[0])) / 1000)
+        res.setHeader('Retry-After', String(wait))
+        console.warn('[send] 한도 초과로 거절 — 남은 시간(초):', wait)
+        return res.status(429).json({ error: 'too many', retryAfter: wait })
+      }
+    }
+
     const files = (Array.isArray(attachments) ? attachments : [])
       .filter((a) => a?.name && a?.content)
       .slice(0, 5)
@@ -141,6 +198,9 @@ export default async function handler(req, res) {
       html: buildHtml(title || subject || '문의', fields),
       attachments: files,
     })
+
+    /* 보내는 데 성공했을 때만 센다 */
+    if (ip) sentAt.set(ip, [...sent, Date.now()])
 
     return res.status(200).json({ ok: true })
   } catch (e) {
