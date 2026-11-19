@@ -43,9 +43,16 @@ const ALLOWED = ['https://www.viren.kr', 'https://viren.kr']
    localhost 는 누구나 자기 컴퓨터에 띄울 수 있다. 개발용으로 넣은 예외가
    운영에도 살아 있어서, 그 사실을 아는 사람은 회사 메일함으로 아무거나
    보낼 수 있었다(10/08 에 막은 Origin 구멍과 같은 종류다).
-   이제 운영(VERCEL_ENV=production)에서는 우리 주소만 받는다. */
-const IS_PROD = process.env.VERCEL_ENV === 'production'
-const isLocal = (u) => !IS_PROD && u.startsWith('http://localhost:')
+   이제 운영(VERCEL_ENV=production)에서는 우리 주소만 받는다.
+
+   🔴 2026-11-19 — 한 번 더 좁힌다. 어제 쓴 "운영이 아니면 허용" 은 미리보기
+      배포(VERCEL_ENV=preview)까지 열어 둔다. 미리보기 주소는 기본이 공개라,
+      그 주소를 아는 사람이 Origin 을 localhost 로 적으면 같은 구멍이 그대로
+      남는다(환경변수가 All Environments 로 걸려 있으면 실제로 발송된다).
+      이제 **내 컴퓨터에서 돌릴 때만** 허용한다 — VERCEL_ENV 가 아예 없거나
+      development 일 때. 배포된 주소는 운영·미리보기 모두 우리 주소만 받는다. */
+const LOCAL_DEV = !process.env.VERCEL_ENV || process.env.VERCEL_ENV === 'development'
+const isLocal = (u) => LOCAL_DEV && u.startsWith('http://localhost:')
 const fromUs = (origin, referer) => {
   if (origin) return ALLOWED.includes(origin) || isLocal(origin)
   if (!referer) return false
