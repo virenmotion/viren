@@ -129,17 +129,23 @@ function AdminPage() {
 }
 
 /* 관리자 페이지에서는 마케팅용 헤더/푸터를 숨긴다.
-   홈('/')은 마지막 패널에 자체 푸터를 포함하므로 전역 푸터를 렌더하지 않는다. */
-function Chrome() {
+   홈('/')은 마지막 패널에 자체 푸터를 포함하므로 전역 푸터를 렌더하지 않는다.
+
+   2026-11-20 — 헤더와 푸터를 따로 렌더한다.
+   예전에는 둘을 한 덩어리(Chrome)로 묶어 <Routes> 뒤에 뒀는데, 헤더가 화면 맨 위에
+   보이면서도 DOM 에서는 본문보다 뒤에 있었다. 그래서 Tab 을 처음 누르면 맨 위 메뉴가
+   아니라 본문 한참 아래 항목으로 먼저 갔다(실측: 첫 Tab 이 WHAT WE DO 의 첫 링크).
+   헤더는 position:fixed 라 DOM 순서를 앞으로 옮겨도 화면 배치는 그대로다. */
+function SiteHeader() {
   const { pathname } = useLocation()
   if (pathname.startsWith('/admin')) return null
-  const isHome = pathname === '/'
-  return (
-    <>
-      <Header />
-      {!isHome && <Footer />}
-    </>
-  )
+  return <Header />
+}
+
+function SiteFooter() {
+  const { pathname } = useLocation()
+  if (pathname.startsWith('/admin') || pathname === '/') return null
+  return <Footer />
 }
 
 /* 인트로 프리로더 게이트 — /admin 등 관리자 경로에선 인트로를 건너뛰고 즉시 진입 */
@@ -170,6 +176,7 @@ export default function App() {
         <Boot setReady={setReady} />
         <Cursor />
         <ScrollManager />
+        <SiteHeader />
 
         <Routes>
           <Route path="/" element={<HomePage ready={ready} />} />
@@ -181,7 +188,7 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
 
-        <Chrome />
+        <SiteFooter />
       </ProjectsProvider>
     </BrowserRouter>
   )

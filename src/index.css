@@ -101,6 +101,7 @@ header::before{
   background:linear-gradient(to bottom,rgba(10,10,10,.96) 0%,rgba(10,10,10,.82) 45%,rgba(10,10,10,0) 100%);
 }
 header .logo{width:clamp(96px,10vw,124px);display:block}
+header .logo .wm{display:block}
 header nav{display:flex;gap:30px;font-size:13px;letter-spacing:.12em;color:var(--fg)}
 header nav a{position:relative}
 
@@ -1217,3 +1218,33 @@ footer{
 .adm-img img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;border:1px solid var(--line)}
 .adm-img-tools{display:flex;gap:4px;margin-top:4px}
 .adm-img-tools .adm-btn{flex:1;padding:3px 0;font-size:11px}
+
+/* ===== 휴대폰 접근성 보정 (2026-11-20) =====
+   실측해서 기준에 못 미친 것만 고친다. 데스크톱은 건드리지 않는다.
+   기준 ① 누를 자리 최소 44×44px  ② 본문 최소 16px
+   이 블록은 파일 맨 끝에 둔다 — 앞의 규칙을 덮어써야 하기 때문. */
+@media(max-width:760px){
+  /* ① 누를 자리 — 보이는 모양은 그대로 두고 눌리는 범위만 넓힌다 */
+  .nav-toggle{width:44px;height:44px}                  /* 36 → 44 */
+  header nav a{min-height:44px;display:inline-flex;align-items:center}   /* 33 → 44 */
+  .social-col ul a,.ct-social a{                        /* 아이콘 24 → 누를 자리 44 */
+    min-width:44px;min-height:44px;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  .foot-download{min-height:44px}                       /* 높이 16 → 44 */
+  .brand .mail{min-height:44px;display:inline-flex;align-items:center}   /* 22 → 44 */
+  /* 로고 — 보이는 워드마크 크기는 그대로, 링크 높이만 44px */
+  header .logo{min-height:44px;display:flex;align-items:center}
+  header .logo .wm{width:100%}
+  .sound-toggle{width:44px;height:44px}                 /* 34 → 44 */
+
+  /* ② 본문 글자 — 읽는 문장은 16px 이상으로 */
+  .about-p{font-size:16px}                              /* 15 → 16 */
+  .meaning-col .mt2{font-size:16px}                     /* 13 → 16 (PHILOSOPHY 다섯 줄) */
+  .svc-row p{font-size:16px}                            /* 14 → 16 (WHAT WE DO 설명) */
+  .brand p{font-size:16px}                              /* 14 → 16 (푸터 주소) */
+  /* 아래 둘은 읽는 문장이 아니라 라벨이라 16까지 올리면 모양이 깨진다.
+     대신 너무 작던 것만 읽을 수 있는 크기로 올린다. */
+  .foot-download{font-size:14px}                        /* 12 → 14 */
+  .footer-bottom{font-size:13px}                        /* 11 → 13 */
+}

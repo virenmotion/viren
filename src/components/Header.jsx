@@ -24,8 +24,11 @@ export default function Header() {
 
   return (
     <header className={open ? 'nav-open' : ''}>
-      <Link to="/" className="logo wm" aria-label="VIREN 홈" onClick={close}>
-        <img src="/assets/viren_wordmark.png" alt="VIREN" />
+      {/* 2026-11-20 — 크롭(.wm)을 안쪽 span 으로 옮겼다.
+          .wm 은 overflow:hidden 이라 링크에 직접 걸면 누를 범위를 넓힐 수 없었다.
+          링크는 바깥에서 높이만 갖고, 워드마크 크롭은 안에서 그대로 한다. */}
+      <Link to="/" className="logo" aria-label="VIREN 홈" onClick={close}>
+        <span className="wm"><img src="/assets/viren_wordmark.png" alt="VIREN" /></span>
       </Link>
 
       <button
